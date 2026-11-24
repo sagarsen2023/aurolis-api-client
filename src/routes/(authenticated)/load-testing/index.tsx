@@ -5,5 +5,7 @@ export const Route = createFileRoute("/(authenticated)/load-testing/")({
 });
 
 function RouteComponent() {
-  return <h1 className="text-2xl font-semibold tracking-tight">Load testing</h1>;
+  return (
+    <h1 className="text-2xl font-semibold tracking-tight">Load testing</h1>
+  );
 }
