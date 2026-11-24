@@ -50,7 +50,7 @@ function SelectTrigger({
         "hover:bg-surface-hover focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
         "aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50 data-popup-open:bg-surface-hover",
-        "data-[size=sm]:h-8 data-[size=sm]:px-3 data-[size=default]:h-10 data-[size=lg]:h-[46px]",
+        "data-[size=sm]:h-8 data-[size=sm]:px-3 data-[size=default]:h-10 data-[size=lg]:h-11.5",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         (label || error) && "w-full",
         className,

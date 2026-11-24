@@ -79,7 +79,7 @@ function ResponseHealth() {
         <CardTitle className="text-xl font-medium tracking-[-0.01em]">
           Response health
         </CardTitle>
-        <CardDescription className="text-[14px] text-mute">
+        <CardDescription className="text-sm text-mute">
           Status classes across {sent} sent requests
         </CardDescription>
       </CardHeader>

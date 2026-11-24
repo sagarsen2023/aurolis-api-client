@@ -40,7 +40,7 @@ export function SettingsNav({
             aria-current={selected ? "true" : undefined}
             onClick={() => onSelect(item.id)}
             className={cn(
-              "flex h-9 items-center gap-2.5 rounded-full px-3 text-left text-[14px] transition-colors outline-none",
+              "flex h-9 items-center gap-2.5 rounded-full px-3 text-left text-sm transition-colors outline-none",
               "focus-visible:ring-2 focus-visible:ring-ring",
               selected
                 ? "bg-surface-selected font-medium text-foreground"

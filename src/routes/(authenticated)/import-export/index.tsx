@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/(authenticated)/import-export/")({
   component: RouteComponent,
@@ -6,6 +7,11 @@ export const Route = createFileRoute("/(authenticated)/import-export/")({
 
 function RouteComponent() {
   return (
-    <h1 className="text-2xl font-semibold tracking-tight">Import & export</h1>
+    <div className="mx-auto w-full max-w-310 px-8 pt-8 pb-12">
+      <PageHeader
+        title="Import & export"
+        description="Bring collections in, or take this workspace with you."
+      />
+    </div>
   );
 }

@@ -1,32 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useSetAtom } from "jotai";
 import { Download, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DEFAULT_REQUEST_TIMEOUT } from "@/constants/settings";
 import { DASHBOARD_USER } from "@/constants/dashboard";
 import { WORKSPACES } from "@/constants/workspaces";
-import {
-  confirmCloseAtom,
-  connectedAssistantsAtom,
-  requestTimeoutAtom,
-  workspaceNamesAtom,
-} from "@/context/settings-atoms";
 import { authService } from "@/services/auth.service";
 import { SettingRow, SettingsGroup, SettingsSection } from "./section";
 
-function defaultNames() {
-  return Object.fromEntries(
-    WORKSPACES.map((workspace) => [workspace.id, workspace.name]),
-  );
-}
-
 export function DataSection() {
   const navigate = useNavigate();
-  const setNames = useSetAtom(workspaceNamesAtom);
-  const setTimeoutValue = useSetAtom(requestTimeoutAtom);
-  const setConfirmClose = useSetAtom(confirmCloseAtom);
-  const setConnected = useSetAtom(connectedAssistantsAtom);
   const [handle, setHandle] = useState(DASHBOARD_USER.handle);
 
   useEffect(() => {
@@ -53,13 +35,6 @@ export function DataSection() {
     anchor.download = "aurolis-workspace.json";
     anchor.click();
     URL.revokeObjectURL(url);
-  };
-
-  const resetDemo = () => {
-    setNames(defaultNames());
-    setTimeoutValue(DEFAULT_REQUEST_TIMEOUT);
-    setConfirmClose(true);
-    setConnected({});
   };
 
   const signOut = async () => {

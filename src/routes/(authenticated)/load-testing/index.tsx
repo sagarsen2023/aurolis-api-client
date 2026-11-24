@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/(authenticated)/load-testing/")({
   component: RouteComponent,
@@ -6,6 +7,11 @@ export const Route = createFileRoute("/(authenticated)/load-testing/")({
 
 function RouteComponent() {
   return (
-    <h1 className="text-2xl font-semibold tracking-tight">Load testing</h1>
+    <div className="mx-auto w-full max-w-310 px-8 pt-8 pb-12">
+      <PageHeader
+        title="Load testing"
+        description="Run a request many times and watch how it holds up."
+      />
+    </div>
   );
 }

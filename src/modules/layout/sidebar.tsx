@@ -1,4 +1,4 @@
-import { useEffect, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useSetAtom } from "jotai";
 import { cn } from "@/lib/utils";
@@ -13,12 +13,10 @@ import {
   type SideMenuItem,
 } from "@/constants/menu-items";
 import { breadCrumbAtom } from "@/context/breadcrumb-context";
+import { authService } from "@/services/auth.service";
 import { getInitials } from "@/utils/extract-initials";
 
 const ALL_ITEMS = [...sideMenuItems, ...bottomMenuItems];
-
-// Placeholder until auth provides the signed-in user.
-const CURRENT_USER = { name: "Aurolis User" };
 
 function isActivePath(link: string, pathname: string) {
   if (link === "/") return pathname === "/";
@@ -54,7 +52,7 @@ function RailItem({
         aria-label={item.title}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "grid size-[46px] shrink-0 place-items-center rounded-full transition-colors duration-150 outline-none",
+          "grid size-11.5 shrink-0 place-items-center rounded-full transition-colors duration-150 outline-none",
           "focus-visible:ring-2 focus-visible:ring-ring",
           active
             ? "bg-surface-selected text-ink"
@@ -70,6 +68,20 @@ function RailItem({
 function SideBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const setBreadCrumb = useSetAtom(breadCrumbAtom);
+  const [accountName, setAccountName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void authService.getStatus().then((status) => {
+      if (!active) return;
+      const user = status.user;
+      const name = user?.name?.trim() || user?.login || null;
+      setAccountName(name);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Keep the header breadcrumb in step with the current route.
   useEffect(() => {
@@ -80,24 +92,24 @@ function SideBar() {
   return (
     <nav
       aria-label="Main"
-      className="flex h-full w-[68px] shrink-0 flex-col items-center border-r border-line bg-background px-[11px] py-3.5"
+      className="flex h-full w-17 shrink-0 flex-col items-center border-r border-line bg-background px-2.75 py-3.5"
     >
       {/* Logo tile */}
       <Link
         to="/"
         aria-label="Aurolis home"
-        className="mb-4 grid size-[42px] shrink-0 place-items-center rounded-[12px] border border-line-strong bg-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="mb-4 grid size-10.5 shrink-0 place-items-center rounded-[12px] border border-line-strong bg-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <img
           src="/aurolis-logo/svg/aurolis-mark-light.svg"
           alt=""
-          className="size-[26px] dark:hidden"
+          className="size-6.5 dark:hidden"
           draggable={false}
         />
         <img
           src="/aurolis-logo/svg/aurolis-mark-dark.svg"
           alt=""
-          className="hidden size-[26px] dark:block"
+          className="hidden size-6.5 dark:block"
           draggable={false}
         />
       </Link>
@@ -123,15 +135,17 @@ function SideBar() {
           />
         ))}
 
-        <RailTooltip label={CURRENT_USER.name}>
-          <button
-            type="button"
-            aria-label={`Account: ${CURRENT_USER.name}`}
-            className="grid size-10 place-items-center rounded-full bg-linear-to-br from-orb-a to-orb-c text-[13px] font-medium text-lav-ink outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {getInitials({ name: CURRENT_USER.name })}
-          </button>
-        </RailTooltip>
+        {accountName ? (
+          <RailTooltip label={accountName}>
+            <button
+              type="button"
+              aria-label={`Account: ${accountName}`}
+              className="grid size-10 place-items-center rounded-full bg-linear-to-br from-orb-a to-orb-c text-[13px] font-medium text-lav-ink outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {getInitials({ name: accountName })}
+            </button>
+          </RailTooltip>
+        ) : null}
       </div>
     </nav>
   );
