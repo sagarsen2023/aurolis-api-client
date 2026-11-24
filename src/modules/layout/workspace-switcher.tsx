@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WORKSPACES } from "@/constants/workspaces";
+import { workspaceNamesAtom } from "@/context/settings-atoms";
 import {
   currentWorkspaceAtom,
   workspaceIdAtom,
@@ -44,6 +45,8 @@ export function WorkspaceTile({
 function WorkspaceSwitcher() {
   const [workspaceId, setWorkspaceId] = useAtom(workspaceIdAtom);
   const workspace = useAtomValue(currentWorkspaceAtom);
+  const names = useAtomValue(workspaceNamesAtom);
+  const workspaceName = names[workspace.id] ?? workspace.name;
 
   return (
     <DropdownMenu>
@@ -53,8 +56,8 @@ function WorkspaceSwitcher() {
           "hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40 data-popup-open:bg-surface-hover",
         )}
       >
-        <WorkspaceTile name={workspace.name} />
-        <span className="max-w-48 truncate">{workspace.name}</span>
+        <WorkspaceTile name={workspaceName} />
+        <span className="max-w-48 truncate">{workspaceName}</span>
         <ChevronDown className="size-4 text-dim" aria-hidden />
       </DropdownMenuTrigger>
 
@@ -67,9 +70,11 @@ function WorkspaceSwitcher() {
           >
             {WORKSPACES.map((w) => (
               <DropdownMenuRadioItem key={w.id} value={w.id}>
-                <WorkspaceTile name={w.name} />
+                <WorkspaceTile name={names[w.id] ?? w.name} />
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-foreground">{w.name}</span>
+                  <span className="truncate text-foreground">
+                    {names[w.id] ?? w.name}
+                  </span>
                   <span className="text-xs text-dim">{w.plan}</span>
                 </span>
               </DropdownMenuRadioItem>
