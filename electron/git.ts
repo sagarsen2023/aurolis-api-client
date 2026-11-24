@@ -1,7 +1,6 @@
 import { execFile } from "node:child_process";
 import { access, constants } from "node:fs/promises";
 import path from "node:path";
-import { resolveGitBinary, setupEnvironment } from "dugite";
 import { getAccessToken, getAuthStatus } from "./github-auth.ts";
 import type {
   GitInfo,
@@ -15,7 +14,6 @@ const IS_MAC = process.platform === "darwin";
 
 type GitBinary = {
   file: string;
-  env: Record<string, string | undefined>;
   info: GitInfo;
 };
 
@@ -128,36 +126,23 @@ async function findSystemGit(): Promise<GitBinary | null> {
     if (!atLeast(version, MIN_SYSTEM_GIT)) continue;
     return {
       file: candidate,
-      env: { ...process.env },
-      info: { source: "system", version: version.join("."), path: candidate },
+      info: { version: version.join("."), path: candidate },
     };
   }
   return null;
-}
-
-async function bundledGit(): Promise<GitBinary> {
-  const { env } = setupEnvironment({});
-  const file = resolveGitBinary();
-  const result = await runFile(file, ["--version"], { env });
-  const version = parseVersion(result.stdout);
-  if (result.exitCode !== 0 || !version) {
-    throw new GitCommandError(
-      "git_unavailable",
-      "Git isn't installed and the bundled git couldn't start.",
-    );
-  }
-  return {
-    file,
-    env,
-    info: { source: "bundled", version: version.join("."), path: file },
-  };
 }
 
 let gitBinary: Promise<GitBinary> | null = null;
 
 function getGit() {
   gitBinary ??= findSystemGit()
-    .then((found) => found ?? bundledGit())
+    .then((found) => {
+      if (found) return found;
+      throw new GitCommandError(
+        "git_unavailable",
+        `Git ${MIN_SYSTEM_GIT.join(".")} or newer isn't installed.`,
+      );
+    })
     .catch((error) => {
       gitBinary = null;
       throw error;
@@ -243,7 +228,7 @@ export async function runGit(
   const git = await getGit();
   return queued(path.resolve(repoDir), async () => {
     const env = {
-      ...git.env,
+      ...process.env,
       GIT_TERMINAL_PROMPT: "0",
       GCM_INTERACTIVE: "never",
       ...(options.network ? await networkEnv() : {}),
