@@ -3,6 +3,17 @@ import type {
   GithubDeviceFlowStart,
   GithubSignInResult,
 } from "@/types/auth/auth-response.type";
+import type {
+  CommitFilesParams,
+  PullFilesParams,
+} from "@/types/github/github-params.type";
+import type {
+  CommitFilesResponse,
+  GithubInstallation,
+  GithubRepository,
+  GithubResult,
+  PullFilesResponse,
+} from "@/types/github/github-response.type";
 
 interface AurolisBridge {
   readonly isElectron: true;
@@ -22,6 +33,18 @@ interface AurolisBridge {
     cancelSignIn(): Promise<void>;
     getStatus(): Promise<GithubAuthStatus>;
     signOut(): Promise<void>;
+    /** Accounts the GitHub App is installed on. Empty = not installed yet. */
+    installations(): Promise<GithubResult<GithubInstallation[]>>;
+    /** Opens GitHub's install page for the app in the browser. */
+    openInstallPage(): Promise<void>;
+    /** Repositories reachable through the app, with the user's role on each. */
+    repositories(): Promise<GithubResult<GithubRepository[]>>;
+    /** Reads a branch, downloading only files that differ from knownFiles. */
+    pull(params: PullFilesParams): Promise<GithubResult<PullFilesResponse>>;
+    /** Commits all changes as one commit; "conflict" if the branch moved. */
+    commit(
+      params: CommitFilesParams,
+    ): Promise<GithubResult<CommitFilesResponse>>;
   };
 }
 
