@@ -7,8 +7,10 @@ This document is the single reference for how Aurolis stores workspaces, links t
 - [Summary](#summary)
 - [Terms](#terms)
 - [Workspaces and repositories](#workspaces-and-repositories)
+- [Storage folder](#storage-folder)
 - [On-disk layout](#on-disk-layout)
 - [Git engine](#git-engine)
+- [Platform support](#platform-support)
 - [What goes into git](#what-goes-into-git)
 - [Secrets](#secrets)
 - [Switching workspaces](#switching-workspaces)
@@ -25,7 +27,8 @@ This document is the single reference for how Aurolis stores workspaces, links t
 
 - **A workspace is a git repository on the user's machine**, with its own `.git` folder: a clone of a remote, a repo the user already had, or a new local repo. Aurolis reads the workspace from a folder inside it (`aurolis.json` marks that folder).
 - **Sync is plain git:** `git status` for changes, `git diff` / `git show` for diffs, `git commit` locally (works offline), `git fetch` + `git merge` to pull, `git push` to publish. It works with GitHub, GitLab, Bitbucket or any git host, like VS Code's Source Control.
-- Aurolis ships its own git (`dugite`, the same as GitHub Desktop), so users don't need git installed.
+- **The user chooses where workspaces are stored**, once, right after signing in or choosing "Continue on this device". The default is an `Aurolis` folder in their home folder, and each workspace is a normal, visible folder inside it.
+- Aurolis ships its own git (`dugite`, the same as GitHub Desktop), so users don't need git installed. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
 - All git commands, files and tokens are handled in the **Electron main process**. The renderer asks for data by workspace id over IPC and never sees paths or tokens.
 - Per-user data (drafts, UI state, history, secrets) lives **outside the repo**, so it can never be committed.
 - The GitHub REST API (`electron/github-sync.ts`) is used only for things git can't do: listing the user's repositories and permissions, the GitHub App install page, and opening pull requests.
@@ -48,31 +51,70 @@ This document is the single reference for how Aurolis stores workspaces, links t
 
 1. **One workspace = one repository + a workspace root inside it.** The root is where `aurolis.json` lives (`""` = the repo root, or e.g. `workspaces/payments` in a monorepo).
 2. **Three ways to get a repository:**
-   - **Clone** a remote (picked from the user's GitHub repos, or any HTTPS git URL) into Aurolis's own folder.
+   - **Clone** a remote (picked from the user's GitHub repos, or any HTTPS git URL) into the [storage folder](#storage-folder).
    - **Open an existing folder** the user already cloned, e.g. `~/code/payments-api`. Aurolis uses it in place.
-   - **Create a local workspace:** Aurolis runs `git init` in its own folder. It has history from the first commit and can be published later.
+   - **Create a local workspace:** Aurolis runs `git init` in a new folder in the storage folder. It has history from the first commit and can be published later.
 3. **Different workspaces can use different repos and hosts** at the same time: a personal one on GitHub, a team one on GitLab, a local-only one.
 4. **One repo can back several workspaces** when their workspace roots differ (monorepo subfolders).
 5. **The same repo folder + workspace root can't be added twice.** Adding a remote that is already cloned (same remote URL + root) opens the existing workspace instead of cloning again.
 6. **The branch belongs to the repo, not the workspace.** Switching branches checks out another branch in the same folder, like VS Code. To work on two branches side by side, clone the repo twice (each clone is its own workspace).
-7. **Removing a workspace never deletes a folder the user brought** (rule 2, second case). Folders Aurolis created itself are deleted, after a warning about unpushed commits.
+7. **Removing a workspace never deletes a folder the user brought** (rule 2, second case). For folders Aurolis created (`managed: true`), the user chooses between "Remove from Aurolis" (keep the folder) and "Delete folder too" (after a warning about unpushed commits).
 
 ### Examples
 
 | Workspace | Repository folder | Workspace root | Remote |
 |---|---|---|---|
-| My workspace | `<userData>/workspaces/f02d…/repo` | `/` | — (local) |
-| Payments API | `<userData>/workspaces/9b1c…/repo` | `/` | `github.com/acme/payments-api` |
+| My workspace | `~/Aurolis/my-workspace` | `/` | — (local) |
+| Payments API | `~/Aurolis/payments-api` | `/` | `github.com/acme/payments-api` |
 | Identity | `~/code/platform` (user's own clone) | `workspaces/identity` | `github.com/acme/platform` |
-| Partner API | `<userData>/workspaces/c71a…/repo` | `/` | `gitlab.com/acme/partner-api` |
+| Partner API | `~/Aurolis/partner-api` | `/` | `gitlab.com/acme/partner-api` |
 
 ### What's inside the workspace root
 
 The workspace root has the layout described in [github-integration.md › Repository structure](./github-integration.md#repository-structure): `aurolis.json`, one `*.req.json` file per request under `collections/`, one `*.env.json` per environment under `environments/`. The file format and its schemas are owned by #4 (`src/lib/workspace-format.ts`). Other files in the repo (README, source code, CI) are left alone.
 
+## Storage folder
+
+Workspaces are ordinary folders the user can see, back up and open in other tools, so the user decides where they live.
+
+### When it's asked
+
+Once, on first run, **right after signing in with GitHub or choosing "Continue on this device"**, before the first workspace is created. The step shows the default, a "Choose another folder…" button (the OS folder picker), and the free space on that drive. It can be changed later in **Settings → Storage**.
+
+### Default
+
+| OS | Default storage folder |
+|---|---|
+| macOS | `~/Aurolis` (`/Users/<you>/Aurolis`) |
+| Windows | `%USERPROFILE%\Aurolis` (`C:\Users\<you>\Aurolis`) |
+| Linux | `~/Aurolis` (`/home/<you>/Aurolis`) |
+
+The default is the home folder, **not Documents**: macOS often syncs Documents to iCloud Drive, and Windows often backs Documents up to OneDrive, and file-sync services corrupt `.git` folders.
+
+### Checks on the chosen folder
+
+| Check | Result |
+|---|---|
+| Can be created and written to | Required |
+| Inside a cloud-synced folder (iCloud Drive, OneDrive, Dropbox, Google Drive) | Warning explaining the `.git` risk; the user can still continue |
+| On a network drive | Warning: git is slow and file watching is unreliable there |
+| Inside an existing git repository | Warning: workspaces would be nested inside another repo |
+| Inside Aurolis's app data folder | Refused: that folder is removed when the app is uninstalled on some systems |
+
+### How folders are named
+
+Each new workspace gets `<storage folder>/<workspace-name-slug>`, e.g. `~/Aurolis/payments-api`, with `-2`, `-3` if the name is taken. Renaming a workspace in Aurolis doesn't rename its folder. When cloning, "Clone into…" can override the folder for that one workspace.
+
+### Changing it later
+
+Changing the storage folder in Settings only affects **new** workspaces. Existing ones keep working where they are, because the registry stores each workspace's absolute folder. Moving existing workspaces is out of scope for now (git repositories can be moved, but the user can do that and re-open them).
+
 ## On-disk layout
 
-Aurolis's own data lives under Electron's `userData` folder:
+Aurolis uses two places:
+
+- **The storage folder** (above) holds the workspace repositories: ordinary git folders the user owns.
+- **Electron's `userData` folder** holds Aurolis's own data: the registry, the GitHub session and each workspace's per-user state. It's never inside a repository.
 
 | OS | `userData` |
 |---|---|
@@ -81,14 +123,19 @@ Aurolis's own data lives under Electron's `userData` folder:
 | Linux | `~/.config/Aurolis` |
 
 ```
+~/Aurolis/                           ← storage folder (chosen by the user)
+├── payments-api/                    ← a workspace repository
+│   ├── .git/
+│   └── aurolis.json, collections/, environments/, …
+└── my-workspace/
+    ├── .git/
+    └── aurolis.json, collections/, environments/
+
 <userData>/
 ├── github-token.bin                 ← GitHub session (electron/github-auth.ts), safeStorage-encrypted
-├── workspaces.json                  ← registry of all workspaces + activeWorkspaceId
+├── workspaces.json                  ← registry: storage folder, all workspaces, activeWorkspaceId
 └── workspaces/<workspaceId>/
-    ├── repo/                        ← the git repository, when Aurolis cloned or created it
-    │   ├── .git/
-    │   └── aurolis.json, collections/, environments/, …
-    └── state/                       ← per-user, never inside the repo
+    └── state/                       ← per-user, never inside a repository
         ├── drafts.json              ← unsaved edits (Ctrl/⌘ S writes them into the working tree)
         ├── ui.json                  ← open tabs, selected environment
         ├── conflicts.json           ← unresolved fields during a merge
@@ -96,7 +143,7 @@ Aurolis's own data lives under Electron's `userData` folder:
         └── secrets.bin              ← environment secret values, safeStorage-encrypted
 ```
 
-For a folder the user brought, `repo/` doesn't exist: the registry points at their folder, and `state/` still lives here. **Nothing Aurolis-specific is ever written inside the user's repo** except the workspace files themselves.
+**Nothing Aurolis-specific is ever written inside a repository** except the workspace files themselves, so the same folder works the same in VS Code, a terminal or CI.
 
 `workspaceId` is a random UUID. It never changes, so renaming a workspace never moves anything on disk.
 
@@ -105,12 +152,14 @@ For a folder the user brought, `repo/` doesn't exist: the registry points at the
 ```json
 {
   "version": 1,
+  "storageFolder": "/Users/alex/Aurolis",
   "activeWorkspaceId": "9b1c7c1e-…",
   "workspaces": [
     {
       "id": "9b1c7c1e-…",
       "name": "Payments API",
-      "repoDir": null,
+      "repoDir": "/Users/alex/Aurolis/payments-api",
+      "managed": true,
       "root": "",
       "remote": {
         "url": "https://github.com/acme/payments-api.git",
@@ -123,6 +172,7 @@ For a folder the user brought, `repo/` doesn't exist: the registry points at the
       "id": "3e5a…",
       "name": "Identity",
       "repoDir": "/Users/alex/code/platform",
+      "managed": false,
       "root": "workspaces/identity",
       "remote": { "url": "https://github.com/acme/platform.git", "github": null },
       "createdAt": "2026-11-22T09:00:00.000Z",
@@ -132,7 +182,9 @@ For a folder the user brought, `repo/` doesn't exist: the registry points at the
 }
 ```
 
-- `repoDir: null` means Aurolis owns the folder (`workspaces/<id>/repo`). A path means the user brought it.
+- `storageFolder` is `null` until the first-run step is done; Aurolis creates no workspace before that.
+- `repoDir` is always the absolute path of the repository. `managed: true` means Aurolis created the folder (clone or new workspace); `managed: false` means the user brought it, and Aurolis never deletes it.
+- A workspace whose `repoDir` no longer exists (moved, deleted, external drive unplugged) is shown as **missing** with "Locate folder…" and "Remove from Aurolis".
 - `remote` is a cache of `origin`. **git's own config is the source of truth**: the branch, ahead/behind counts and the remote URL are always read from git, never stored here.
 - `remote.github` is filled for GitHub remotes. `repoId` keeps the link working if the repo is renamed or transferred, and `permissions` caches the user's role (#16).
 
@@ -154,6 +206,31 @@ Implemented in `electron/git.ts` (#21).
 - **Commit identity:** the repo's or user's git config (`user.name`, `user.email`) if set; otherwise the GitHub profile name with `<id>+<login>@users.noreply.github.com`. For a local-only workspace with no identity, Aurolis asks once.
 - **Settings on repos Aurolis clones or creates:** `core.autocrlf=false` (workspace files are always LF) and `core.longpaths=true` on Windows. Folders the user brought keep their own config.
 - **Merge settings, per command only:** workspace files are routed to a merge driver that always reports a conflict when both sides changed them, so Aurolis resolves them field by field (see [Pull](#pull-13)). This is set through `.git/info/attributes` and `-c` flags, never committed, so it doesn't affect anyone else's git.
+
+## Platform support
+
+Aurolis supports **macOS, Windows and Linux**. All OS-specific behaviour lives in the main process (`electron/`), behind `process.platform` checks; the renderer never branches on the OS.
+
+| Area | macOS | Windows | Linux |
+|---|---|---|---|
+| App data (`userData`) | `~/Library/Application Support/Aurolis` | `%APPDATA%\Aurolis` | `~/.config/Aurolis` |
+| Default storage folder | `~/Aurolis` | `%USERPROFILE%\Aurolis` | `~/Aurolis` |
+| Bundled git | dugite build for the app's architecture | dugite build for the app's architecture | dugite build for the app's architecture |
+| Secrets and token encryption | Keychain | DPAPI | libsecret / KWallet; without one, memory only with a warning |
+| File watching | Native (FSEvents) | Native (ReadDirectoryChangesW) | inotify; large repos can hit `fs.inotify.max_user_watches`, so Aurolis falls back to polling and says so |
+| Path length | No practical limit | `core.longpaths=true` on repos Aurolis manages; Node handles long paths | No practical limit |
+| Case sensitivity | Usually case-insensitive | Case-insensitive | Case-sensitive |
+| Reserved file names | — | `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9` (with any extension) can't be files | — |
+| Line endings | LF | LF in workspace files (`core.autocrlf=false` on managed repos) | LF |
+| Cloud-synced folders to warn about | iCloud Drive (`~/Library/Mobile Documents`) | OneDrive | Dropbox, Google Drive clients |
+| Signing | The bundled git binaries are signed and notarized with the app, or Gatekeeper blocks them | The app and the bundled git are code-signed, or SmartScreen warns | AppImage, no signing |
+
+What this means for the code:
+
+- **File names:** workspace file names are lowercase slugs (#4), so they never clash on case-insensitive disks. Slugs that would be a reserved Windows name get a suffix, so a request named "Con" is still a valid file everywhere (#23).
+- **Paths:** always built with `node:path` in the main process and stored as absolute paths; never concatenated by hand or passed from the renderer.
+- **Bundled git per architecture:** the dugite-native project lists Linux, macOS and Windows; #21 must confirm a build exists for every architecture Aurolis ships (x64 and arm64), and fall back to a system git only where one doesn't.
+- **Folder picker:** the native dialog (`dialog.showOpenDialog`) runs in the main process, so the chosen path never comes from renderer input.
 
 ## What goes into git
 
@@ -205,8 +282,11 @@ sequenceDiagram
 
 ## Lifecycle flows
 
+### Choose the storage folder (#5, #7)
+Shown once after sign-in or "Continue on this device". Saves `storageFolder` in the registry after the [checks](#checks-on-the-chosen-folder).
+
 ### Create a local workspace (#5, #7)
-`git init` in `workspaces/<id>/repo`, write `aurolis.json`, make the first commit, add the registry entry and open it.
+`git init` in `<storage folder>/<name-slug>`, write `aurolis.json`, make the first commit, add the registry entry (`managed: true`) and open it.
 
 ### Save (#8)
 Ctrl/⌘ S serializes the item (#4), writes only its changed files into the working tree, and removes it from `drafts.json`. No git command runs.
@@ -215,10 +295,10 @@ Ctrl/⌘ S serializes the item (#4), writes only its changed files into the work
 `git status --porcelain=v2 -- <root>` lists changed files. The format module maps them to API items (request, folder, collection, environment), so a renamed request shows as one moved request. The request-level diff compares `git show HEAD:<file>` with the working file, both parsed by the format module.
 
 ### Clone a workspace (#11)
-Pick a GitHub repository (with the read-only badge from its permissions) or paste any HTTPS git URL, plus an optional workspace root. If that remote and root are already a workspace, open it. Otherwise `git clone --filter=blob:none` into `workspaces/<id>/repo`. For a subfolder root, a sparse checkout limits the files on disk to that folder. If `aurolis.json` is missing, offer to initialize the root as a workspace.
+Pick a GitHub repository (with the read-only badge from its permissions) or paste any HTTPS git URL, plus an optional workspace root. If that remote and root are already a workspace, open it. Otherwise `git clone --filter=blob:none` into `<storage folder>/<repo-name>` (or the folder chosen with "Clone into…"). For a subfolder root, a sparse checkout limits the files on disk to that folder. If `aurolis.json` is missing, offer to initialize the root as a workspace.
 
 ### Open an existing folder (#11)
-Pick a folder. Aurolis checks it is a git repository (`git rev-parse`), finds `aurolis.json` files to choose a root, and registers it with `repoDir` set. Nothing in the folder is changed.
+Pick a folder. Aurolis checks it is a git repository (`git rev-parse`), finds `aurolis.json` files to choose a root, and registers it with `managed: false`. Nothing in the folder is changed.
 
 ### Publish a local workspace (#12)
 The user picks or creates an empty repository on GitHub (or pastes any remote URL). Aurolis runs `git remote add origin <url>` and `git push -u origin <branch>`.
@@ -267,7 +347,7 @@ Other files in the repo (not workspace files) use git's normal merge. If they co
 `git switch <branch>` (or create one). With uncommitted changes, Aurolis asks to commit or discard first, like VS Code. Drafts are kept per workspace and stay on top of whatever branch is checked out.
 
 ### Remove a workspace (#5)
-Remove the registry entry and `state/`. Delete `repo/` only if Aurolis created it, after warning about unpushed commits. A folder the user brought is never deleted. Nothing on the remote is touched.
+Remove the registry entry and `state/`. For a managed folder, the user picks "Remove from Aurolis" (keep the folder) or "Delete folder too" (after a warning about unpushed commits). A folder the user brought is never deleted. Nothing on the remote is touched.
 
 ### Sign out (#7)
 The GitHub session is deleted. All workspaces stay and still work locally, including commits. Push and pull to GitHub need the user to sign in again.
@@ -288,7 +368,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 ## Security rules
 
 - Git, workspace files, secrets and tokens are only touched in the **main process**.
-- IPC takes **workspace ids**, never file paths or git arguments. The main process builds every git command itself; the renderer can't pass flags or refs that weren't validated.
+- IPC takes **workspace ids**, never file paths or git arguments. Folders are only ever chosen through the native folder picker, which runs in the main process. The main process builds every git command itself; the renderer can't pass flags or refs that weren't validated.
 - Tokens are passed to git through `GIT_ASKPASS` per command, never in a URL, a config file or a log.
 - Every resolved path must stay inside the workspace root.
 - Secret values never reach the working tree; a pre-commit check blocks them anyway.
@@ -305,6 +385,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 
 ## Out of scope
 
+- **Moving existing workspaces** when the storage folder changes (they keep working where they are).
 - **Rebase** as the pull strategy (merge only, for now).
 - **Staging individual lines** (whole files or whole items only).
 - **Sharing secrets through the repo** (encrypted with sops/age, or vault references).
@@ -319,7 +400,9 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 | Foundations | #2 |
 | This document | #3 |
 | File format in the workspace root | #4 |
+| [Storage folder](#storage-folder) (setting, checks, folder naming) | #5 |
 | [On-disk layout](#on-disk-layout), registry, [create](#create-a-local-workspace-5-7) and [remove](#remove-a-workspace-5) | #5 |
+| [First-run storage step](#choose-the-storage-folder-5-7) | #7 |
 | [Switching workspaces](#switching-workspaces) | #6 |
 | Local mode, [sign out](#sign-out-7) | #7 |
 | [Save](#save-8), drafts | #8 |
@@ -332,4 +415,5 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 | Source control screen, [discard](#discard-15), [switch branch](#switch-branch-15) | #15 |
 | Permissions (`remote.github.permissions`) | #16 |
 | Background fetch and status | #17 |
-| [Git engine](#git-engine) | #21 |
+| [Git engine](#git-engine), bundled git per OS and architecture | #21 |
+| [Platform support](#platform-support): reserved Windows names | #23 |
