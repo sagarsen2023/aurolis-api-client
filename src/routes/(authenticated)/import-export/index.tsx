@@ -5,5 +5,7 @@ export const Route = createFileRoute("/(authenticated)/import-export/")({
 });
 
 function RouteComponent() {
-  return <h1 className="text-2xl font-semibold tracking-tight">Import & export</h1>;
+  return (
+    <h1 className="text-2xl font-semibold tracking-tight">Import & export</h1>
+  );
 }

@@ -49,7 +49,7 @@ function WorkspaceSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex h-10 items-center gap-2.5 rounded-[12px] border border-input bg-card pr-3 pl-1.5 text-[15px] font-medium text-foreground outline-none transition-colors",
+          "flex h-10 items-center gap-2.5 rounded-[12px] border border-input bg-card pr-3 pl-1.5 text-[15px] font-medium text-foreground transition-colors outline-none",
           "hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40 data-popup-open:bg-surface-hover",
         )}
       >

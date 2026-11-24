@@ -54,7 +54,7 @@ function RailItem({
         aria-label={item.title}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "grid size-[46px] shrink-0 place-items-center rounded-full outline-none transition-colors duration-150",
+          "grid size-[46px] shrink-0 place-items-center rounded-full transition-colors duration-150 outline-none",
           "focus-visible:ring-2 focus-visible:ring-ring",
           active
             ? "bg-surface-selected text-ink"

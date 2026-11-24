@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { authService, GithubSignInFailure } from "@/services/auth.service";
 import { githubService } from "@/services/github.service";
+import { usePromise } from "@/hooks/usePromise";
 import type { GithubDeviceCodePrompt } from "@/types/auth/auth-response.type";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
@@ -25,9 +26,7 @@ interface LoginFormProps {
 }
 
 type GithubSignInState =
-  | { step: "idle"; error?: string }
-  | { step: "starting" }
-  | { step: "waiting"; prompt: GithubDeviceCodePrompt };
+  { step: "idle" } | { step: "waiting"; prompt: GithubDeviceCodePrompt };
 
 export function LoginForm({
   className,
@@ -46,14 +45,28 @@ export function LoginForm({
     [],
   );
 
-  const handleGithubSignIn = async () => {
-    inProgress.current = true;
-    setSignIn({ step: "starting" });
-    try {
-      await authService.loginViaGithub((prompt) =>
-        setSignIn({ step: "waiting", prompt }),
-      );
-      inProgress.current = false;
+  const { loading: signingIn, runPromise: handleGithubSignIn } = usePromise({
+    promise: async () => {
+      inProgress.current = true;
+      try {
+        await authService.loginViaGithub((prompt) =>
+          setSignIn({ step: "waiting", prompt }),
+        );
+        return "signed-in" as const;
+      } catch (error) {
+        if (
+          error instanceof GithubSignInFailure &&
+          error.code === "cancelled"
+        ) {
+          return "cancelled" as const;
+        }
+        throw error;
+      } finally {
+        inProgress.current = false;
+      }
+    },
+    onSuccessAsync: async (result) => {
+      if (result === "cancelled") return;
       void githubService
         .isInstalled()
         .then((installed) => {
@@ -61,19 +74,11 @@ export function LoginForm({
         })
         .catch(() => {});
       await navigate({ to: "/", replace: true });
-    } catch (error) {
-      inProgress.current = false;
-      if (error instanceof GithubSignInFailure && error.code === "cancelled") {
-        setSignIn({ step: "idle" });
-        return;
-      }
-      setSignIn({
-        step: "idle",
-        error:
-          error instanceof Error ? error.message : "GitHub sign-in failed.",
-      });
-    }
-  };
+    },
+    onFinally: () => setSignIn({ step: "idle" }),
+  });
+
+  const starting = signingIn && signIn.step === "idle";
 
   return (
     <div
@@ -143,18 +148,16 @@ export function LoginForm({
                 <Button
                   type="button"
                   size="lg"
-                  disabled={signIn.step === "starting"}
+                  disabled={starting}
                   onClick={handleGithubSignIn}
                   className="w-full bg-inverse text-inverse-foreground hover:bg-inverse/90"
                 >
-                  {signIn.step === "starting" ? (
+                  {starting ? (
                     <LuLoaderCircle className="animate-spin" />
                   ) : (
                     <FaGithub />
                   )}
-                  {signIn.step === "starting"
-                    ? "Connecting to GitHub…"
-                    : "Continue with GitHub"}
+                  {starting ? "Connecting to GitHub…" : "Continue with GitHub"}
                 </Button>
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground uppercase">
@@ -182,12 +185,6 @@ export function LoginForm({
                   </span>
                   <LuChevronRight className="text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                 </Button>
-
-                {signIn.step === "idle" && signIn.error && (
-                  <p role="alert" className="text-sm text-destructive">
-                    {signIn.error}
-                  </p>
-                )}
               </div>
             )}
 
