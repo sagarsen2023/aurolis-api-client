@@ -17,6 +17,14 @@ import {
   startDeviceFlow,
   waitForAuthorization,
 } from "./github-auth.ts";
+import {
+  commitFiles,
+  listInstallations,
+  listRepositories,
+  openInstallPage,
+  pullFiles,
+  toResult,
+} from "./github-sync.ts";
 
 const APP_SCHEME = "app";
 const APP_HOST = "aurolis";
@@ -225,6 +233,22 @@ if (!app.requestSingleInstanceLock()) {
   );
   ipcMain.handle("aurolis:github:sign-out", (event) =>
     fromAppWindow(event) ? signOut() : null,
+  );
+
+  ipcMain.handle("aurolis:github:installations", (event) =>
+    fromAppWindow(event) ? toResult(listInstallations) : null,
+  );
+  ipcMain.handle("aurolis:github:install", (event) =>
+    fromAppWindow(event) ? openInstallPage() : null,
+  );
+  ipcMain.handle("aurolis:github:repositories", (event) =>
+    fromAppWindow(event) ? toResult(listRepositories) : null,
+  );
+  ipcMain.handle("aurolis:github:pull", (event, params: unknown) =>
+    fromAppWindow(event) ? toResult(() => pullFiles(params)) : null,
+  );
+  ipcMain.handle("aurolis:github:commit", (event, params: unknown) =>
+    fromAppWindow(event) ? toResult(() => commitFiles(params)) : null,
   );
 
   // Fires for in-app theme changes and for OS changes while on "system".

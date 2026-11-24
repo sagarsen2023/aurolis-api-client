@@ -29,3 +29,7 @@ release
 *.sw?
 
 temp
+
+.env
+.env.*
+!.env.example

@@ -19,20 +19,18 @@ import type {
 
 // Public identifier of the GitHub App / OAuth App; safe to ship in the binary.
 // "Enable Device Flow" must be ticked in the app's settings on GitHub.
-const CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID ?? "";
-// Required by GitHub to exchange a ghr_ refresh token for a new ghu_ access token.
-// Referenced only from this main-process module, so it is not in the renderer bundle.
-const CLIENT_SECRET = import.meta.env.VITE_GITHUB_CLIENT_SECRET ?? "";
-
-// Ignored by GitHub Apps (their permissions are set on the app itself);
-// used by classic OAuth Apps.
-const SCOPE = "repo read:user";
+const CLIENT_ID = import.meta.env.VITE_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const USER_URL = "https://api.github.com/user";
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 const REFRESH_GRANT = "refresh_token";
+const DEAD_REFRESH_ERRORS = new Set([
+  "bad_refresh_token",
+  "incorrect_client_credentials",
+  "unauthorized_client",
+]);
 // Refresh a minute early so a request doesn't leave with a token that expires mid-flight.
 const EXPIRY_SKEW_MS = 60_000;
 
@@ -62,9 +60,7 @@ type StoredGithubSession = {
 };
 
 let pending: PendingFlow | null = null;
-// Fallback when the OS has no secret store (some Linux setups): the session
-// then lives only for this process instead of being written in plain text.
-let memorySession: StoredGithubSession | null = null;
+let sessionCache: StoredGithubSession | null | undefined;
 let refreshInFlight: Promise<RefreshResult> | null = null;
 // Status checked against GitHub once per session; reset on sign-in/out.
 let cachedStatus: GithubAuthStatus | null = null;
@@ -151,12 +147,17 @@ function parseStoredSession(raw: string): StoredGithubSession | null {
   return null;
 }
 
+function osKeychainAvailable() {
+  if (!safeStorage.isEncryptionAvailable()) return false;
+  return !(
+    process.platform === "linux" &&
+    safeStorage.getSelectedStorageBackend() === "basic_text"
+  );
+}
+
 async function saveSession(session: StoredGithubSession) {
-  if (!safeStorage.isEncryptionAvailable()) {
-    memorySession = session;
-    return;
-  }
-  memorySession = null;
+  sessionCache = session;
+  if (!osKeychainAvailable()) return;
   await writeFile(
     TOKEN_FILE(),
     safeStorage.encryptString(JSON.stringify(session)),
@@ -165,19 +166,20 @@ async function saveSession(session: StoredGithubSession) {
 }
 
 async function loadSession(): Promise<StoredGithubSession | null> {
-  if (memorySession) return memorySession;
-  if (!safeStorage.isEncryptionAvailable()) return null;
+  if (sessionCache !== undefined) return sessionCache;
+  if (!osKeychainAvailable()) return (sessionCache = null);
   try {
-    return parseStoredSession(
+    sessionCache = parseStoredSession(
       safeStorage.decryptString(await readFile(TOKEN_FILE())),
     );
   } catch {
-    return null;
+    sessionCache = null;
   }
+  return sessionCache;
 }
 
 async function clearSession() {
-  memorySession = null;
+  sessionCache = null;
   refreshInFlight = null;
   await rm(TOKEN_FILE(), { force: true });
 }
@@ -208,21 +210,22 @@ async function refreshSession(
   if (!refreshTokenUsable(session) || !session.refreshToken) {
     return { kind: "rejected" };
   }
-  const body: Record<string, string> = {
-    client_id: CLIENT_ID,
-    grant_type: REFRESH_GRANT,
-    refresh_token: session.refreshToken,
-  };
-  if (CLIENT_SECRET) body.client_secret = CLIENT_SECRET;
-
   let response: TokenResponse;
   try {
-    response = await postForm<TokenResponse>(ACCESS_TOKEN_URL, body);
+    response = await postForm<TokenResponse>(ACCESS_TOKEN_URL, {
+      client_id: CLIENT_ID,
+      grant_type: REFRESH_GRANT,
+      refresh_token: session.refreshToken,
+    });
   } catch {
     return { kind: "offline" };
   }
   const next = sessionFromResponse(response, session);
-  if (!next) return { kind: "rejected" };
+  if (!next) {
+    return response.error && DEAD_REFRESH_ERRORS.has(response.error)
+      ? { kind: "rejected" }
+      : { kind: "offline" };
+  }
   await saveSession(next);
   return { kind: "refreshed", session: next };
 }
@@ -285,10 +288,7 @@ export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
     error?: string;
   };
   try {
-    start = await postForm(DEVICE_CODE_URL, {
-      client_id: CLIENT_ID,
-      scope: SCOPE,
-    });
+    start = await postForm(DEVICE_CODE_URL, { client_id: CLIENT_ID });
   } catch {
     return { ok: false, error: "network" };
   }
@@ -455,6 +455,44 @@ export async function getAuthStatus(): Promise<GithubAuthStatus> {
     user: result.kind === "ok" ? result.user : null,
   };
   return cachedStatus;
+}
+
+export type AccessTokenResult =
+  | { kind: "ready"; token: string }
+  | { kind: "offline" }
+  | { kind: "signed-out" };
+
+export async function getAccessToken(): Promise<AccessTokenResult> {
+  const ready = await sessionForApi();
+  if (ready.kind === "ready") {
+    return { kind: "ready", token: ready.session.accessToken };
+  }
+  return ready.kind === "offline"
+    ? { kind: "offline" }
+    : { kind: "signed-out" };
+}
+
+export async function recoverFromUnauthorized(
+  rejectedToken: string,
+): Promise<AccessTokenResult> {
+  const session = await loadSession();
+  if (!session) return { kind: "signed-out" };
+  if (session.accessToken !== rejectedToken) {
+    return { kind: "ready", token: session.accessToken };
+  }
+  if (!refreshTokenUsable(session)) {
+    await clearSession();
+    cachedStatus = null;
+    return { kind: "signed-out" };
+  }
+  const refreshed = await refreshSessionOnce(session);
+  if (refreshed.kind === "refreshed") {
+    return { kind: "ready", token: refreshed.session.accessToken };
+  }
+  if (refreshed.kind === "offline") return { kind: "offline" };
+  await clearSession();
+  cachedStatus = null;
+  return { kind: "signed-out" };
 }
 
 export async function signOut() {

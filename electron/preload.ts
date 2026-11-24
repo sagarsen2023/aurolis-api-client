@@ -20,6 +20,13 @@ const aurolis = {
     cancelSignIn: () => ipcRenderer.invoke("aurolis:github:cancel"),
     getStatus: () => ipcRenderer.invoke("aurolis:github:status"),
     signOut: () => ipcRenderer.invoke("aurolis:github:sign-out"),
+    installations: () => ipcRenderer.invoke("aurolis:github:installations"),
+    openInstallPage: () => ipcRenderer.invoke("aurolis:github:install"),
+    repositories: () => ipcRenderer.invoke("aurolis:github:repositories"),
+    pull: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:github:pull", params),
+    commit: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:github:commit", params),
   },
 } as const;
 
