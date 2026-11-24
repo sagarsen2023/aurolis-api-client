@@ -1,7 +1,8 @@
-// Vite injects VITE_* variables into the main-process bundle at build time.
+// Vite injects VITE_* variables into the main-process bundle at build time,
+// so only public values belong here. Never add secrets.
 interface ImportMetaEnv {
-  readonly VITE_GITHUB_CLIENT_ID?: string;
-  readonly VITE_GITHUB_CLIENT_SECRET?: string;
+  /** Client ID of the Aurolis GitHub App (public, starts with "Iv"). */
+  readonly VITE_PUBLIC_GITHUB_CLIENT_ID?: string;
 }
 
 interface ImportMeta {

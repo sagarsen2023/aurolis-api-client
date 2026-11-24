@@ -17,12 +17,13 @@ import type {
   GithubUser,
 } from "../src/types/auth/auth-response.type.ts";
 
-// Public identifier of the GitHub App / OAuth App; safe to ship in the binary.
+// Public identifier of the GitHub App; safe to ship in the binary.
 // "Enable Device Flow" must be ticked in the app's settings on GitHub.
-const CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID ?? "";
-// Required by GitHub to exchange a ghr_ refresh token for a new ghu_ access token.
-// Referenced only from this main-process module, so it is not in the renderer bundle.
-const CLIENT_SECRET = import.meta.env.VITE_GITHUB_CLIENT_SECRET ?? "";
+//
+// No client secret anywhere: device-flow tokens are issued AND refreshed with
+// the client ID alone, so the app never needs one. Don't add one here — any
+// VITE_* value read in this file is inlined into the shipped main bundle.
+const CLIENT_ID = import.meta.env.VITE_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
 // Ignored by GitHub Apps (their permissions are set on the app itself);
 // used by classic OAuth Apps.
@@ -63,7 +64,7 @@ type StoredGithubSession = {
 
 let pending: PendingFlow | null = null;
 // Fallback when the OS has no secret store (some Linux setups): the session
-// then lives only for this process instead of being written in plain text.
+// then lives only for this process instead of being written to disk.
 let memorySession: StoredGithubSession | null = null;
 let refreshInFlight: Promise<RefreshResult> | null = null;
 // Status checked against GitHub once per session; reset on sign-in/out.
@@ -151,8 +152,19 @@ function parseStoredSession(raw: string): StoredGithubSession | null {
   return null;
 }
 
+// True only when tokens are encrypted by a real OS keychain. On Linux without
+// gnome-keyring/KWallet, Electron falls back to "basic_text" (a hard-coded key),
+// which is no better than plain text, so that counts as unavailable.
+function osKeychainAvailable() {
+  if (!safeStorage.isEncryptionAvailable()) return false;
+  return !(
+    process.platform === "linux" &&
+    safeStorage.getSelectedStorageBackend() === "basic_text"
+  );
+}
+
 async function saveSession(session: StoredGithubSession) {
-  if (!safeStorage.isEncryptionAvailable()) {
+  if (!osKeychainAvailable()) {
     memorySession = session;
     return;
   }
@@ -166,7 +178,7 @@ async function saveSession(session: StoredGithubSession) {
 
 async function loadSession(): Promise<StoredGithubSession | null> {
   if (memorySession) return memorySession;
-  if (!safeStorage.isEncryptionAvailable()) return null;
+  if (!osKeychainAvailable()) return null;
   try {
     return parseStoredSession(
       safeStorage.decryptString(await readFile(TOKEN_FILE())),
@@ -208,16 +220,16 @@ async function refreshSession(
   if (!refreshTokenUsable(session) || !session.refreshToken) {
     return { kind: "rejected" };
   }
-  const body: Record<string, string> = {
-    client_id: CLIENT_ID,
-    grant_type: REFRESH_GRANT,
-    refresh_token: session.refreshToken,
-  };
-  if (CLIENT_SECRET) body.client_secret = CLIENT_SECRET;
-
+  // GitHub requires client_secret here unless the token came from the device
+  // flow, which is the only way Aurolis signs in. Each refresh rotates the
+  // refresh token, so the new pair is saved straight away below.
   let response: TokenResponse;
   try {
-    response = await postForm<TokenResponse>(ACCESS_TOKEN_URL, body);
+    response = await postForm<TokenResponse>(ACCESS_TOKEN_URL, {
+      client_id: CLIENT_ID,
+      grant_type: REFRESH_GRANT,
+      refresh_token: session.refreshToken,
+    });
   } catch {
     return { kind: "offline" };
   }
