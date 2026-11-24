@@ -25,15 +25,17 @@ import type {
 // VITE_* value read in this file is inlined into the shipped main bundle.
 const CLIENT_ID = import.meta.env.VITE_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
-// Ignored by GitHub Apps (their permissions are set on the app itself);
-// used by classic OAuth Apps.
-const SCOPE = "repo read:user";
-
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const USER_URL = "https://api.github.com/user";
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 const REFRESH_GRANT = "refresh_token";
+// Refresh-endpoint errors that mean the refresh token can never work again.
+const DEAD_REFRESH_ERRORS = new Set([
+  "bad_refresh_token",
+  "incorrect_client_credentials",
+  "unauthorized_client",
+]);
 // Refresh a minute early so a request doesn't leave with a token that expires mid-flight.
 const EXPIRY_SKEW_MS = 60_000;
 
@@ -63,9 +65,11 @@ type StoredGithubSession = {
 };
 
 let pending: PendingFlow | null = null;
-// Fallback when the OS has no secret store (some Linux setups): the session
-// then lives only for this process instead of being written to disk.
-let memorySession: StoredGithubSession | null = null;
+// Decrypted session, kept in memory after the first read so status checks and
+// API calls don't hit the disk and the OS keychain every time.
+// undefined = not loaded yet, null = signed out. Without an OS keychain (some
+// Linux setups) this is the only copy: the session then lasts for this process.
+let sessionCache: StoredGithubSession | null | undefined;
 let refreshInFlight: Promise<RefreshResult> | null = null;
 // Status checked against GitHub once per session; reset on sign-in/out.
 let cachedStatus: GithubAuthStatus | null = null;
@@ -164,11 +168,8 @@ function osKeychainAvailable() {
 }
 
 async function saveSession(session: StoredGithubSession) {
-  if (!osKeychainAvailable()) {
-    memorySession = session;
-    return;
-  }
-  memorySession = null;
+  sessionCache = session;
+  if (!osKeychainAvailable()) return;
   await writeFile(
     TOKEN_FILE(),
     safeStorage.encryptString(JSON.stringify(session)),
@@ -177,19 +178,20 @@ async function saveSession(session: StoredGithubSession) {
 }
 
 async function loadSession(): Promise<StoredGithubSession | null> {
-  if (memorySession) return memorySession;
-  if (!osKeychainAvailable()) return null;
+  if (sessionCache !== undefined) return sessionCache;
+  if (!osKeychainAvailable()) return (sessionCache = null);
   try {
-    return parseStoredSession(
+    sessionCache = parseStoredSession(
       safeStorage.decryptString(await readFile(TOKEN_FILE())),
     );
   } catch {
-    return null;
+    sessionCache = null;
   }
+  return sessionCache;
 }
 
 async function clearSession() {
-  memorySession = null;
+  sessionCache = null;
   refreshInFlight = null;
   await rm(TOKEN_FILE(), { force: true });
 }
@@ -234,7 +236,14 @@ async function refreshSession(
     return { kind: "offline" };
   }
   const next = sessionFromResponse(response, session);
-  if (!next) return { kind: "rejected" };
+  if (!next) {
+    // Only these mean the session is gone for good. Anything else (a GitHub
+    // outage, rate limiting, an unexpected body) keeps the user signed in and
+    // is retried on the next call, so a hiccup doesn't log people out.
+    return response.error && DEAD_REFRESH_ERRORS.has(response.error)
+      ? { kind: "rejected" }
+      : { kind: "offline" };
+  }
   await saveSession(next);
   return { kind: "refreshed", session: next };
 }
@@ -297,10 +306,9 @@ export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
     error?: string;
   };
   try {
-    start = await postForm(DEVICE_CODE_URL, {
-      client_id: CLIENT_ID,
-      scope: SCOPE,
-    });
+    // No scope: a GitHub App's access comes from its permissions and the
+    // repositories it's installed on, not from OAuth scopes.
+    start = await postForm(DEVICE_CODE_URL, { client_id: CLIENT_ID });
   } catch {
     return { ok: false, error: "network" };
   }
@@ -467,6 +475,53 @@ export async function getAuthStatus(): Promise<GithubAuthStatus> {
     user: result.kind === "ok" ? result.user : null,
   };
   return cachedStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Tokens for GitHub API calls (used by github-api.ts, never sent to the renderer)
+
+export type AccessTokenResult =
+  | { kind: "ready"; token: string }
+  | { kind: "offline" }
+  | { kind: "signed-out" };
+
+/** A usable access token, refreshed first if it is about to expire. */
+export async function getAccessToken(): Promise<AccessTokenResult> {
+  const ready = await sessionForApi();
+  if (ready.kind === "ready") {
+    return { kind: "ready", token: ready.session.accessToken };
+  }
+  return ready.kind === "offline"
+    ? { kind: "offline" }
+    : { kind: "signed-out" };
+}
+
+/**
+ * Called after GitHub answered 401 for `rejectedToken`. Refreshes once (shared
+ * with any other caller) and returns the new token. If another request already
+ * refreshed, its token is returned without refreshing again.
+ */
+export async function recoverFromUnauthorized(
+  rejectedToken: string,
+): Promise<AccessTokenResult> {
+  const session = await loadSession();
+  if (!session) return { kind: "signed-out" };
+  if (session.accessToken !== rejectedToken) {
+    return { kind: "ready", token: session.accessToken };
+  }
+  if (!refreshTokenUsable(session)) {
+    await clearSession();
+    cachedStatus = null;
+    return { kind: "signed-out" };
+  }
+  const refreshed = await refreshSessionOnce(session);
+  if (refreshed.kind === "refreshed") {
+    return { kind: "ready", token: refreshed.session.accessToken };
+  }
+  if (refreshed.kind === "offline") return { kind: "offline" };
+  await clearSession();
+  cachedStatus = null;
+  return { kind: "signed-out" };
 }
 
 export async function signOut() {

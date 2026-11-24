@@ -17,6 +17,8 @@ Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged w
 - `electron/main.ts`: main process. Serves the built app from `app://aurolis/` in production.
 - `electron/preload.ts`: exposes `window.aurolis` (platform, versions, theme sync and GitHub sign-in) to the renderer.
 - `electron/github-auth.ts`: GitHub sign-in with the device flow; keeps tokens in the main process, encrypted with the OS keychain.
+- `electron/github-api.ts`: GitHub REST client for the main process (the counterpart of `src/services/config/fetch-api.ts`): attaches the token, refreshes once on 401, maps errors to typed codes.
+- `electron/github-sync.ts`: the GitHub operations the renderer can call over IPC: installations, repositories, pull and commit.
 - `electron-builder.json5`: packaging config; the app icon is `build/icon.png`.
 - `src/index.css`: Aurolis design tokens mapped to shadcn variables (light in `:root`, dark in `.dark`).
 - `public/aurolis-logo/`: favicon, marks and horizontal lockups used by the app.
@@ -32,11 +34,12 @@ Aurolis signs in with a **GitHub App** using the **device flow**. There is no ba
    - Leave the callback URL empty and turn the webhook off.
    - Repository permissions: **Contents** and **Pull requests** → Read and write. Account permissions: **Email addresses** → Read-only.
    - **Don't generate a client secret or a private key.** Aurolis doesn't use either.
-2. Copy `.env.example` to `.env` and set the app's Client ID:
+2. Copy `.env.example` to `.env` and set the app's Client ID and slug:
    ```bash
    VITE_PUBLIC_GITHUB_CLIENT_ID=Iv23li...
+   VITE_PUBLIC_GITHUB_APP_SLUG=aurolis   # from github.com/apps/<slug>
    ```
-   The Client ID is public and gets built into the app. `.env` is gitignored.
+   Both are public and get built into the app. `.env` is gitignored.
 3. Run `npm run dev` and choose **Continue with GitHub**.
 
 ### How tokens are handled
@@ -45,3 +48,18 @@ Aurolis signs in with a **GitHub App** using the **device flow**. There is no ba
 - Tokens are encrypted with Electron's `safeStorage` (macOS Keychain, Windows DPAPI, libsecret/KWallet on Linux) and written to the app's user-data folder. Without an OS keychain they're kept in memory only, so users sign in again after a restart.
 - Access tokens last 8 hours and are refreshed automatically, without a client secret, because they come from the device flow. Each refresh also renews the 6-month refresh token, so users stay signed in as long as they open Aurolis at least once every 6 months.
 - A GitHub App only sees repositories it's installed on. Users install it from `https://github.com/apps/<app-slug>/installations/new`.
+
+### Calling GitHub
+
+Use `githubService` (`src/services/github.service.ts`). Every call runs in the main process, so the token never reaches the renderer, and failures throw `GithubApiFailure` with a `code` to branch on.
+
+| Method | What it does |
+|---|---|
+| `getInstallations()` / `isInstalled()` | Accounts the app is installed on. Sign-in opens the install page when this is empty. |
+| `getRepositories()` | Repositories reachable through the app, with the user's `permissions` (`push` = can commit). |
+| `pullFiles({ owner, repo, branch, path, knownFiles })` | Reads the branch and downloads only files whose SHA differs from `knownFiles`. Returns `headSha`, `changed`, `deleted` and the full `files` map to keep for the next pull. |
+| `commitFiles({ owner, repo, branch, message, changes, expectedHeadSha })` | Writes all changes as **one commit** (Git Data API) and moves the branch with `force: false`. If the branch moved since `expectedHeadSha`, nothing is written and it throws `conflict` with `remoteHeadSha`: pull, merge, then commit again. |
+
+Error codes: `signed_out`, `offline`, `rate_limited` (with `resetAt`), `not_installed`, `not_found`, `forbidden`, `conflict`, `empty_repository`, `too_large`, `validation`, `invalid_input`, `server`, `unknown`. Messages for each are in `src/constants/github.ts`.
+
+Add new GitHub features as a function in `electron/github-sync.ts` plus an IPC channel, not as a generic "call any endpoint" bridge, so renderer code can only do what Aurolis needs.
