@@ -26,6 +26,9 @@ export interface GithubRepository {
   fullName: string;
   private: boolean;
   defaultBranch: string;
+  description: string | null;
+  pushedAt: string | null;
+  cloneUrl: string;
   permissions: GithubRepoPermissions;
 }
 

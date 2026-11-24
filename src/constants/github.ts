@@ -12,6 +12,9 @@ export const GITHUB_ERROR_MESSAGES: Record<GithubApiErrorCode, string> = {
   conflict:
     "Someone pushed to this branch since your last sync. Pull their changes, then commit again.",
   empty_repository: "This repository is empty.",
+  already_exists: "A repository with that name already exists.",
+  not_empty:
+    "That repository already has commits. Choose an empty one, or clone it as a workspace instead.",
   too_large: "This is too large to sync through GitHub's API.",
   validation: "GitHub rejected the request.",
   invalid_input: "Aurolis sent an invalid request.",
