@@ -1,4 +1,12 @@
-import { app, BrowserWindow, nativeTheme, net, protocol, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  nativeTheme,
+  net,
+  protocol,
+  shell,
+} from "electron";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { stat } from "node:fs/promises";
@@ -14,6 +22,37 @@ const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 // before the first paint.
 const BG_DARK = "#0c0b0c";
 const BG_LIGHT = "#f6f3f8";
+const INK_DARK = "#ffffff";
+const INK_LIGHT = "#151017";
+
+// Must match the height of the renderer's <TitleBar /> strip.
+const TITLEBAR_HEIGHT = 36;
+const IS_MAC = process.platform === "darwin";
+
+type ThemeSource = "light" | "dark" | "system";
+const THEME_SOURCES: readonly ThemeSource[] = ["light", "dark", "system"];
+
+function themeColors() {
+  const dark = nativeTheme.shouldUseDarkColors;
+  return {
+    background: dark ? BG_DARK : BG_LIGHT,
+    symbol: dark ? INK_DARK : INK_LIGHT,
+  };
+}
+
+// Repaint the native parts of a window (background, and the caption buttons
+// drawn over the app on Windows/Linux) in the current theme.
+function applyThemeToWindow(win: BrowserWindow) {
+  const { background, symbol } = themeColors();
+  win.setBackgroundColor(background);
+  if (!IS_MAC) {
+    win.setTitleBarOverlay({
+      color: background,
+      symbolColor: symbol,
+      height: TITLEBAR_HEIGHT,
+    });
+  }
+}
 
 // In production the renderer is served from app://aurolis/ instead of file://
 // so absolute asset paths and history-based routing work exactly like in dev.
@@ -86,7 +125,17 @@ function createWindow() {
     minWidth: 960,
     minHeight: 600,
     show: false,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT,
+    backgroundColor: themeColors().background,
+    titleBarStyle: "hidden",
+    ...(IS_MAC
+      ? { trafficLightPosition: { x: 14, y: 11 } }
+      : {
+          titleBarOverlay: {
+            color: themeColors().background,
+            symbolColor: themeColors().symbol,
+            height: TITLEBAR_HEIGHT,
+          },
+        }),
     icon: path.join(ROOT, "build", "icon.png"),
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.mjs"),
@@ -135,6 +184,18 @@ if (!app.requestSingleInstanceLock()) {
       if (win.isMinimized()) win.restore();
       win.focus();
     }
+  });
+
+  // The renderer reports the theme picked in the app ("system" follows the OS).
+  ipcMain.on("aurolis:set-theme", (event, theme: unknown) => {
+    if (!BrowserWindow.fromWebContents(event.sender)) return;
+    if (!THEME_SOURCES.includes(theme as ThemeSource)) return;
+    nativeTheme.themeSource = theme as ThemeSource;
+  });
+
+  // Fires for in-app theme changes and for OS changes while on "system".
+  nativeTheme.on("updated", () => {
+    for (const win of BrowserWindow.getAllWindows()) applyThemeToWindow(win);
   });
 
   app.whenReady().then(() => {

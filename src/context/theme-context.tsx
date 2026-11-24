@@ -49,6 +49,9 @@ export function ThemeProvider({
 
     applyTheme(theme)
 
+    // In Electron, repaint the native window chrome (title bar, menus) too.
+    window.aurolis?.setTheme(theme)
+
     mediaQuery.addEventListener('change', handleChange)
 
     return () => mediaQuery.removeEventListener('change', handleChange)

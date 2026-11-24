@@ -1,5 +1,6 @@
 import { BASE_URL } from "./query-urls";
 import { deleteAllCookies, getAuthToken } from "@/utils/cookie-storage";
+import queryParamsFormatter from "@/utils/query-params-formatter";
 
 export interface APIOptions extends RequestInit {
   headers?: Record<string, string>;
@@ -101,7 +102,7 @@ const fetchAPI = {
         "Content-Type": "application/x-www-form-urlencoded",
         ...options.headers,
       },
-      body: new URLSearchParams(body as Record<string, string>).toString(),
+      body: queryParamsFormatter(body as Record<string, unknown>),
     }),
   putWithUrlEncoded: <T>({
     endpoint,
@@ -114,7 +115,7 @@ const fetchAPI = {
         "Content-Type": "application/x-www-form-urlencoded",
         ...options.headers,
       },
-      body: new URLSearchParams(body as Record<string, string>).toString(),
+      body: queryParamsFormatter(body as Record<string, unknown>),
     }),
 };
 

@@ -13,20 +13,12 @@ import {
   type SideMenuItem,
 } from "@/constants/menu-items";
 import { breadCrumbAtom } from "@/context/breadcrumb-context";
+import { getInitials } from "@/utils/extract-initials";
 
 const ALL_ITEMS = [...sideMenuItems, ...bottomMenuItems];
 
 // Placeholder until auth provides the signed-in user.
 const CURRENT_USER = { name: "Aurolis User" };
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join("");
-}
 
 function isActivePath(link: string, pathname: string) {
   if (link === "/") return pathname === "/";
@@ -88,7 +80,7 @@ function SideBar() {
   return (
     <nav
       aria-label="Main"
-      className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center border-r border-line bg-background px-[11px] py-3.5"
+      className="flex h-full w-[68px] shrink-0 flex-col items-center border-r border-line bg-background px-[11px] py-3.5"
     >
       {/* Logo tile */}
       <Link
@@ -137,7 +129,7 @@ function SideBar() {
             aria-label={`Account: ${CURRENT_USER.name}`}
             className="grid size-10 place-items-center rounded-full bg-linear-to-br from-orb-a to-orb-c text-[13px] font-medium text-lav-ink outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            {initials(CURRENT_USER.name)}
+            {getInitials({ name: CURRENT_USER.name })}
           </button>
         </RailTooltip>
       </div>

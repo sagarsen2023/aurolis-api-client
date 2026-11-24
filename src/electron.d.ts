@@ -7,6 +7,8 @@ interface AurolisBridge {
     readonly chrome: string;
     readonly node: string;
   };
+  /** Sync the native window chrome (title bar, menus, dialogs) with the app theme. */
+  setTheme(theme: "light" | "dark" | "system"): void;
 }
 
 interface Window {

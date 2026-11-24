@@ -8,10 +8,10 @@ export const Route = createFileRoute("/(authenticated)")({
 
 function DashboardLayout() {
   return (
-    <div className="relative flex min-h-screen w-full">
+    <div className="relative flex h-full w-full">
       <SideBar />
       {/* Main Content */}
-      <div className="relative flex w-full min-w-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">
         {/* Top Bar */}
         <Header />
 
