@@ -1,15 +1,6 @@
+import type { Environment, Workspace } from "@/types/workspace/workspace.type";
+
 // Static data until the workspace and environment APIs exist.
-
-export interface Workspace {
-  id: string;
-  name: string;
-  plan: "Personal" | "Team";
-}
-
-export interface Environment {
-  id: string;
-  name: string;
-}
 
 export const WORKSPACES: Workspace[] = [
   { id: "personal", name: "My workspace", plan: "Personal" },

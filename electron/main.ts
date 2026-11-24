@@ -152,7 +152,14 @@ function createWindow() {
     },
   });
 
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => {
+    win.show();
+    // Packaged builds stay closed. `electron .` and `npm run dev` are unpackaged,
+    // so the console opens in its own window instead of docking under the hidden title bar.
+    if (!app.isPackaged) {
+      win.webContents.openDevTools({ mode: "detach" });
+    }
+  });
 
   // Open external links in the user's browser, never inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => {

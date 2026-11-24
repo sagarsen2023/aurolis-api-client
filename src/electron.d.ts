@@ -1,22 +1,8 @@
-// Mirrors the object exposed in electron/preload.ts.
-
-type GithubUser = { login: string; name: string | null; avatarUrl: string };
-
-type GithubSignInError =
-  | "cancelled"
-  | "expired"
-  | "access_denied"
-  | "device_flow_disabled"
-  | "not_configured"
-  | "network"
-  | "unknown";
-
-type GithubDeviceCodePrompt = {
-  userCode: string;
-  verificationUri: string;
-  /** Seconds until the code expires. */
-  expiresIn: number;
-};
+import type {
+  GithubAuthStatus,
+  GithubDeviceFlowStart,
+  GithubSignInResult,
+} from "@/types/auth/auth-response.type";
 
 interface AurolisBridge {
   readonly isElectron: true;
@@ -30,22 +16,18 @@ interface AurolisBridge {
   setTheme(theme: "light" | "dark" | "system"): void;
   readonly github: {
     /** Gets a device code from GitHub and opens the verification page. */
-    startSignIn(): Promise<
-      | { ok: true; prompt: GithubDeviceCodePrompt }
-      | { ok: false; error: GithubSignInError }
-    >;
+    startSignIn(): Promise<GithubDeviceFlowStart>;
     /** Resolves once the user approves, denies, cancels or the code expires. */
-    waitForSignIn(): Promise<
-      | { ok: true; user: GithubUser | null }
-      | { ok: false; error: GithubSignInError }
-    >;
+    waitForSignIn(): Promise<GithubSignInResult>;
     cancelSignIn(): Promise<void>;
-    getStatus(): Promise<{ signedIn: boolean; user: GithubUser | null }>;
+    getStatus(): Promise<GithubAuthStatus>;
     signOut(): Promise<void>;
   };
 }
 
-interface Window {
-  /** Present only when running inside the Electron shell. */
-  aurolis?: AurolisBridge;
+declare global {
+  interface Window {
+    /** Present only when running inside the Electron shell. */
+    aurolis?: AurolisBridge;
+  }
 }

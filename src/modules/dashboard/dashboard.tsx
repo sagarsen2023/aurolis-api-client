@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai";
 import { Bookmark, Globe, Loader, Plus, Send, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { currentEnvironmentAtom } from "@/context/workspace-context";
-import { DASHBOARD_STATS, DASHBOARD_USER } from "./data";
+import { DASHBOARD_STATS, DASHBOARD_USER } from "@/constants/dashboard";
 import RecentRequests from "./recent-requests";
 import ResponseHealth from "./response-health";
 import StatCard from "./stat-card";

@@ -10,10 +10,19 @@
 import { app, net, safeStorage, shell } from "electron";
 import path from "node:path";
 import { readFile, rm, writeFile } from "node:fs/promises";
+import type {
+  GithubAuthStatus,
+  GithubDeviceFlowStart,
+  GithubSignInResult,
+  GithubUser,
+} from "../src/types/auth/auth-response.type.ts";
 
 // Public identifier of the GitHub App / OAuth App; safe to ship in the binary.
 // "Enable Device Flow" must be ticked in the app's settings on GitHub.
 const CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID ?? "";
+// Required by GitHub to exchange a ghr_ refresh token for a new ghu_ access token.
+// Referenced only from this main-process module, so it is not in the renderer bundle.
+const CLIENT_SECRET = import.meta.env.VITE_GITHUB_CLIENT_SECRET ?? "";
 
 // Ignored by GitHub Apps (their permissions are set on the app itself);
 // used by classic OAuth Apps.
@@ -22,36 +31,12 @@ const SCOPE = "repo read:user";
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const USER_URL = "https://api.github.com/user";
-const GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
+const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
+const REFRESH_GRANT = "refresh_token";
+// Refresh a minute early so a request doesn't leave with a token that expires mid-flight.
+const EXPIRY_SKEW_MS = 60_000;
 
 const TOKEN_FILE = () => path.join(app.getPath("userData"), "github-token.bin");
-
-export type GithubUser = {
-  login: string;
-  name: string | null;
-  avatarUrl: string;
-};
-
-export type DeviceCodePrompt = {
-  userCode: string;
-  verificationUri: string;
-  /** Seconds until the code expires. */
-  expiresIn: number;
-};
-
-export type SignInResult =
-  { ok: true; user: GithubUser | null } | { ok: false; error: SignInError };
-
-export type SignInError =
-  | "cancelled"
-  | "expired"
-  | "access_denied"
-  | "device_flow_disabled"
-  | "not_configured"
-  | "network"
-  | "unknown";
-
-export type AuthStatus = { signedIn: boolean; user: GithubUser | null };
 
 type PendingFlow = {
   deviceCode: string;
@@ -60,12 +45,29 @@ type PendingFlow = {
   abort: AbortController;
 };
 
+type TokenResponse = {
+  access_token?: string;
+  expires_in?: number;
+  refresh_token?: string;
+  refresh_token_expires_in?: number;
+  error?: string;
+  interval?: number;
+};
+
+type StoredGithubSession = {
+  accessToken: string;
+  refreshToken: string | null;
+  accessTokenExpiresAt: number | null;
+  refreshTokenExpiresAt: number | null;
+};
+
 let pending: PendingFlow | null = null;
-// Fallback when the OS has no secret store (some Linux setups): the token
-// then lives only for this session instead of being written in plain text.
-let memoryToken: string | null = null;
+// Fallback when the OS has no secret store (some Linux setups): the session
+// then lives only for this process instead of being written in plain text.
+let memorySession: StoredGithubSession | null = null;
+let refreshInFlight: Promise<RefreshResult> | null = null;
 // Status checked against GitHub once per session; reset on sign-in/out.
-let cachedStatus: AuthStatus | null = null;
+let cachedStatus: GithubAuthStatus | null = null;
 
 async function postForm<T>(url: string, body: Record<string, string>) {
   const response = await net.fetch(url, {
@@ -94,31 +96,142 @@ function sleep(ms: number, signal: AbortSignal) {
 }
 
 // ---------------------------------------------------------------------------
-// Token storage
+// Token storage. One encrypted blob holds both the user access token (ghu_)
+// and the refresh token (ghr_). GitHub rotates the refresh token on each use.
 
-async function saveToken(token: string) {
-  if (!safeStorage.isEncryptionAvailable()) {
-    memoryToken = token;
-    return;
-  }
-  await writeFile(TOKEN_FILE(), safeStorage.encryptString(token), {
-    mode: 0o600,
-  });
+function expiresAt(seconds: number | undefined) {
+  return typeof seconds === "number" ? Date.now() + seconds * 1000 : null;
 }
 
-async function loadToken(): Promise<string | null> {
-  if (memoryToken) return memoryToken;
+function sessionFromResponse(
+  response: TokenResponse,
+  previous: StoredGithubSession | null = null,
+): StoredGithubSession | null {
+  if (!response.access_token) return null;
+  return {
+    accessToken: response.access_token,
+    refreshToken: response.refresh_token || previous?.refreshToken || null,
+    accessTokenExpiresAt: expiresAt(response.expires_in),
+    refreshTokenExpiresAt:
+      expiresAt(response.refresh_token_expires_in) ??
+      previous?.refreshTokenExpiresAt ??
+      null,
+  };
+}
+
+function parseStoredSession(raw: string): StoredGithubSession | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredGithubSession>;
+    if (typeof parsed.accessToken === "string" && parsed.accessToken) {
+      return {
+        accessToken: parsed.accessToken,
+        refreshToken:
+          typeof parsed.refreshToken === "string" ? parsed.refreshToken : null,
+        accessTokenExpiresAt:
+          typeof parsed.accessTokenExpiresAt === "number"
+            ? parsed.accessTokenExpiresAt
+            : null,
+        refreshTokenExpiresAt:
+          typeof parsed.refreshTokenExpiresAt === "number"
+            ? parsed.refreshTokenExpiresAt
+            : null,
+      };
+    }
+  } catch {
+    // Older builds stored the access token as a bare string.
+    if (raw) {
+      return {
+        accessToken: raw,
+        refreshToken: null,
+        accessTokenExpiresAt: null,
+        refreshTokenExpiresAt: null,
+      };
+    }
+  }
+  return null;
+}
+
+async function saveSession(session: StoredGithubSession) {
+  if (!safeStorage.isEncryptionAvailable()) {
+    memorySession = session;
+    return;
+  }
+  memorySession = null;
+  await writeFile(
+    TOKEN_FILE(),
+    safeStorage.encryptString(JSON.stringify(session)),
+    { mode: 0o600 },
+  );
+}
+
+async function loadSession(): Promise<StoredGithubSession | null> {
+  if (memorySession) return memorySession;
   if (!safeStorage.isEncryptionAvailable()) return null;
   try {
-    return safeStorage.decryptString(await readFile(TOKEN_FILE()));
+    return parseStoredSession(
+      safeStorage.decryptString(await readFile(TOKEN_FILE())),
+    );
   } catch {
     return null;
   }
 }
 
-async function clearToken() {
-  memoryToken = null;
+async function clearSession() {
+  memorySession = null;
+  refreshInFlight = null;
   await rm(TOKEN_FILE(), { force: true });
+}
+
+function accessTokenStale(session: StoredGithubSession) {
+  return (
+    session.accessTokenExpiresAt !== null &&
+    Date.now() >= session.accessTokenExpiresAt - EXPIRY_SKEW_MS
+  );
+}
+
+function refreshTokenUsable(session: StoredGithubSession) {
+  if (!session.refreshToken) return false;
+  return (
+    session.refreshTokenExpiresAt === null ||
+    Date.now() < session.refreshTokenExpiresAt
+  );
+}
+
+type RefreshResult =
+  | { kind: "refreshed"; session: StoredGithubSession }
+  | { kind: "offline" }
+  | { kind: "rejected" };
+
+async function refreshSession(
+  session: StoredGithubSession,
+): Promise<RefreshResult> {
+  if (!refreshTokenUsable(session) || !session.refreshToken) {
+    return { kind: "rejected" };
+  }
+  const body: Record<string, string> = {
+    client_id: CLIENT_ID,
+    grant_type: REFRESH_GRANT,
+    refresh_token: session.refreshToken,
+  };
+  if (CLIENT_SECRET) body.client_secret = CLIENT_SECRET;
+
+  let response: TokenResponse;
+  try {
+    response = await postForm<TokenResponse>(ACCESS_TOKEN_URL, body);
+  } catch {
+    return { kind: "offline" };
+  }
+  const next = sessionFromResponse(response, session);
+  if (!next) return { kind: "rejected" };
+  await saveSession(next);
+  return { kind: "refreshed", session: next };
+}
+
+function refreshSessionOnce(session: StoredGithubSession) {
+  refreshInFlight ??= refreshSession(session).finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,9 +271,7 @@ async function fetchUser(token: string): Promise<UserFetch> {
 // Device flow
 
 /** Step 1: ask GitHub for a user code and open the verification page. */
-export async function startDeviceFlow(): Promise<
-  { ok: true; prompt: DeviceCodePrompt } | { ok: false; error: SignInError }
-> {
+export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
   if (!CLIENT_ID) return { ok: false, error: "not_configured" };
 
   cancelDeviceFlow();
@@ -217,7 +328,7 @@ export async function startDeviceFlow(): Promise<
 }
 
 /** Step 2: poll until the user approves (or denies) in the browser. */
-export async function waitForAuthorization(): Promise<SignInResult> {
+export async function waitForAuthorization(): Promise<GithubSignInResult> {
   const flow = pending;
   if (!flow) return { ok: false, error: "cancelled" };
 
@@ -225,21 +336,22 @@ export async function waitForAuthorization(): Promise<SignInResult> {
     while (Date.now() < flow.expiresAt) {
       await sleep(flow.interval * 1000, flow.abort.signal);
 
-      let r: { access_token?: string; error?: string; interval?: number };
+      let r: TokenResponse;
       try {
-        r = await postForm(ACCESS_TOKEN_URL, {
+        r = await postForm<TokenResponse>(ACCESS_TOKEN_URL, {
           client_id: CLIENT_ID,
           device_code: flow.deviceCode,
-          grant_type: GRANT_TYPE,
+          grant_type: DEVICE_GRANT,
         });
       } catch {
         // Transient network blip: keep polling until the code expires.
         continue;
       }
 
-      if (r.access_token) {
-        await saveToken(r.access_token);
-        const result = await fetchUser(r.access_token);
+      const session = sessionFromResponse(r);
+      if (session) {
+        await saveSession(session);
+        const result = await fetchUser(session.accessToken);
         cachedStatus = {
           signedIn: true,
           user: result.kind === "ok" ? result.user : null,
@@ -283,16 +395,57 @@ export function cancelDeviceFlow() {
 // ---------------------------------------------------------------------------
 // Session
 
-export async function getAuthStatus(): Promise<AuthStatus> {
-  if (cachedStatus?.signedIn && cachedStatus.user) return cachedStatus;
+async function sessionForApi(): Promise<
+  | { kind: "ready"; session: StoredGithubSession }
+  | { kind: "offline"; user: GithubUser | null }
+  | { kind: "signed-out" }
+> {
+  const stored = await loadSession();
+  if (!stored) return { kind: "signed-out" };
 
-  const token = await loadToken();
-  if (!token) return { signedIn: false, user: null };
+  let session = stored;
+  if (accessTokenStale(session)) {
+    const refreshed = await refreshSessionOnce(session);
+    if (refreshed.kind === "offline") {
+      return { kind: "offline", user: cachedStatus?.user ?? null };
+    }
+    if (refreshed.kind === "rejected") {
+      await clearSession();
+      cachedStatus = null;
+      return { kind: "signed-out" };
+    }
+    session = refreshed.session;
+  }
+  return { kind: "ready", session };
+}
 
-  const result = await fetchUser(token);
+export async function getAuthStatus(): Promise<GithubAuthStatus> {
+  if (cachedStatus?.signedIn && cachedStatus.user) {
+    const stored = await loadSession();
+    if (stored && !accessTokenStale(stored)) return cachedStatus;
+  }
+
+  const ready = await sessionForApi();
+  if (ready.kind === "signed-out") {
+    cachedStatus = null;
+    return { signedIn: false, user: null };
+  }
+  if (ready.kind === "offline") {
+    return { signedIn: true, user: ready.user };
+  }
+
+  let result = await fetchUser(ready.session.accessToken);
+  if (result.kind === "unauthorized" && refreshTokenUsable(ready.session)) {
+    const refreshed = await refreshSessionOnce(ready.session);
+    if (refreshed.kind === "refreshed") {
+      result = await fetchUser(refreshed.session.accessToken);
+    } else if (refreshed.kind === "offline") {
+      return { signedIn: true, user: cachedStatus?.user ?? null };
+    }
+  }
   if (result.kind === "unauthorized") {
-    // Revoked on GitHub or expired: forget it.
-    await clearToken();
+    await clearSession();
+    cachedStatus = null;
     return { signedIn: false, user: null };
   }
   // Offline still counts as signed in: the app is local-first. Only a
@@ -307,5 +460,5 @@ export async function getAuthStatus(): Promise<AuthStatus> {
 export async function signOut() {
   cancelDeviceFlow();
   cachedStatus = null;
-  await clearToken();
+  await clearSession();
 }

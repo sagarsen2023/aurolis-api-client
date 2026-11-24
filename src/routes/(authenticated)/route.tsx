@@ -6,7 +6,8 @@ import { authService } from "@/services/auth.service";
 export const Route = createFileRoute("/(authenticated)")({
   component: DashboardLayout,
   beforeLoad: async () => {
-    if (!(await authService.isSignedIn())) {
+    const isSignedIn = await authService.isSignedIn();
+    if (!isSignedIn) {
       throw redirect({ to: "/sign-in", replace: true });
     }
   },

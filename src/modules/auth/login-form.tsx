@@ -14,6 +14,7 @@ import {
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { authService, GithubSignInFailure } from "@/services/auth.service";
+import type { GithubDeviceCodePrompt } from "@/types/auth/auth-response.type";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 

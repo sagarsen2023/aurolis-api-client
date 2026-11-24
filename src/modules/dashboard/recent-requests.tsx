@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RECENT_REQUESTS } from "./data";
+import { RECENT_REQUESTS } from "@/constants/dashboard";
 import ListRow from "./list-row";
 
 function RecentRequests() {

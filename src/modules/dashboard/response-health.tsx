@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { cn } from "@/lib/utils";
-import { RESPONSE_HEALTH } from "./data";
+import { RESPONSE_HEALTH } from "@/constants/dashboard";
 import ListRow from "./list-row";
 
 const SEGMENTS = [

@@ -1,8 +1,9 @@
-// GitHub sign-in via the device flow. The work happens in the Electron main
-// process (see electron/github-auth.ts): GitHub's device-flow endpoints don't
-// allow browser requests, and the token is kept out of page code.
-// GithubUser, GithubDeviceCodePrompt and GithubSignInError are global types
-// declared in src/electron.d.ts.
+import { SIGN_IN_ERROR_MESSAGES } from "@/constants/auth";
+import type { GithubSignInError } from "@/types/auth/auth-error.type";
+import type {
+  GithubDeviceCodePrompt,
+  GithubUser,
+} from "@/types/auth/auth-response.type";
 
 export class GithubSignInFailure extends Error {
   readonly code: GithubSignInError;
@@ -14,18 +15,6 @@ export class GithubSignInFailure extends Error {
   }
 }
 
-export const SIGN_IN_ERROR_MESSAGES: Record<GithubSignInError, string> = {
-  cancelled: "Sign-in was cancelled.",
-  expired: "The code expired before it was approved. Try again.",
-  access_denied: "Access was denied on GitHub.",
-  device_flow_disabled:
-    "Device sign-in isn't enabled for this GitHub app. Turn on Device Flow in its settings.",
-  not_configured:
-    "GitHub sign-in isn't configured. Set VITE_GITHUB_CLIENT_ID and restart the app.",
-  network: "Couldn't reach GitHub. Check your connection and try again.",
-  unknown: "GitHub sign-in failed. Try again.",
-};
-
 function bridge() {
   const github = window.aurolis?.github;
   if (!github) {
@@ -35,11 +24,6 @@ function bridge() {
 }
 
 export const authService = {
-  /**
-   * Runs the whole device flow. `onCode` receives the code to show the user
-   * (the verification page is already opened in their browser). Resolves with
-   * the signed-in user, or throws a GithubSignInFailure.
-   */
   loginViaGithub: async (
     onCode: (prompt: GithubDeviceCodePrompt) => void,
   ): Promise<GithubUser | null> => {
