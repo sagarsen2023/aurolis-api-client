@@ -1,14 +1,13 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import Header from "@/modules/layout/header";
 import SideBar from "@/modules/layout/sidebar";
-import { getGithubToken } from "@/utils/local-storage";
+import { authService } from "@/services/auth.service";
 
 export const Route = createFileRoute("/(authenticated)")({
   component: DashboardLayout,
-  beforeLoad: () => {
-    const token = getGithubToken();
-    if (!token) {
-      throw redirect({ to: "/sign-in", replace: true, });
+  beforeLoad: async () => {
+    if (!(await authService.isSignedIn())) {
+      throw redirect({ to: "/sign-in", replace: true });
     }
   },
 });

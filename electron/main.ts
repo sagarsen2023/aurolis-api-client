@@ -10,6 +10,13 @@ import {
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { stat } from "node:fs/promises";
+import {
+  cancelDeviceFlow,
+  getAuthStatus,
+  signOut,
+  startDeviceFlow,
+  waitForAuthorization,
+} from "./github-auth.ts";
 
 const APP_SCHEME = "app";
 const APP_HOST = "aurolis";
@@ -192,6 +199,26 @@ if (!app.requestSingleInstanceLock()) {
     if (!THEME_SOURCES.includes(theme as ThemeSource)) return;
     nativeTheme.themeSource = theme as ThemeSource;
   });
+
+  // GitHub sign-in (device flow). The token stays in this process.
+  const fromAppWindow = (event: Electron.IpcMainInvokeEvent) =>
+    BrowserWindow.fromWebContents(event.sender) !== null;
+
+  ipcMain.handle("aurolis:github:start", (event) =>
+    fromAppWindow(event) ? startDeviceFlow() : null,
+  );
+  ipcMain.handle("aurolis:github:wait", (event) =>
+    fromAppWindow(event) ? waitForAuthorization() : null,
+  );
+  ipcMain.handle("aurolis:github:cancel", (event) => {
+    if (fromAppWindow(event)) cancelDeviceFlow();
+  });
+  ipcMain.handle("aurolis:github:status", (event) =>
+    fromAppWindow(event) ? getAuthStatus() : null,
+  );
+  ipcMain.handle("aurolis:github:sign-out", (event) =>
+    fromAppWindow(event) ? signOut() : null,
+  );
 
   // Fires for in-app theme changes and for OS changes while on "system".
   nativeTheme.on("updated", () => {

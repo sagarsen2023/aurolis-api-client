@@ -1,6 +1,7 @@
 // @ts-check
 
-import eslintConfigPrettier from "eslint-config-prettier/flat";
+import { defineConfig } from "eslint/config";
+import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import globals from "globals";
 import js from "@eslint/js";
 import pluginQuery from "@tanstack/eslint-plugin-query";
@@ -8,7 +9,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default defineConfig(
   {
     ignores: [
       "dist",
@@ -66,5 +67,7 @@ export default tseslint.config(
       "react-refresh/only-export-components": "off",
     },
   },
-  eslintConfigPrettier,
+  // Runs Prettier as an ESLint rule (prettier/prettier → error) and disables
+  // conflicting style rules via eslint-config-prettier. Keep last.
+  eslintPluginPrettierRecommended,
 );

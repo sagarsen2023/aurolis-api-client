@@ -1,102 +1,291 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { FaGithub } from "react-icons/fa6";
+import {
+  LuCheck,
+  LuChevronRight,
+  LuCodeXml,
+  LuCopy,
+  LuExternalLink,
+  LuGitBranch,
+  LuLoaderCircle,
+  LuLock,
+  LuMonitor,
+} from "react-icons/lu";
+import { cn } from "@/lib/utils";
+import { authService, GithubSignInFailure } from "@/services/auth.service";
+import { Button } from "@/components/ui/button";
+import { ThemeSwitch } from "@/components/ui/theme-switch";
+
+interface LoginFormProps {
+  className?: string;
+  onContinueLocal?: () => void;
+}
+
+type GithubSignInState =
+  | { step: "idle"; error?: string }
+  | { step: "starting" }
+  | { step: "waiting"; prompt: GithubDeviceCodePrompt };
 
 export function LoginForm({
   className,
+  onContinueLocal,
   ...props
-}: React.ComponentProps<"div">) {
+}: LoginFormProps) {
+  const navigate = useNavigate();
+  const [signIn, setSignIn] = useState<GithubSignInState>({ step: "idle" });
+  const inProgress = useRef(false);
+
+  // Leaving the page mid-flow stops the polling in the main process.
+  useEffect(
+    () => () => {
+      if (inProgress.current) void authService.cancelGithubLogin();
+    },
+    [],
+  );
+
+  const handleGithubSignIn = async () => {
+    inProgress.current = true;
+    setSignIn({ step: "starting" });
+    try {
+      await authService.loginViaGithub((prompt) =>
+        setSignIn({ step: "waiting", prompt }),
+      );
+      inProgress.current = false;
+      await navigate({ to: "/", replace: true });
+    } catch (error) {
+      inProgress.current = false;
+      if (error instanceof GithubSignInFailure && error.code === "cancelled") {
+        setSignIn({ step: "idle" });
+        return;
+      }
+      setSignIn({
+        step: "idle",
+        error:
+          error instanceof Error ? error.message : "GitHub sign-in failed.",
+      });
+    }
+  };
+
   return (
-    <div className={cn("flex flex-col gap-6 w-full max-w-4xl", className)} {...props}>
-      <Card className="overflow-hidden p-0">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-muted-foreground text-balance">
-                  Login to your Acme Inc account
-                </p>
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
-              </div>
-              <div className="grid gap-3">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
-                    className="ml-auto text-sm underline-offset-2 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-                <Input id="password" type="password" required />
-              </div>
-              <Button type="submit" className="w-full">
-                Login
-              </Button>
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                <span className="bg-card text-muted-foreground relative z-10 px-2">
-                  Or continue with
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <Button variant="outline" type="button" className="w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="sr-only">Login with Apple</span>
-                </Button>
-                <Button variant="outline" type="button" className="w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="sr-only">Login with Google</span>
-                </Button>
-                <Button variant="outline" type="button" className="w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="sr-only">Login with Meta</span>
-                </Button>
-              </div>
-              <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <a href="#" className="underline underline-offset-4">
-                  Sign up
-                </a>
-              </div>
-            </div>
-          </form>
-          <div className="bg-muted relative hidden md:flex items-end justify-end">
-            <p className="p-6 md:p-8 lg:p-12 text-sm text-muted-foreground text-balance w-fit text-right">
-              "Success is not the key to happiness. Happiness is the key to success." <br />– Albert Schweitzer
-            </p>
+    <div
+      className={cn(
+        "relative flex min-h-full w-full gap-4 overflow-hidden bg-background p-4",
+        className,
+      )}
+      {...props}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-orb-a/25 blur-3xl dark:bg-orb-c/10"
+      />
+
+      {/* Left: brand + sign-in */}
+      <section className="relative flex min-w-0 flex-1 flex-col px-4 py-2 sm:px-8 lg:px-12">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img
+              src="/aurolis-logo/svg/aurolis-mark-light.svg"
+              alt=""
+              className="size-6 dark:hidden"
+            />
+            <img
+              src="/aurolis-logo/svg/aurolis-mark-dark.svg"
+              alt=""
+              className="hidden size-6 dark:block"
+            />
+            <span className="text-lg font-semibold tracking-tight text-foreground">
+              Aurolis
+            </span>
+            <span className="rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Preview
+            </span>
           </div>
-        </CardContent>
-      </Card>
-      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+          <ThemeSwitch />
+        </header>
+
+        <div className="flex flex-1 flex-col justify-center py-10">
+          <div className="w-full max-w-md">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-vio ring-4 ring-vio/15" />
+              Open-source API client
+            </p>
+
+            <h1 className="mt-4 text-4xl leading-tight font-semibold tracking-tight text-foreground xl:text-5xl">
+              Shape your requests.
+              <br />
+              <span className="bg-linear-to-r from-pur to-[#c2335a] bg-clip-text pr-1 font-serif font-normal tracking-normal text-transparent italic dark:from-orb-c dark:to-[#e58ab5]">
+                Sync
+              </span>{" "}
+              your reality.
+            </h1>
+
+            <p className="mt-4 text-base text-muted-foreground">
+              A local-first workspace for collections, environments and load
+              tests, versioned in a GitHub repository you own.
+            </p>
+
+            {signIn.step === "waiting" ? (
+              <DeviceCodePanel
+                prompt={signIn.prompt}
+                onCancel={() => void authService.cancelGithubLogin()}
+              />
+            ) : (
+              <div className="mt-8 flex flex-col gap-3">
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={signIn.step === "starting"}
+                  onClick={handleGithubSignIn}
+                  className="w-full bg-inverse text-inverse-foreground hover:bg-inverse/90"
+                >
+                  {signIn.step === "starting" ? (
+                    <LuLoaderCircle className="animate-spin" />
+                  ) : (
+                    <FaGithub />
+                  )}
+                  {signIn.step === "starting"
+                    ? "Connecting to GitHub…"
+                    : "Continue with GitHub"}
+                </Button>
+
+                <div className="flex items-center gap-3 text-xs text-muted-foreground uppercase">
+                  <span className="h-px flex-1 bg-border" />
+                  or
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onContinueLocal}
+                  className="group h-auto w-full justify-start gap-3 rounded-lg p-3 text-left font-normal whitespace-normal"
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-icon text-vio">
+                    <LuMonitor />
+                  </span>
+                  <span className="flex flex-1 flex-col">
+                    <span className="text-sm font-medium text-foreground">
+                      Continue on this device
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      No account. Everything stays in your browser.
+                    </span>
+                  </span>
+                  <LuChevronRight className="text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </Button>
+
+                {signIn.step === "idle" && signIn.error && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {signIn.error}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              <TrustItem icon={<LuLock />}>Local-first storage</TrustItem>
+              <TrustItem icon={<LuGitBranch />}>
+                Your repo, your access rules
+              </TrustItem>
+              <TrustItem icon={<LuCodeXml />}>MIT licensed</TrustItem>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Right: product hero */}
+      <aside className="relative hidden w-1/2 max-w-5xl shrink-0 overflow-hidden rounded-2xl bg-[#0f0d10] lg:block">
+        <img
+          src="/aurolis-logo/png/aurolis-hero.png"
+          alt="Aurolis request editor with source control and a running load test"
+          className="absolute inset-0 size-full object-cover object-center"
+        />
+      </aside>
+    </div>
+  );
+}
+
+function TrustItem({
+  icon,
+  children,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-1.5 [&_svg]:size-3.5 [&_svg]:text-vio">
+      {icon}
+      {children}
+    </li>
+  );
+}
+
+function DeviceCodePanel({
+  prompt,
+  onCancel,
+}: {
+  prompt: GithubDeviceCodePrompt;
+  onCancel: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const copyCode = async () => {
+    await navigator.clipboard.writeText(prompt.userCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="mt-8 flex flex-col gap-4 rounded-lg border bg-card p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-inverse text-inverse-foreground">
+          <FaGithub className="size-4" />
+        </span>
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Enter this code on GitHub
+          </p>
+          <p className="text-xs text-muted-foreground">
+            We opened {prompt.verificationUri.replace(/^https?:\/\//, "")} in
+            your browser.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-4 py-3">
+        <span
+          aria-label={`Code ${prompt.userCode.split("").join(" ")}`}
+          className="font-mono text-2xl font-medium tracking-widest text-foreground"
+        >
+          {prompt.userCode}
+        </span>
+        <Button type="button" variant="ghost" size="sm" onClick={copyCode}>
+          {copied ? <LuCheck /> : <LuCopy />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <LuLoaderCircle className="size-3.5 animate-spin text-vio" />
+          Waiting for you to approve…
+        </p>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(prompt.verificationUri, "_blank")}
+          >
+            <LuExternalLink />
+            Open GitHub
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
       </div>
     </div>
-  )
+  );
 }
