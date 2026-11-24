@@ -15,7 +15,33 @@ Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged w
 ## Layout
 
 - `electron/main.ts`: main process. Serves the built app from `app://aurolis/` in production.
-- `electron/preload.ts`: exposes `window.aurolis` (platform and versions) to the renderer.
+- `electron/preload.ts`: exposes `window.aurolis` (platform, versions, theme sync and GitHub sign-in) to the renderer.
+- `electron/github-auth.ts`: GitHub sign-in with the device flow; keeps tokens in the main process, encrypted with the OS keychain.
 - `electron-builder.json5`: packaging config; the app icon is `build/icon.png`.
 - `src/index.css`: Aurolis design tokens mapped to shadcn variables (light in `:root`, dark in `.dark`).
 - `public/aurolis-logo/`: favicon, marks and horizontal lockups used by the app.
+
+## GitHub sign-in
+
+Aurolis signs in with a **GitHub App** using the **device flow**. There is no backend and no client secret: the app shows a code, the user enters it at github.com/login/device, and GitHub returns a token to the desktop app.
+
+### Setup
+
+1. Create a GitHub App (**Settings → Developer settings → GitHub Apps → New GitHub App**):
+   - Tick **Enable Device Flow** and **Expire user authorization tokens**.
+   - Leave the callback URL empty and turn the webhook off.
+   - Repository permissions: **Contents** and **Pull requests** → Read and write. Account permissions: **Email addresses** → Read-only.
+   - **Don't generate a client secret or a private key.** Aurolis doesn't use either.
+2. Copy `.env.example` to `.env` and set the app's Client ID:
+   ```bash
+   VITE_PUBLIC_GITHUB_CLIENT_ID=Iv23li...
+   ```
+   The Client ID is public and gets built into the app. `.env` is gitignored.
+3. Run `npm run dev` and choose **Continue with GitHub**.
+
+### How tokens are handled
+
+- The whole flow runs in the main process (`electron/github-auth.ts`). The renderer only sees the user code and the signed-in user, never a token.
+- Tokens are encrypted with Electron's `safeStorage` (macOS Keychain, Windows DPAPI, libsecret/KWallet on Linux) and written to the app's user-data folder. Without an OS keychain they're kept in memory only, so users sign in again after a restart.
+- Access tokens last 8 hours and are refreshed automatically, without a client secret, because they come from the device flow. Each refresh also renews the 6-month refresh token, so users stay signed in as long as they open Aurolis at least once every 6 months.
+- A GitHub App only sees repositories it's installed on. Users install it from `https://github.com/apps/<app-slug>/installations/new`.
