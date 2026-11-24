@@ -1,12 +1,3 @@
-// GitHub REST client for the main process: the GitHub counterpart of
-// src/services/config/fetch-api.ts.
-//
-// It attaches the user's access token, refreshes it once on a 401 (shared with
-// any other request in flight), and turns GitHub's error responses into typed
-// GithubApiError codes. It only ever talks to api.github.com, and the token
-// never leaves this process: the renderer calls specific operations in
-// github-sync.ts over IPC, never this client directly.
-
 import { net } from "electron";
 import { getAccessToken, recoverFromUnauthorized } from "./github-auth.ts";
 import type {
@@ -16,7 +7,6 @@ import type {
 
 const API_ORIGIN = "https://api.github.com";
 const API_VERSION = "2022-11-28";
-// Hard stop for paginated reads, so a huge account can't stall the app.
 const MAX_PAGES = 20;
 
 export class GithubApiError extends Error {
@@ -33,11 +23,9 @@ export class GithubApiError extends Error {
   }
 }
 
-/** Absolute api.github.com URL for an endpoint; refuses anything else. */
 function apiUrl(endpointOrUrl: string) {
   const url = new URL(endpointOrUrl, API_ORIGIN);
   if (url.origin !== API_ORIGIN) {
-    // The token must never be sent anywhere but api.github.com.
     throw new GithubApiError({
       code: "invalid_input",
       message: `Refusing to call ${url.origin}`,
@@ -69,8 +57,6 @@ function toGithubApiError(response: Response, body: unknown): GithubApiError {
   const message = messageOf(body);
   const lower = message?.toLowerCase() ?? "";
 
-  // Primary limit: x-ratelimit-remaining hits 0. Secondary (abuse) limit:
-  // 403/429 with retry-after. https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
   const remaining = response.headers.get("x-ratelimit-remaining");
   const reset = Number(response.headers.get("x-ratelimit-reset"));
   const retryAfter = Number(response.headers.get("retry-after"));
@@ -141,7 +127,6 @@ async function send<T>(
       throw new GithubApiError({ code: "offline" });
     }
 
-    // Token expired or was rotated elsewhere: refresh once, then retry once.
     if (response.status === 401 && attempt === 0) {
       auth = await recoverFromUnauthorized(auth.token);
       continue;
@@ -186,10 +171,6 @@ const githubApi = {
   delete: <T>({ endpoint, options }: EndpointParams) =>
     request<T>("DELETE", endpoint, options),
 
-  /**
-   * Follows `Link: rel="next"` and concatenates every page. `pick` extracts the
-   * items from each page (e.g. `(page) => page.repositories`).
-   */
   getAll: async <Page, Item>({
     endpoint,
     pick,

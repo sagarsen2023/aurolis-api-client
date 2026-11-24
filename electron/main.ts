@@ -235,8 +235,6 @@ if (!app.requestSingleInstanceLock()) {
     fromAppWindow(event) ? signOut() : null,
   );
 
-  // GitHub operations. Each returns { ok, data } | { ok: false, error } and
-  // validates its own input; the renderer never gets the token.
   ipcMain.handle("aurolis:github:installations", (event) =>
     fromAppWindow(event) ? toResult(listInstallations) : null,
   );

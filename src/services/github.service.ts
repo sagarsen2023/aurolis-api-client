@@ -29,22 +29,17 @@ function bridge() {
   return github;
 }
 
-/** Turns the IPC result into data, or throws GithubApiFailure with a readable message. */
 async function unwrap<T>(result: Promise<GithubResult<T>>): Promise<T> {
   const response = await result;
   if (!response.ok) throw new GithubApiFailure(response.error);
   return response.data;
 }
 
-// All calls run in the Electron main process; the access token never reaches
-// this code. Errors arrive as GithubApiFailure with a `code` to branch on
-// (e.g. "conflict" → pull, merge, commit again).
 export const githubService = {
   getInstallations: () => unwrap(bridge().installations()),
 
   openInstallPage: () => bridge().openInstallPage(),
 
-  /** True when the app is installed on at least one account. */
   isInstalled: async () => (await githubService.getInstallations()).length > 0,
 
   getRepositories: () => unwrap(bridge().repositories()),

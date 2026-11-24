@@ -1,12 +1,3 @@
-// GitHub operations the renderer can ask for over IPC. Each one validates its
-// input (the renderer is treated as untrusted) and uses githubApi, so the
-// access token stays in the main process.
-//
-// Commits use the Git Data API, so many changed files land in ONE commit, and
-// the branch is moved with force:false, so a teammate's push is never
-// overwritten: if the branch moved, the caller gets "conflict" and must pull,
-// merge and retry.
-
 import { shell } from "electron";
 import { createHash } from "node:crypto";
 import githubApi, { GithubApiError } from "./github-api.ts";
@@ -25,16 +16,12 @@ import type {
   PullFilesResponse,
 } from "../src/types/github/github-response.type.ts";
 
-// Public slug of the GitHub App (github.com/apps/<slug>); used for the install link.
 const APP_SLUG = import.meta.env.VITE_PUBLIC_GITHUB_APP_SLUG ?? "";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_CHANGES = 1000;
 const BLOB_CONCURRENCY = 6;
 const FILE_MODE = "100644";
-
-// ---------------------------------------------------------------------------
-// Input validation
 
 const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPO_RE = /^[A-Za-z0-9._-]{1,100}$/;
@@ -71,7 +58,6 @@ function validRepoRef(input: unknown): GithubRepoRef {
   return { owner, repo, branch };
 }
 
-/** Repo-relative path: no leading slash, no "." or ".." segments, no backslashes. */
 function validPath(path: unknown, allowEmpty = false): string {
   if (typeof path !== "string") invalid("Invalid path");
   if (allowEmpty && path === "") return "";
@@ -113,17 +99,12 @@ function validChanges(input: unknown): FileChange[] {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-
 const repoBase = ({ owner, repo }: GithubRepoRef) =>
   `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 
-// Branch names may contain "/", which must stay a path separator.
 const encodeBranch = (branch: string) =>
   branch.split("/").map(encodeURIComponent).join("/");
 
-/** Git's blob SHA-1 for UTF-8 content, so callers can track files without a refetch. */
 function blobSha(content: string) {
   const bytes = Buffer.from(content, "utf8");
   return createHash("sha1")
@@ -132,7 +113,6 @@ function blobSha(content: string) {
     .digest("hex");
 }
 
-/** Branch head SHA, or null when the repository has no commits yet. */
 async function getHeadSha(ref: GithubRepoRef): Promise<string | null> {
   try {
     const data = await githubApi.get<{ object: { sha: string } }>({
@@ -147,10 +127,6 @@ async function getHeadSha(ref: GithubRepoRef): Promise<string | null> {
   }
 }
 
-/**
- * GitHub answers 404 both for a missing branch and for a repo the app can't
- * see (not installed there, or no access). Tell the two apart.
- */
 async function explainNotFound(ref: GithubRepoRef) {
   try {
     await githubApi.get({ endpoint: repoBase(ref) });
@@ -191,16 +167,12 @@ async function mapLimit<T, R>(
   return results;
 }
 
-// ---------------------------------------------------------------------------
-// Installations and repositories
-
 type ApiInstallation = {
   id: number;
   repository_selection: string;
   account: { login: string; type: string; avatar_url: string } | null;
 };
 
-/** Accounts where the user installed the Aurolis GitHub App. Empty = not installed yet. */
 export async function listInstallations(): Promise<GithubInstallation[]> {
   const installations = await githubApi.getAll<
     { installations: ApiInstallation[] },
@@ -218,7 +190,6 @@ export async function listInstallations(): Promise<GithubInstallation[]> {
   }));
 }
 
-/** Opens GitHub's page for installing the app on an account or more repositories. */
 export async function openInstallPage(): Promise<void> {
   await shell.openExternal(
     APP_SLUG
@@ -237,7 +208,6 @@ type ApiRepository = {
   permissions?: Partial<Record<keyof GithubRepository["permissions"], boolean>>;
 };
 
-/** Repositories the user can reach through the app, with their role on each. */
 export async function listRepositories(): Promise<GithubRepository[]> {
   const installations = await listInstallations();
   const byId = new Map<number, GithubRepository>();
@@ -272,18 +242,11 @@ export async function listRepositories(): Promise<GithubRepository[]> {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Pull
-
 type ApiTree = {
   truncated: boolean;
   tree: { path: string; type: string; sha: string; size?: number }[];
 };
 
-/**
- * Reads the branch and downloads only the files that differ from `knownFiles`.
- * Unchanged files cost nothing: their SHAs come from a single tree listing.
- */
 export async function pullFiles(input: unknown): Promise<PullFilesResponse> {
   const ref = validRepoRef(input);
   const params = input as PullFilesParams;
@@ -356,9 +319,6 @@ export async function pullFiles(input: unknown): Promise<PullFilesResponse> {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Commit
-
 function conflict(remoteHeadSha: string | null, message: string): never {
   throw new GithubApiError({
     code: "conflict",
@@ -367,11 +327,6 @@ function conflict(remoteHeadSha: string | null, message: string): never {
   });
 }
 
-/**
- * Creates the first commit of an empty repository. The Git Data API can't
- * write to a repo with no commits, so the first file goes through the Contents
- * API; the remaining changes are then committed on top of it.
- */
 async function bootstrapEmptyRepo(
   ref: GithubRepoRef,
   message: string,
@@ -391,7 +346,6 @@ async function bootstrapEmptyRepo(
   return data.commit.sha;
 }
 
-/** Commits all changes as one commit and moves the branch without force. */
 export async function commitFiles(
   input: unknown,
 ): Promise<CommitFilesResponse> {
@@ -424,7 +378,6 @@ export async function commitFiles(
   }
 
   if (!headSha) {
-    // Empty repository: deletions are meaningless, and something must be written.
     changes = changes.filter((c) => c.content !== null);
     const first = changes.shift() as
       (FileChange & { content: string }) | undefined;
@@ -467,8 +420,6 @@ export async function commitFiles(
     });
   } catch (error) {
     if (error instanceof GithubApiError && error.code === "conflict") {
-      // Someone pushed between our read and our write. The commit object we
-      // made is unreferenced and GitHub cleans it up.
       conflict(await getHeadSha(ref), "Someone pushed to this branch first.");
     }
     throw error;
@@ -477,10 +428,6 @@ export async function commitFiles(
   return { commitSha: commit.sha, unchanged: false, files: written };
 }
 
-// ---------------------------------------------------------------------------
-// IPC
-
-/** Runs an operation and returns its result as a value, so typed errors survive IPC. */
 export async function toResult<T>(
   operation: () => Promise<T>,
 ): Promise<GithubResult<T>> {

@@ -54,8 +54,6 @@ export function LoginForm({
         setSignIn({ step: "waiting", prompt }),
       );
       inProgress.current = false;
-      // A GitHub App can't see any repository until it's installed on one.
-      // First sign-in: open GitHub's install page so sync works right away.
       void githubService
         .isInstalled()
         .then((installed) => {
