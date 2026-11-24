@@ -30,9 +30,9 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
   - `preload.ts`: the only bridge, exposed as `window.aurolis`. Typed in `src/electron.d.ts`.
   - `github-auth.ts`: GitHub App sign-in with the OAuth device flow. Tokens are encrypted with `safeStorage` and never leave the main process.
   - `github-api.ts`: `githubApi`, the main-process counterpart of `src/services/config/fetch-api.ts` (token, refresh-on-401, typed errors, api.github.com only).
-  - `github-sync.ts`: GitHub REST operations the renderer may call: installations, repositories and permissions, and (later) pull requests.
+  - `github-sync.ts`: GitHub REST operations the renderer may call: installations, repositories and permissions, creating or checking an empty repository to publish to, and (later) pull requests.
   - `git.ts`: runs the system git (2.31 or newer; Aurolis doesn't bundle git), one queue per repository, GitHub token through per-command environment config, typed errors.
-  - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / remove, and file watching.
+  - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / publish / remove, and file watching.
   - Workspaces are local git repositories (see the architecture doc). Sync is plain git: status, diff, commit, fetch, merge, push.
 - **`src/`: renderer (React).** UI only. It never sees a token and never calls GitHub directly.
 

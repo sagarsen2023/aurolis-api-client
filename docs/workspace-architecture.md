@@ -31,7 +31,7 @@ This document is the single reference for how Aurolis stores workspaces, links t
 - Aurolis uses the **git already installed** on the computer (2.31 or newer). It doesn't bundle git: without a usable one, it asks the user to install it. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
 - All git commands, files and tokens are handled in the **Electron main process**. The renderer asks for data by workspace id over IPC and never sees paths or tokens.
 - Per-user data (drafts, UI state, history, secrets) lives **outside the repo**, so it can never be committed.
-- The GitHub REST API (`electron/github-sync.ts`) is used only for things git can't do: listing the user's repositories and permissions, the GitHub App install page, and opening pull requests.
+- The GitHub REST API (`electron/github-sync.ts`) is used only for things git can't do: listing the user's repositories and permissions, creating a repository to publish to, the GitHub App install page, and opening pull requests.
 
 ## Terms
 
@@ -301,7 +301,28 @@ Pick a GitHub repository (with the read-only badge from its permissions) or past
 Pick a folder. Aurolis checks it is a git repository (`git rev-parse`), finds `aurolis.json` files to choose a root, and registers it with `managed: false`. Nothing in the folder is changed.
 
 ### Publish a local workspace (#12)
-The user picks or creates an empty repository on GitHub (or pastes any remote URL). Aurolis runs `git remote add origin <url>` and `git push -u origin <branch>`.
+Offered for any workspace without an `origin` ("Publish to GitHub" on the dashboard and in the workspace switcher). The sheet asks for:
+
+- **Repository name:** prefilled with the workspace name as a slug (`Payments API` → `payments-api`). Letters, numbers, `.`, `-` and `_`.
+- **Owner:** the signed-in user, or an organization where the Aurolis GitHub App is installed.
+- **New or existing:** create a new repository (private by default, or public), or use an **empty** repository the user already created.
+- **Uncommitted changes:** when there are any, a switch (on by default) commits them under the workspace root first.
+
+Then it runs two steps, each shown with its status:
+
+1. **Repository.** New: `POST /user/repos` or `POST /orgs/{org}/repos` (`createRepository` in `electron/github-sync.ts`). Existing: `GET /repos/{owner}/{repo}` must succeed with `push` permission, and `GET …/commits` must report an empty repository (`getEmptyRepository`). Aurolis never publishes to a repository that already has commits, so nothing on GitHub is overwritten.
+2. **Push** (`publishWorkspace` in `electron/workspace-store.ts`, `aurolis:workspace:publish`). The renderer sends only the workspace id, owner and repository name; the main process builds `https://github.com/<owner>/<repo>.git` itself, runs `git remote add origin <url>` and `git push --set-upstream origin <branch>`, then stores the remote in the registry. If the push fails, the remote is removed again so the workspace stays local and can be retried.
+
+When a step fails, the sheet explains what to do next instead of a bare error:
+
+| Failure | Offered |
+|---|---|
+| The repository already exists | Publish to it if it's empty |
+| The app isn't allowed to create repositories for that owner | Create it on github.com (prefilled `github.com/new`), then publish to it |
+| Aurolis can't see the existing repository, or GitHub refuses the push (an installation on *selected repositories* that doesn't include the new repo) | Open the app's installation page to give access, then try again |
+| The repository isn't empty, or the user can't push to it | Go back and choose another |
+
+A repository created in step 1 is remembered for the retry, so "Try again" only repeats the push.
 
 ### Commit (#14)
 Commit is **local and works offline**: `git add -- <changed files under root>`, run the secret check, then `git commit -m <message>`. When the message is empty, Aurolis writes one (`Update Create payment`, `Update 3 requests`). Selected items can be committed on their own; the rest stay as changes.

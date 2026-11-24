@@ -230,6 +230,7 @@ export async function runGit(
     const env = {
       ...process.env,
       GIT_TERMINAL_PROMPT: "0",
+      GIT_OPTIONAL_LOCKS: "0",
       GCM_INTERACTIVE: "never",
       ...(options.network ? await networkEnv() : {}),
     };
@@ -404,8 +405,31 @@ async function commitIdentity(dir: string) {
   ];
 }
 
-export async function commitAll(dir: string, message: string) {
-  await runGit(dir, ["add", "--all"]);
+export async function commitAll(dir: string, message: string, root = "") {
+  await runGit(dir, ["add", "--all", "--", root || "."]);
   const identity = await commitIdentity(dir);
   await runGit(dir, [...identity, "commit", "-m", message]);
+}
+
+export async function hasCommits(dir: string) {
+  const result = await runGit(dir, ["rev-parse", "--verify", "-q", "HEAD"], {
+    allowFailure: true,
+  });
+  return result.exitCode === 0;
+}
+
+export async function addRemote(dir: string, url: string) {
+  await runGit(dir, ["remote", "add", "origin", url]);
+}
+
+export async function removeRemote(dir: string) {
+  await runGit(dir, ["remote", "remove", "origin"], { allowFailure: true });
+}
+
+export async function pushNewBranch(dir: string, branch: string) {
+  await runGit(
+    dir,
+    ["push", "--set-upstream", "origin", `refs/heads/${branch}`],
+    { network: true },
+  );
 }

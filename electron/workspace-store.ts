@@ -30,6 +30,7 @@ import {
 import type {
   CloneResult,
   OpenedWorkspace,
+  PublishResult,
   RemoveCheck,
   StorageFolderCheck,
   StorageWarning,
@@ -40,21 +41,26 @@ import type {
   WorkspaceResult,
 } from "../src/types/workspace/workspace-store.type.ts";
 import {
+  addRemote,
   changedFileCount,
   cloneRepository,
   commitAll,
   configureManagedRepository,
   currentBranch,
   GitCommandError,
+  hasCommits,
   initRepository,
   isRepository,
   normalizeCloneUrl,
   parseGithubRemote,
+  pushNewBranch,
   remoteUrl,
+  removeRemote,
   repoNameFromUrl,
   sameRemote,
   unpushedCommitCount,
 } from "./git.ts";
+import { isGithubOwner, isGithubRepoName } from "./github-sync.ts";
 
 const WORKSPACE_DIRS = ["collections", "environments"];
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -551,6 +557,9 @@ function watchWorkspace(entry: WorkspaceEntry) {
   };
   add(rootDir, false);
   for (const dir of WORKSPACE_DIRS) add(path.join(rootDir, dir), true);
+  const gitDir = path.join(entry.repoDir, ".git");
+  add(gitDir, false);
+  add(path.join(gitDir, "refs"), true);
 }
 
 export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
@@ -578,6 +587,7 @@ export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
     changedFileCount(entry.repoDir, entry.root),
     remoteUrl(entry.repoDir),
   ]);
+  const unpushedCommits = url ? await unpushedCommitCount(entry.repoDir) : 0;
   entry.remote = url ? { url, github: parseGithubRemote(url) } : null;
   entry.lastOpenedAt = now();
   const current = await loadRegistry();
@@ -591,7 +601,7 @@ export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
     isWorkspace,
     data: isWorkspace ? parsed.workspace : null,
     issues,
-    git: { branch, changedFiles, remoteUrl: url },
+    git: { branch, changedFiles, unpushedCommits, remoteUrl: url },
   };
 }
 
@@ -613,6 +623,58 @@ export async function renameWorkspace(params: unknown) {
   entry.name = validName(name);
   await saveRegistry();
   return registryView();
+}
+
+export async function publishWorkspace(
+  params: unknown,
+): Promise<PublishResult> {
+  const { id, owner, repo, commitChanges } = (params ?? {}) as {
+    id?: unknown;
+    owner?: unknown;
+    repo?: unknown;
+    commitChanges?: unknown;
+  };
+  if (!isGithubOwner(owner) || !isGithubRepoName(repo)) {
+    throw new WorkspaceError("invalid_input", "Invalid repository name.");
+  }
+  const entry = await findEntry(id);
+  const dir = entry.repoDir;
+  if (!existsSync(dir)) {
+    throw new WorkspaceError(
+      "missing_folder",
+      `The folder ${displayPath(dir)} was moved or deleted.`,
+    );
+  }
+
+  const url = `https://github.com/${owner}/${repo}.git`;
+  const existing = await remoteUrl(dir);
+  if (existing && !sameRemote(existing, url)) {
+    throw new WorkspaceError("remote_exists");
+  }
+  const branch = await currentBranch(dir);
+  if (!branch) throw new WorkspaceError("detached_head");
+
+  let committed = false;
+  if (commitChanges === true && (await changedFileCount(dir, entry.root)) > 0) {
+    const message = (await hasCommits(dir))
+      ? "Update workspace"
+      : "Create workspace";
+    await commitAll(dir, message, entry.root);
+    committed = true;
+  }
+  if (!(await hasCommits(dir))) throw new WorkspaceError("nothing_to_publish");
+
+  if (!existing) await addRemote(dir, url);
+  try {
+    await pushNewBranch(dir, branch);
+  } catch (error) {
+    if (!existing) await removeRemote(dir);
+    throw error;
+  }
+
+  entry.remote = { url, github: { owner, repo } };
+  await saveRegistry();
+  return { webUrl: `https://github.com/${owner}/${repo}`, branch, committed };
 }
 
 export async function revealWorkspace(id: unknown) {

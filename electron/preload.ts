@@ -30,6 +30,10 @@ const aurolis = {
       ipcRenderer.invoke("aurolis:github:pull", params),
     commit: (params: unknown) =>
       ipcRenderer.invoke("aurolis:github:commit", params),
+    createRepository: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:github:create-repository", params),
+    emptyRepository: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:github:empty-repository", params),
   },
   workspace: {
     list: () => workspaceCall("list"),
@@ -45,6 +49,7 @@ const aurolis = {
     open: (id: string) => workspaceCall("open", id),
     initialize: (id: string) => workspaceCall("initialize", id),
     rename: (params: unknown) => workspaceCall("rename", params),
+    publish: (params: unknown) => workspaceCall("publish", params),
     removeCheck: (id: string) => workspaceCall("remove-check", id),
     reveal: (id: string) => workspaceCall("reveal", id),
     remove: (params: unknown) => workspaceCall("remove", params),

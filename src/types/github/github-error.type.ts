@@ -7,6 +7,8 @@ export type GithubApiErrorCode =
   | "forbidden"
   | "conflict"
   | "empty_repository"
+  | "already_exists"
+  | "not_empty"
   | "too_large"
   | "validation"
   | "invalid_input"

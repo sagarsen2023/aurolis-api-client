@@ -1,5 +1,6 @@
 import { WORKSPACE_ERROR_MESSAGES } from "@/constants/workspace";
 import type {
+  PublishWorkspaceParams,
   WorkspaceErrorCode,
   WorkspaceErrorInfo,
   WorkspaceResult,
@@ -53,6 +54,7 @@ export const workspaceService = {
   open: (id: string) => unwrap(bridge().open(id)),
   initialize: (id: string) => unwrap(bridge().initialize(id)),
   rename: (id: string, name: string) => unwrap(bridge().rename({ id, name })),
+  publish: (params: PublishWorkspaceParams) => unwrap(bridge().publish(params)),
   removeCheck: (id: string) => unwrap(bridge().removeCheck(id)),
   remove: (id: string, deleteFolder: boolean) =>
     unwrap(bridge().remove({ id, deleteFolder })),
