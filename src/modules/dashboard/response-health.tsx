@@ -1,4 +1,5 @@
-import { Cloud, Zap } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { GitBranch, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +11,7 @@ import {
 import { Pill } from "@/components/ui/pill";
 import { cn } from "@/lib/utils";
 import { RESPONSE_HEALTH } from "@/constants/dashboard";
+import type { WorkspaceGitState } from "@/types/workspace/workspace-store.type";
 import ListRow from "./list-row";
 
 const SEGMENTS = [
@@ -70,7 +72,14 @@ function StatusClassBar({
   );
 }
 
-function ResponseHealth() {
+function gitSummary(git: WorkspaceGitState) {
+  const branch = git.branch ? ` on ${git.branch}` : "";
+  if (git.changedFiles === 0) return `Everything is committed${branch}.`;
+  return `${git.changedFiles} ${git.changedFiles === 1 ? "file has" : "files have"} uncommitted changes${branch}.`;
+}
+
+function ResponseHealth({ git }: Readonly<{ git: WorkspaceGitState }>) {
+  const navigate = useNavigate();
   const sent = Object.values(RESPONSE_HEALTH).reduce((a, b) => a + b, 0);
 
   return (
@@ -87,10 +96,16 @@ function ResponseHealth() {
         <StatusClassBar counts={RESPONSE_HEALTH} />
         <ul className="mt-2 divide-y divide-line">
           <ListRow
-            icon={Cloud}
-            title="Saved to Aurolis Cloud"
-            description="Press Ctrl/⌘ S to save your edits"
-            action={<Pill variant="ok">All saved</Pill>}
+            icon={GitBranch}
+            title={git.remoteUrl ? "Git repository" : "Local git repository"}
+            description={gitSummary(git)}
+            action={
+              git.changedFiles === 0 ? (
+                <Pill variant="ok">Clean</Pill>
+              ) : (
+                <Pill variant="warn">{git.changedFiles} changed</Pill>
+              )
+            }
           />
           <ListRow
             icon={Zap}
@@ -101,6 +116,7 @@ function ResponseHealth() {
                 variant="outline"
                 size="sm"
                 className="h-8 px-3.5 text-[13.5px]"
+                onClick={() => void navigate({ to: "/load-testing" })}
               >
                 Run
               </Button>

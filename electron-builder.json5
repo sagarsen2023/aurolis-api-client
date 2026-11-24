@@ -4,6 +4,7 @@
   appId: "app.aurolis.desktop",
   productName: "Aurolis",
   asar: true,
+  asarUnpack: ["node_modules/dugite/git/**"],
   directories: {
     output: "release/${version}",
     buildResources: "build",

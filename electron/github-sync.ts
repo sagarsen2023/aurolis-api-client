@@ -204,6 +204,9 @@ type ApiRepository = {
   full_name: string;
   private: boolean;
   default_branch: string;
+  description: string | null;
+  pushed_at: string | null;
+  clone_url: string;
   owner: { login: string };
   permissions?: Partial<Record<keyof GithubRepository["permissions"], boolean>>;
 };
@@ -227,6 +230,9 @@ export async function listRepositories(): Promise<GithubRepository[]> {
         fullName: r.full_name,
         private: r.private,
         defaultBranch: r.default_branch,
+        description: r.description,
+        pushedAt: r.pushed_at,
+        cloneUrl: r.clone_url,
         permissions: {
           admin: !!r.permissions?.admin,
           maintain: !!r.permissions?.maintain,

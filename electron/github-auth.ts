@@ -257,13 +257,19 @@ async function fetchUser(token: string): Promise<UserFetch> {
     if (response.status === 401) return { kind: "unauthorized" };
     if (!response.ok) return { kind: "offline" };
     const data = (await response.json()) as {
+      id: number;
       login: string;
       name: string | null;
       avatar_url: string;
     };
     return {
       kind: "ok",
-      user: { login: data.login, name: data.name, avatarUrl: data.avatar_url },
+      user: {
+        id: data.id,
+        login: data.login,
+        name: data.name,
+        avatarUrl: data.avatar_url,
+      },
     };
   } catch {
     return { kind: "offline" };

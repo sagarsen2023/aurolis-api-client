@@ -1,6 +1,7 @@
 import type { GithubSignInError } from "./auth-error.type.ts";
 
 export interface GithubUser {
+  id?: number;
   login: string;
   name: string | null;
   avatarUrl: string;

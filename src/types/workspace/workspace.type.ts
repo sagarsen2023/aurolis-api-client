@@ -3,12 +3,6 @@ import type { Environment } from "./environment.type.ts";
 
 export type { Environment } from "./environment.type.ts";
 
-export interface Workspace {
-  id: string;
-  name: string;
-  plan: "Personal" | "Team";
-}
-
 export interface WorkspaceManifest {
   format: number;
   workspace: { id: string; name: string };
