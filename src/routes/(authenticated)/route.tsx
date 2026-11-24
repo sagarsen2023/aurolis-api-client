@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import Header from "@/modules/layout/header";
 import SideBar from "@/modules/layout/sidebar";
 
@@ -9,20 +8,18 @@ export const Route = createFileRoute("/(authenticated)")({
 
 function DashboardLayout() {
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full relative">
-        <SideBar />
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col relative w-full">
-          {/* Top Bar */}
-          <Header />
+    <div className="relative flex min-h-screen w-full">
+      <SideBar />
+      {/* Main Content */}
+      <div className="relative flex w-full min-w-0 flex-1 flex-col">
+        {/* Top Bar */}
+        <Header />
 
-          {/* Page Content */}
-          <main className="flex-1 overflow-auto px-6 mt-20">
-            <Outlet />
-          </main>
-        </div>
+        {/* Page Content */}
+        <main className="mt-20 flex-1 overflow-auto px-6">
+          <Outlet />
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

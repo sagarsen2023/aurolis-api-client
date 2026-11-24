@@ -1,4 +1,12 @@
-import { Database, LayoutDashboard, Lock, Settings } from "lucide-react";
+import {
+  ArrowUpDown,
+  Clock,
+  Globe,
+  Layers,
+  Settings,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 export interface BreadCrumbItem {
@@ -7,74 +15,47 @@ export interface BreadCrumbItem {
   icon: ReactNode;
 }
 
-export interface DropdownMenuItem {
-  title: string;
-  link: string;
-  icon: ReactNode;
-  key: string;
-  breadCrumb?: BreadCrumbItem[];
-}
+export type RailLink =
+  | "/"
+  | "/environments"
+  | "/history"
+  | "/load-testing"
+  | "/import-export"
+  | "/settings";
 
 export interface SideMenuItem {
   title: string;
-  icon: ReactNode;
-  link: string;
+  icon: LucideIcon;
+  link: RailLink;
   key: string;
   breadCrumb?: BreadCrumbItem[];
-  dropdownItems?: DropdownMenuItem[];
 }
 
+function item(
+  key: string,
+  title: string,
+  link: RailLink,
+  Icon: LucideIcon,
+): SideMenuItem {
+  return {
+    key,
+    title,
+    link,
+    icon: Icon,
+    breadCrumb: [{ name: title, link, icon: <Icon size={16} /> }],
+  };
+}
+
+/** Main destinations, top of the rail. */
 export const sideMenuItems: SideMenuItem[] = [
-  {
-    title: "Dashboard",
-    icon: <LayoutDashboard size={20} />,
-    link: "/",
-    key: "Dashboard",
-    breadCrumb: [
-      {
-        name: "Dashboard",
-        link: "/",
-        icon: <LayoutDashboard size={16} />,
-      },
-    ],
-  },
-  {
-    title: "Settings",
-    icon: <Settings size={20} />,
-    link: "/settings",
-    key: "settings",
-    breadCrumb: [
-      {
-        name: "Dashboard",
-        link: "/",
-        icon: <LayoutDashboard size={16} />,
-      },
-      {
-        name: "Settings",
-        link: "/settings",
-        icon: <Settings size={16} />,
-      },
-    ],
-  },
-  {
-    title: "Auth Routes",
-    icon: <Lock size={20} />,
-    link: "#",
-    key: "settings",
-    dropdownItems: [
-      {
-        title: "Sign In",
-        link: "/sign-in",
-        icon: <Lock size={20} />,
-        key: "sign-in",
-      },
-    ],
-    breadCrumb: [
-      {
-        name: "Resources",
-        link: "/dashboard/resources",
-        icon: <Database size={20} />,
-      },
-    ],
-  },
+  item("collections", "Collections", "/", Layers),
+  item("environments", "Environments", "/environments", Globe),
+  item("history", "History", "/history", Clock),
+  item("load-testing", "Load testing", "/load-testing", Zap),
+  item("import-export", "Import & export", "/import-export", ArrowUpDown),
+];
+
+/** Pinned to the bottom of the rail, above the avatar. */
+export const bottomMenuItems: SideMenuItem[] = [
+  item("settings", "Settings", "/settings", Settings),
 ];

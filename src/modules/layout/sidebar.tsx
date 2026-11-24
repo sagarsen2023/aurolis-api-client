@@ -1,124 +1,147 @@
-import React, { useEffect } from "react";
+import { useEffect, type ReactElement } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useSetAtom } from "jotai";
+import { cn } from "@/lib/utils";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
+  bottomMenuItems,
   sideMenuItems,
-  type BreadCrumbItem,
-  type DropdownMenuItem,
+  type SideMenuItem,
 } from "@/constants/menu-items";
-import { useRouter, useRouterState } from "@tanstack/react-router";
-import { useAtom } from "jotai";
 import { breadCrumbAtom } from "@/context/breadcrumb-context";
 
+const ALL_ITEMS = [...sideMenuItems, ...bottomMenuItems];
+
+// Placeholder until auth provides the signed-in user.
+const CURRENT_USER = { name: "Aurolis User" };
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join("");
+}
+
+function isActivePath(link: string, pathname: string) {
+  if (link === "/") return pathname === "/";
+  return pathname === link || pathname.startsWith(`${link}/`);
+}
+
+function RailTooltip({
+  label,
+  children,
+}: Readonly<{
+  label: string;
+  children: ReactElement;
+}>) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="right" sideOffset={10}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function RailItem({
+  item,
+  active,
+}: Readonly<{ item: SideMenuItem; active: boolean }>) {
+  const Icon = item.icon;
+  return (
+    <RailTooltip label={item.title}>
+      <Link
+        to={item.link}
+        aria-label={item.title}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "grid size-[46px] shrink-0 place-items-center rounded-full outline-none transition-colors duration-150",
+          "focus-visible:ring-2 focus-visible:ring-ring",
+          active
+            ? "bg-surface-selected text-ink"
+            : "text-dim hover:bg-surface-hover hover:text-ink",
+        )}
+      >
+        <Icon className="size-5" strokeWidth={1.8} aria-hidden />
+      </Link>
+    </RailTooltip>
+  );
+}
+
 function SideBar() {
-  const router = useRouter();
-  const { location } = useRouterState();
-  const currentPath = location.pathname;
-  const [, setBreadCrumb] = useAtom(breadCrumbAtom);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const setBreadCrumb = useSetAtom(breadCrumbAtom);
 
+  // Keep the header breadcrumb in step with the current route.
   useEffect(() => {
-    for (const item of sideMenuItems) {
-      if (item.dropdownItems) {
-        for (const sub of item.dropdownItems) {
-          if (sub.link === currentPath) {
-            if (sub.breadCrumb) setBreadCrumb(sub.breadCrumb);
-            return;
-          }
-        }
-      } else if (item.link === currentPath && item.breadCrumb) {
-        setBreadCrumb(item.breadCrumb);
-        return;
-      }
-    }
-  }, [currentPath, setBreadCrumb]);
-
-  const handleMenuItemClick = (
-    item: { link: string; breadCrumb?: BreadCrumbItem[] },
-    e: React.MouseEvent,
-  ) => {
-    e.preventDefault();
-    if (item.link !== currentPath) {
-      router.navigate({ to: item.link });
-    }
-    if (item.breadCrumb) {
-      setBreadCrumb(item.breadCrumb);
-    }
-  };
+    const current = ALL_ITEMS.find((item) => isActivePath(item.link, pathname));
+    if (current?.breadCrumb) setBreadCrumb(current.breadCrumb);
+  }, [pathname, setBreadCrumb]);
 
   return (
-    <Sidebar variant="floating" collapsible="icon">
-      <SidebarHeader></SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {sideMenuItems.map((item) => {
-                // If item has dropdown items, render them as a group
-                if (item.dropdownItems) {
-                  return (
-                    <div key={item.key} className="mb-2">
-                      <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-                      {item.dropdownItems.map((sub: DropdownMenuItem) => {
-                        const isActive = sub.link === currentPath;
-                        return (
-                          <SidebarMenuItem key={sub.key}>
-                            <SidebarMenuButton
-                              asChild={false}
-                              onClick={(e) => handleMenuItemClick(sub, e)}
-                              className={`transition-colors duration-200 ${
-                                isActive
-                                  ? "text-secondary hover:text-secondary bg-primary hover:bg-primary"
-                                  : "hover:bg-zinc-200 dark:hover:bg-zinc-900"
-                              }`}
-                              style={{ position: "relative" }}
-                            >
-                              <>
-                                {sub.icon && <span>{sub.icon}</span>}
-                                <span className="ml-1">{sub.title}</span>
-                              </>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        );
-                      })}
-                    </div>
-                  );
-                } else {
-                  const isActive = item.link === currentPath;
-                  return (
-                    <SidebarMenuItem key={item.key}>
-                      <SidebarMenuButton
-                        asChild={false}
-                        onClick={(e) => handleMenuItemClick(item, e)}
-                        className={`transition-colors duration-200 ${
-                          isActive
-                            ? "text-secondary hover:text-secondary bg-primary hover:bg-primary"
-                            : "hover:bg-zinc-200 dark:hover:bg-zinc-900"
-                        }`}
-                        style={{ position: "relative" }}
-                      >
-                        <>
-                          {item.icon}
-                          <span className="ml-2">{item.title}</span>
-                        </>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                }
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+    <nav
+      aria-label="Main"
+      className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center border-r border-line bg-background px-[11px] py-3.5"
+    >
+      {/* Logo tile */}
+      <Link
+        to="/"
+        aria-label="Aurolis home"
+        className="mb-4 grid size-[42px] shrink-0 place-items-center rounded-[12px] border border-line-strong bg-card outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <img
+          src="/aurolis-logo/svg/aurolis-mark-light.svg"
+          alt=""
+          className="size-[26px] dark:hidden"
+          draggable={false}
+        />
+        <img
+          src="/aurolis-logo/svg/aurolis-mark-dark.svg"
+          alt=""
+          className="hidden size-[26px] dark:block"
+          draggable={false}
+        />
+      </Link>
+
+      {/* Main destinations */}
+      <div className="flex flex-col items-center gap-1.5">
+        {sideMenuItems.map((item) => (
+          <RailItem
+            key={item.key}
+            item={item}
+            active={isActivePath(item.link, pathname)}
+          />
+        ))}
+      </div>
+
+      {/* Bottom: settings + account */}
+      <div className="mt-auto flex flex-col items-center gap-3">
+        {bottomMenuItems.map((item) => (
+          <RailItem
+            key={item.key}
+            item={item}
+            active={isActivePath(item.link, pathname)}
+          />
+        ))}
+
+        <RailTooltip label={CURRENT_USER.name}>
+          <button
+            type="button"
+            aria-label={`Account: ${CURRENT_USER.name}`}
+            className="grid size-10 place-items-center rounded-full bg-linear-to-br from-orb-a to-orb-c text-[13px] font-medium text-lav-ink outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {initials(CURRENT_USER.name)}
+          </button>
+        </RailTooltip>
+      </div>
+    </nav>
   );
 }
 

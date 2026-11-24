@@ -1,15 +1,10 @@
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import BreadCrumb from "./breadcrumb";
 
 function Header() {
-  const sideBar = useSidebar();
   return (
-    <header
-      className={`flex py-4 items-center justify-between bg-background/30 backdrop-blur-md px-6 fixed ${sideBar.open ? "w-[100vw] md:w-[calc(100vw-16rem)]" : "w-[100vw] md:w-[calc(100vw-5rem)]"} z-[10]`}
-    >
+    <header className="fixed z-10 flex w-[calc(100vw-68px)] items-center justify-between bg-background/30 px-6 py-4 backdrop-blur-md">
       <div className="flex items-center gap-4">
-        <SidebarTrigger />
         <BreadCrumb />
       </div>
       <div className="flex items-center gap-4">

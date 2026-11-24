@@ -1,32 +1,21 @@
-# React + TypeScript + Vite
+# Aurolis
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged with Electron.
 
-Currently, two official plugins are available:
+## Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts Vite and opens the Electron window with hot reload |
+| `npm run build` | Type-checks and builds the renderer (`dist/`) and Electron main/preload (`dist-electron/`) |
+| `npm start` | Runs the last build in Electron |
+| `npm run dist` | Builds and packages installers for the current OS into `release/<version>/` |
+| `npm run dist:mac` / `dist:win` / `dist:linux` | Packages for a specific platform |
 
-## React Compiler
+## Layout
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+- `electron/main.ts`: main process. Serves the built app from `app://aurolis/` in production.
+- `electron/preload.ts`: exposes `window.aurolis` (platform and versions) to the renderer.
+- `electron-builder.json5`: packaging config; the app icon is `build/icon.png`.
+- `src/index.css`: Aurolis design tokens mapped to shadcn variables (light in `:root`, dark in `.dark`).
+- `public/aurolis-logo/`: favicon, marks and horizontal lockups used by the app.
