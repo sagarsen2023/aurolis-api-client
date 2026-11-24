@@ -18,7 +18,11 @@ function RecentRequests() {
           Recent requests
         </CardTitle>
         <CardAction>
-          <Button variant="outline" size="sm" className="h-8 px-3.5 text-[13.5px]">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3.5 text-[13.5px]"
+          >
             View all
           </Button>
         </CardAction>
@@ -32,7 +36,11 @@ function RecentRequests() {
               title={request.name}
               description={`${request.method} ${request.url}`}
               action={
-                <Button variant="outline" size="xs" className="h-7 px-3 text-[13px]">
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="h-7 px-3 text-[13px]"
+                >
                   Open
                 </Button>
               }
