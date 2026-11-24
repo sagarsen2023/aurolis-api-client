@@ -10,7 +10,7 @@ export async function request<T>(
   isNextApi: boolean,
   method: string,
   endpoint: string,
-  options: APIOptions = {}
+  options: APIOptions = {},
 ): Promise<T> {
   // Configure your token from here
   // const token = getAuthToken();
@@ -37,7 +37,7 @@ export async function mediaRequest<T>(
   method: string,
   endpoint: string,
   body: FormData,
-  options: APIOptions = {}
+  options: APIOptions = {},
 ): Promise<T> {
   const token = getAuthToken();
   const url = `${BASE_URL}${endpoint}`;

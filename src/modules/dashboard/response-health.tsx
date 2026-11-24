@@ -13,13 +13,31 @@ import { RESPONSE_HEALTH } from "@/constants/dashboard";
 import ListRow from "./list-row";
 
 const SEGMENTS = [
-  { key: "ok", label: "2xx/3xx", className: "bg-status-2xx text-status-2xx-foreground" },
-  { key: "clientError", label: "4xx", className: "bg-status-4xx text-status-4xx-foreground" },
-  { key: "serverError", label: "5xx", className: "bg-status-5xx text-status-5xx-foreground" },
-  { key: "timeout", label: "Timeouts", className: "bg-status-timeout text-status-timeout-foreground" },
+  {
+    key: "ok",
+    label: "2xx/3xx",
+    className: "bg-status-2xx text-status-2xx-foreground",
+  },
+  {
+    key: "clientError",
+    label: "4xx",
+    className: "bg-status-4xx text-status-4xx-foreground",
+  },
+  {
+    key: "serverError",
+    label: "5xx",
+    className: "bg-status-5xx text-status-5xx-foreground",
+  },
+  {
+    key: "timeout",
+    label: "Timeouts",
+    className: "bg-status-timeout text-status-timeout-foreground",
+  },
 ] as const;
 
-function StatusClassBar({ counts }: Readonly<{ counts: typeof RESPONSE_HEALTH }>) {
+function StatusClassBar({
+  counts,
+}: Readonly<{ counts: typeof RESPONSE_HEALTH }>) {
   const total = SEGMENTS.reduce((sum, s) => sum + counts[s.key], 0);
 
   return (
@@ -61,7 +79,7 @@ function ResponseHealth() {
         <CardTitle className="text-xl font-medium tracking-[-0.01em]">
           Response health
         </CardTitle>
-        <CardDescription className="text-[14px] text-mute">
+        <CardDescription className="text-sm text-mute">
           Status classes across {sent} sent requests
         </CardDescription>
       </CardHeader>
@@ -79,7 +97,11 @@ function ResponseHealth() {
             title="No load tests yet"
             description="Stress any request with virtual users"
             action={
-              <Button variant="outline" size="sm" className="h-8 px-3.5 text-[13.5px]">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-3.5 text-[13.5px]"
+              >
                 Run
               </Button>
             }
