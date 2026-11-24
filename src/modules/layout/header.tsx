@@ -1,14 +1,20 @@
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import BreadCrumb from "./breadcrumb";
+import EnvironmentSelect from "./environment-select";
+import SavePill from "./save-pill";
+import WorkspaceSwitcher from "./workspace-switcher";
 
 function Header() {
   return (
-    <header className="fixed z-10 flex w-[calc(100vw-68px)] items-center justify-between bg-background/30 px-6 py-4 backdrop-blur-md">
-      <div className="flex items-center gap-4">
+    <header className="flex h-15 shrink-0 items-center justify-between gap-4 border-b border-line bg-background px-5">
+      <div className="flex min-w-0 items-center gap-3">
+        <WorkspaceSwitcher />
         <BreadCrumb />
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-3">
+        <EnvironmentSelect />
         <ThemeSwitch />
+        <SavePill />
       </div>
     </header>
   );

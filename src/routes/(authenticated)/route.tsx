@@ -16,7 +16,7 @@ function DashboardLayout() {
         <Header />
 
         {/* Page Content */}
-        <main className="mt-20 flex-1 overflow-auto px-6">
+        <main className="min-h-0 flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>

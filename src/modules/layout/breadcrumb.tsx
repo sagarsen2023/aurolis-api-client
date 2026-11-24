@@ -1,74 +1,42 @@
-import type { BreadCrumbItem } from "@/constants/menu-items";
+import { Link } from "@tanstack/react-router";
+import { useAtomValue } from "jotai";
 import { breadCrumbAtom } from "@/context/breadcrumb-context";
-import { useNavigate } from "@tanstack/react-router";
-import { useAtom } from "jotai";
-import { useEffect, useState, type ReactNode } from "react";
 
+/** Renders "/ Parent / Current" after the workspace switcher. */
 function BreadCrumb() {
-  const navigate = useNavigate();
-  const [breadCrumb, setBreadCrumb] = useAtom(breadCrumbAtom);
-  const [currentBreadcrumb, setCurrentBreadcrumb] = useState<BreadCrumbItem[]>(
-    []
-  );
-  const [lastBreadcrumb, setLastBreadcrumb] = useState<BreadCrumbItem | null>(
-    null
-  );
-  const [icon, setIcon] = useState<ReactNode>();
-
-  const handleBreadcrumbClick = ({
-    link,
-    index,
-  }: {
-    link: string;
-    index: number;
-  }) => {
-    const newBreadCrumb = currentBreadcrumb.slice(0, index + 1);
-    setBreadCrumb(newBreadCrumb);
-    setCurrentBreadcrumb(newBreadCrumb);
-    setIcon(lastBreadcrumb?.icon);
-    navigate({
-      to: link,
-    });
-  };
-
-  useEffect(() => {
-    setCurrentBreadcrumb(breadCrumb || []);
-    const lastBreadcrumb = breadCrumb[breadCrumb.length - 1];
-    setLastBreadcrumb(lastBreadcrumb);
-    setIcon(lastBreadcrumb?.icon || <></>);
-  }, [breadCrumb]);
-
-  if (currentBreadcrumb.length === 0) {
-    return null;
-  }
+  const breadCrumb = useAtomValue(breadCrumbAtom);
+  if (breadCrumb.length === 0) return null;
 
   return (
-    <>
-      <div className="lg:hidden flex gap-4 items-center text-sm font-bold">
-        {lastBreadcrumb?.icon} {lastBreadcrumb?.name ?? ""}
-      </div>
-      <div className="hidden lg:flex text-xs lg:text-base items-center gap-2 lg:gap-3 tracking-wide theme-transition">
-        {icon}
-        {currentBreadcrumb.map((item, index) => (
-          <button
-            key={index + item.name + item.link}
-            onClick={() => handleBreadcrumbClick({ link: item.link, index })}
-            className="cursor-pointer"
-          >
-            <span
-              className={`mr-2 lg:mr-4 ${
-                index === currentBreadcrumb.length - 1
-                  ? "font-bold text-black dark:text-white"
-                  : ""
-              }`}
+    <nav aria-label="Breadcrumb">
+      <ol className="flex min-w-0 items-center gap-2 text-[15px] text-mute">
+        {breadCrumb.map((item, index) => {
+          const isLast = index === breadCrumb.length - 1;
+          return (
+            <li
+              key={`${index}-${item.link}`}
+              className="flex min-w-0 items-center gap-2"
             >
-              {item.name}
-            </span>
-            {index < currentBreadcrumb.length - 1 && <span>/</span>}
-          </button>
-        ))}
-      </div>
-    </>
+              <span aria-hidden className="text-dim">
+                /
+              </span>
+              {isLast ? (
+                <span aria-current="page" className="truncate">
+                  {item.name}
+                </span>
+              ) : (
+                <Link
+                  to={item.link}
+                  className="truncate transition-colors hover:text-foreground"
+                >
+                  {item.name}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 
