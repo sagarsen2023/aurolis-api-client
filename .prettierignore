@@ -1,0 +1,7 @@
+dist
+dist-electron
+dist-ssr
+release
+node_modules
+src/routeTree.gen.ts
+package-lock.json
