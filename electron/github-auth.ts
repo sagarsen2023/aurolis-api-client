@@ -17,12 +17,8 @@ import type {
   GithubUser,
 } from "../src/types/auth/auth-response.type.ts";
 
-// Public identifier of the GitHub App; safe to ship in the binary.
+// Public identifier of the GitHub App / OAuth App; safe to ship in the binary.
 // "Enable Device Flow" must be ticked in the app's settings on GitHub.
-//
-// No client secret anywhere: device-flow tokens are issued AND refreshed with
-// the client ID alone, so the app never needs one. Don't add one here — any
-// VITE_* value read in this file is inlined into the shipped main bundle.
 const CLIENT_ID = import.meta.env.VITE_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
@@ -30,7 +26,6 @@ const ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const USER_URL = "https://api.github.com/user";
 const DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code";
 const REFRESH_GRANT = "refresh_token";
-// Refresh-endpoint errors that mean the refresh token can never work again.
 const DEAD_REFRESH_ERRORS = new Set([
   "bad_refresh_token",
   "incorrect_client_credentials",
@@ -65,10 +60,6 @@ type StoredGithubSession = {
 };
 
 let pending: PendingFlow | null = null;
-// Decrypted session, kept in memory after the first read so status checks and
-// API calls don't hit the disk and the OS keychain every time.
-// undefined = not loaded yet, null = signed out. Without an OS keychain (some
-// Linux setups) this is the only copy: the session then lasts for this process.
 let sessionCache: StoredGithubSession | null | undefined;
 let refreshInFlight: Promise<RefreshResult> | null = null;
 // Status checked against GitHub once per session; reset on sign-in/out.
@@ -156,9 +147,6 @@ function parseStoredSession(raw: string): StoredGithubSession | null {
   return null;
 }
 
-// True only when tokens are encrypted by a real OS keychain. On Linux without
-// gnome-keyring/KWallet, Electron falls back to "basic_text" (a hard-coded key),
-// which is no better than plain text, so that counts as unavailable.
 function osKeychainAvailable() {
   if (!safeStorage.isEncryptionAvailable()) return false;
   return !(
@@ -222,9 +210,6 @@ async function refreshSession(
   if (!refreshTokenUsable(session) || !session.refreshToken) {
     return { kind: "rejected" };
   }
-  // GitHub requires client_secret here unless the token came from the device
-  // flow, which is the only way Aurolis signs in. Each refresh rotates the
-  // refresh token, so the new pair is saved straight away below.
   let response: TokenResponse;
   try {
     response = await postForm<TokenResponse>(ACCESS_TOKEN_URL, {
@@ -237,9 +222,6 @@ async function refreshSession(
   }
   const next = sessionFromResponse(response, session);
   if (!next) {
-    // Only these mean the session is gone for good. Anything else (a GitHub
-    // outage, rate limiting, an unexpected body) keeps the user signed in and
-    // is retried on the next call, so a hiccup doesn't log people out.
     return response.error && DEAD_REFRESH_ERRORS.has(response.error)
       ? { kind: "rejected" }
       : { kind: "offline" };
@@ -306,8 +288,6 @@ export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
     error?: string;
   };
   try {
-    // No scope: a GitHub App's access comes from its permissions and the
-    // repositories it's installed on, not from OAuth scopes.
     start = await postForm(DEVICE_CODE_URL, { client_id: CLIENT_ID });
   } catch {
     return { ok: false, error: "network" };
@@ -477,15 +457,11 @@ export async function getAuthStatus(): Promise<GithubAuthStatus> {
   return cachedStatus;
 }
 
-// ---------------------------------------------------------------------------
-// Tokens for GitHub API calls (used by github-api.ts, never sent to the renderer)
-
 export type AccessTokenResult =
   | { kind: "ready"; token: string }
   | { kind: "offline" }
   | { kind: "signed-out" };
 
-/** A usable access token, refreshed first if it is about to expire. */
 export async function getAccessToken(): Promise<AccessTokenResult> {
   const ready = await sessionForApi();
   if (ready.kind === "ready") {
@@ -496,11 +472,6 @@ export async function getAccessToken(): Promise<AccessTokenResult> {
     : { kind: "signed-out" };
 }
 
-/**
- * Called after GitHub answered 401 for `rejectedToken`. Refreshes once (shared
- * with any other caller) and returns the new token. If another request already
- * refreshed, its token is returned without refreshing again.
- */
 export async function recoverFromUnauthorized(
   rejectedToken: string,
 ): Promise<AccessTokenResult> {

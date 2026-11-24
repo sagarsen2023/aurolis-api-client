@@ -33,15 +33,10 @@ interface AurolisBridge {
     cancelSignIn(): Promise<void>;
     getStatus(): Promise<GithubAuthStatus>;
     signOut(): Promise<void>;
-    /** Accounts the GitHub App is installed on. Empty = not installed yet. */
     installations(): Promise<GithubResult<GithubInstallation[]>>;
-    /** Opens GitHub's install page for the app in the browser. */
     openInstallPage(): Promise<void>;
-    /** Repositories reachable through the app, with the user's role on each. */
     repositories(): Promise<GithubResult<GithubRepository[]>>;
-    /** Reads a branch, downloading only files that differ from knownFiles. */
     pull(params: PullFilesParams): Promise<GithubResult<PullFilesResponse>>;
-    /** Commits all changes as one commit; "conflict" if the branch moved. */
     commit(
       params: CommitFilesParams,
     ): Promise<GithubResult<CommitFilesResponse>>;
