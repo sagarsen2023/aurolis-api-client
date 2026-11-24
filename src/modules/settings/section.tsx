@@ -13,16 +13,21 @@ export function SettingsSection({
   children: ReactNode;
 }>) {
   return (
-    <section id={id} className="scroll-mt-6">
-      <h2 className="text-[22px] font-medium tracking-[-0.02em] text-foreground">
+    <section
+      id={id}
+      className="animate-in duration-700 ease-out fill-mode-both fade-in slide-in-from-bottom-3"
+    >
+      <h2 className="animate-in text-[22px] font-medium tracking-[-0.02em] text-foreground duration-700 fill-mode-both fade-in">
         {title}
       </h2>
       {description ? (
-        <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-mute">
+        <p className="mt-1 max-w-2xl animate-in text-sm leading-relaxed text-mute delay-100 duration-700 fill-mode-both fade-in">
           {description}
         </p>
       ) : null}
-      <div className="mt-4">{children}</div>
+      <div className="mt-4 animate-in delay-150 duration-700 fill-mode-both fade-in slide-in-from-bottom-2">
+        {children}
+      </div>
     </section>
   );
 }

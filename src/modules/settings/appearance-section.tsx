@@ -27,7 +27,7 @@ const THEMES = [
 function Preview({ theme }: Readonly<{ theme: "dark" | "light" | "system" }>) {
   if (theme === "system") {
     return (
-      <div className="grid h-[72px] grid-cols-2 overflow-hidden rounded-xl border border-line">
+      <div className="grid h-18 grid-cols-2 overflow-hidden rounded-xl border border-line">
         <div className="flex flex-col justify-center gap-2 bg-[#161417] px-3">
           <span className="h-1.5 w-10 rounded-full bg-white/80" />
           <span className="h-1.5 w-14 rounded-full bg-lav" />
@@ -44,7 +44,7 @@ function Preview({ theme }: Readonly<{ theme: "dark" | "light" | "system" }>) {
   return (
     <div
       className={cn(
-        "flex h-[72px] flex-col justify-center gap-2 rounded-xl border border-line px-3",
+        "flex h-18 flex-col justify-center gap-2 rounded-xl border border-line px-3",
         dark ? "bg-[#161417]" : "bg-white",
       )}
     >
@@ -71,7 +71,7 @@ export function AppearanceSection() {
     <SettingsSection
       id="appearance"
       title="Appearance"
-      description="Dark is the Aurolis default. System follows your device."
+      description="Dark is the Aurolis default. System follows your device and the Claude viewer."
     >
       <div className="grid gap-3 sm:grid-cols-3">
         {THEMES.map((option) => {
@@ -90,7 +90,7 @@ export function AppearanceSection() {
               )}
             >
               <Preview theme={option.id} />
-              <span className="mt-3 flex items-center justify-between gap-2 text-[14px]">
+              <span className="mt-3 flex items-center justify-between gap-2 text-sm">
                 <span className="inline-flex items-center gap-1.5 text-foreground">
                   <Icon className="size-3.5 text-mute" strokeWidth={1.8} />
                   {option.label}

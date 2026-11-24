@@ -16,7 +16,7 @@ function IconWell({
         className,
       )}
     >
-      <Icon className="size-[18px]" strokeWidth={1.8} />
+      <Icon className="size-4.5" strokeWidth={1.8} />
     </span>
   );
 }

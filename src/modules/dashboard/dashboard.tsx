@@ -1,5 +1,6 @@
 import { useAtomValue } from "jotai";
 import { Bookmark, Globe, Loader, Plus, Send, Upload } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { currentEnvironmentAtom } from "@/context/workspace-context";
 import { DASHBOARD_STATS, DASHBOARD_USER } from "@/constants/dashboard";
@@ -12,35 +13,37 @@ function Dashboard() {
   const stats = DASHBOARD_STATS;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-8 pt-8 pb-12">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-[clamp(30px,3.6vw,44px)] leading-[1.05] font-medium tracking-[-0.045em] text-foreground">
+    <div className="mx-auto flex w-full max-w-310 flex-col gap-4 px-8 pt-8 pb-12">
+      <PageHeader
+        className="mb-4"
+        size="display"
+        title={
+          <>
             Welcome back{" "}
             <span className="text-mute">@{DASHBOARD_USER.handle}</span>
-          </h1>
-          <p className="mt-2 text-[15px] text-mute">
-            Here’s an overview of your workspace.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-10 gap-2 px-5 text-[15px]"
-          >
-            <Upload strokeWidth={1.8} />
-            Import
-          </Button>
-          <Button
-            size="lg"
-            className="h-10 gap-2 px-5 text-[15px] hover:bg-lav-hover"
-          >
-            <Plus strokeWidth={1.8} />
-            New request
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+        description="Here’s an overview of your workspace."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-10 gap-2 px-5 text-[15px]"
+            >
+              <Upload strokeWidth={1.8} />
+              Import
+            </Button>
+            <Button
+              size="lg"
+              className="h-10 gap-2 px-5 text-[15px] hover:bg-lav-hover"
+            >
+              <Plus strokeWidth={1.8} />
+              New request
+            </Button>
+          </>
+        }
+      />
 
       <section
         aria-label="Workspace summary"
