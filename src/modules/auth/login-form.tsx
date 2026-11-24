@@ -14,6 +14,7 @@ import {
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { authService, GithubSignInFailure } from "@/services/auth.service";
+import { githubService } from "@/services/github.service";
 import type { GithubDeviceCodePrompt } from "@/types/auth/auth-response.type";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
@@ -53,6 +54,12 @@ export function LoginForm({
         setSignIn({ step: "waiting", prompt }),
       );
       inProgress.current = false;
+      void githubService
+        .isInstalled()
+        .then((installed) => {
+          if (!installed) void githubService.openInstallPage();
+        })
+        .catch(() => {});
       await navigate({ to: "/", replace: true });
     } catch (error) {
       inProgress.current = false;

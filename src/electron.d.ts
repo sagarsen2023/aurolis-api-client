@@ -3,6 +3,17 @@ import type {
   GithubDeviceFlowStart,
   GithubSignInResult,
 } from "@/types/auth/auth-response.type";
+import type {
+  CommitFilesParams,
+  PullFilesParams,
+} from "@/types/github/github-params.type";
+import type {
+  CommitFilesResponse,
+  GithubInstallation,
+  GithubRepository,
+  GithubResult,
+  PullFilesResponse,
+} from "@/types/github/github-response.type";
 
 interface AurolisBridge {
   readonly isElectron: true;
@@ -22,6 +33,13 @@ interface AurolisBridge {
     cancelSignIn(): Promise<void>;
     getStatus(): Promise<GithubAuthStatus>;
     signOut(): Promise<void>;
+    installations(): Promise<GithubResult<GithubInstallation[]>>;
+    openInstallPage(): Promise<void>;
+    repositories(): Promise<GithubResult<GithubRepository[]>>;
+    pull(params: PullFilesParams): Promise<GithubResult<PullFilesResponse>>;
+    commit(
+      params: CommitFilesParams,
+    ): Promise<GithubResult<CommitFilesResponse>>;
   };
 }
 
