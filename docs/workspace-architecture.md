@@ -28,7 +28,7 @@ This document is the single reference for how Aurolis stores workspaces, links t
 - **A workspace is a git repository on the user's machine**, with its own `.git` folder: a clone of a remote, a repo the user already had, or a new local repo. Aurolis reads the workspace from a folder inside it (`aurolis.json` marks that folder).
 - **Sync is plain git:** `git status` for changes, `git diff` / `git show` for diffs, `git commit` locally (works offline), `git fetch` + `git merge` to pull, `git push` to publish. It works with GitHub, GitLab, Bitbucket or any git host, like VS Code's Source Control.
 - **The user chooses where workspaces are stored**, once, right after signing in or choosing "Continue on this device". The default is an `Aurolis` folder in their home folder, and each workspace is a normal, visible folder inside it.
-- Aurolis uses the **git already installed** on the computer (2.31 or newer). Only when there isn't one does it fall back to its bundled git (`dugite`, the same as GitHub Desktop), so users never have to install git. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
+- Aurolis uses the **git already installed** on the computer (2.31 or newer). It doesn't bundle git: without a usable one, it asks the user to install it. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
 - All git commands, files and tokens are handled in the **Electron main process**. The renderer asks for data by workspace id over IPC and never sees paths or tokens.
 - Per-user data (drafts, UI state, history, secrets) lives **outside the repo**, so it can never be committed.
 - The GitHub REST API (`electron/github-sync.ts`) is used only for things git can't do: listing the user's repositories and permissions, the GitHub App install page, and opening pull requests.
@@ -200,7 +200,7 @@ Aurolis uses two places:
 
 Implemented in `electron/git.ts` (#21).
 
-- **Which git:** the system git is used when it's installed and at least 2.31 (needed for per-command configuration). Aurolis looks on `PATH` and in the usual install locations (`/opt/homebrew/bin`, `/usr/local/bin`, `Program Files\Git`), because apps opened from Finder don't get the shell's `PATH`. On macOS it first checks `xcode-select -p`, so it never triggers the "install developer tools" prompt from `/usr/bin/git`. Without a usable system git, it falls back to the bundled `dugite` git (macOS, Windows x64/arm64, Linux), unpacked from the app archive with `asarUnpack`.
+- **Which git:** the system git is used when it's installed and at least 2.31 (needed for per-command configuration). Aurolis looks on `PATH` and in the usual install locations (`/opt/homebrew/bin`, `/usr/local/bin`, `Program Files\Git`), because apps opened from Finder don't get the shell's `PATH`. On macOS it first checks `xcode-select -p`, so it never triggers the "install developer tools" prompt from `/usr/bin/git`. Aurolis doesn't bundle git. Without a usable system git, git operations fail with `git_unavailable` and the app asks the user to install Git 2.31 or newer; the search runs again on the next operation, so no restart is needed.
 - **Authentication:** for HTTPS remotes on github.com, the GitHub App user token from the device flow (`electron/github-auth.ts`) is the password. It's supplied per command as an `http.https://github.com/.extraheader` setting through git's environment configuration (`GIT_CONFIG_COUNT` / `GIT_CONFIG_KEY_0` / `GIT_CONFIG_VALUE_0`), scoped to github.com and **never written into the remote URL, `.git/config` or a command-line argument**. `GIT_TERMINAL_PROMPT=0` stops git from waiting for input. The token is fetched fresh before each network command, so the 8-hour expiry is handled by the existing refresh.
 - **Other hosts and SSH:** if the user's own git credential helper or SSH agent is configured, git uses it as normal. Aurolis doesn't store credentials for other hosts.
 - **Commit identity:** the repo's or user's git config (`user.name`, `user.email`) if set; otherwise the GitHub profile name with `<id>+<login>@users.noreply.github.com`. For a local-only workspace with no identity, Aurolis asks once.
@@ -215,7 +215,7 @@ Aurolis supports **macOS, Windows and Linux**. All OS-specific behaviour lives i
 |---|---|---|---|
 | App data (`userData`) | `~/Library/Application Support/Aurolis` | `%APPDATA%\Aurolis` | `~/.config/Aurolis` |
 | Default storage folder | `~/Aurolis` | `%USERPROFILE%\Aurolis` | `~/Aurolis` |
-| Bundled git | dugite build for the app's architecture | dugite build for the app's architecture | dugite build for the app's architecture |
+| Git (2.31 or newer, installed by the user) | Xcode Command Line Tools or Homebrew | Git for Windows | The distribution's `git` package |
 | Secrets and token encryption | Keychain | DPAPI | libsecret / KWallet; without one, memory only with a warning |
 | File watching | Native (FSEvents) | Native (ReadDirectoryChangesW) | inotify; large repos can hit `fs.inotify.max_user_watches`, so Aurolis falls back to polling and says so |
 | Path length | No practical limit | `core.longpaths=true` on repos Aurolis manages; Node handles long paths | No practical limit |
@@ -223,13 +223,13 @@ Aurolis supports **macOS, Windows and Linux**. All OS-specific behaviour lives i
 | Reserved file names | — | `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9` (with any extension) can't be files | — |
 | Line endings | LF | LF in workspace files (`core.autocrlf=false` on managed repos) | LF |
 | Cloud-synced folders to warn about | iCloud Drive (`~/Library/Mobile Documents`) | OneDrive | Dropbox, Google Drive clients |
-| Signing | The bundled git binaries are signed and notarized with the app, or Gatekeeper blocks them | The app and the bundled git are code-signed, or SmartScreen warns | AppImage, no signing |
+| Signing | The app is signed and notarized, or Gatekeeper blocks it | The app is code-signed, or SmartScreen warns | AppImage, no signing |
 
 What this means for the code:
 
 - **File names:** workspace file names are lowercase slugs (#4), so they never clash on case-insensitive disks. Slugs that would be a reserved Windows name get a suffix, so a request named "Con" is still a valid file everywhere (#23).
 - **Paths:** always built with `node:path` in the main process and stored as absolute paths; never concatenated by hand or passed from the renderer.
-- **Bundled git per architecture:** the dugite-native project lists Linux, macOS and Windows; #21 must confirm a build exists for every architecture Aurolis ships (x64 and arm64), and fall back to a system git only where one doesn't.
+- **Git is a prerequisite:** Aurolis ships no git binaries, so there is nothing extra to build, unpack or sign per OS and architecture. The user's own git install (and its credential helper) is always the one that runs.
 - **Folder picker:** the native dialog (`dialog.showOpenDialog`) runs in the main process, so the chosen path never comes from renderer input.
 
 ## What goes into git
@@ -361,7 +361,7 @@ The GitHub session is deleted. All workspaces stay and still work locally, inclu
 | Existing clones | Open a repo the user already has | Not possible |
 | Other tools | VS Code, terminal git and CI see the same repo | Repo only touched through Aurolis |
 | Limits | No API rate limit or per-file API limits | 5 MB per file, 1,000 changes per commit, rate limit |
-| Cost | Ships git (`dugite`), and must handle edits made outside the app | Smaller app, simpler state |
+| Cost | Needs git installed, and must handle edits made outside the app | No git needed, simpler state |
 
 The REST layer from #1 stays for what git can't do: listing repositories and permissions, the install page, and opening pull requests.
 
@@ -378,7 +378,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 
 | Limit | What happens |
 |---|---|
-| Installer size | Bundled git adds tens of MB to the app. |
+| Git required | Git 2.31 or newer must be installed; without it, Aurolis shows how to install it and git operations fail until it is. |
 | Large repos | Clones use `--filter=blob:none` (and sparse checkout for a subfolder root), so only needed files are downloaded. |
 | GitHub file size | GitHub rejects files over 100 MB on push; workspace files are small JSON, so this only affects other files in the repo. |
 | Workflow files | Pushing changes to `.github/workflows/` needs the GitHub App's **Workflows** permission; Aurolis never writes there itself. |
@@ -415,5 +415,5 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 | Source control screen, [discard](#discard-15), [switch branch](#switch-branch-15) | #15 |
 | Permissions (`remote.github.permissions`) | #16 |
 | Background fetch and status | #17 |
-| [Git engine](#git-engine), bundled git per OS and architecture | #21 |
+| [Git engine](#git-engine), finding the system git per OS | #21 |
 | [Platform support](#platform-support): reserved Windows names | #23 |

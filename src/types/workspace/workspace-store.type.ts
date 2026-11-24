@@ -64,7 +64,6 @@ export interface RemoveCheck {
 }
 
 export interface GitInfo {
-  source: "system" | "bundled";
   version: string;
   path: string;
 }
