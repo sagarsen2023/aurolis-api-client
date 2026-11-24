@@ -42,6 +42,7 @@ const EXAMPLES_DIR_SUFFIX = ".examples";
 const JSON_EXT = ".json";
 const SLUG_MAX_LENGTH = 60;
 const SEQ_STEP = 1000;
+const WINDOWS_RESERVED_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/;
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -71,7 +72,8 @@ export function slugify(name: string, fallback: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, SLUG_MAX_LENGTH)
     .replace(/-+$/, "");
-  return slug || fallback;
+  const base = slug || fallback;
+  return WINDOWS_RESERVED_NAMES.test(base) ? `${base}-${fallback}` : base;
 }
 
 export function seqBetween(before?: number, after?: number): number {
