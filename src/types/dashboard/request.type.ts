@@ -1,4 +1,6 @@
-export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
+import type { HttpMethod } from "../workspace/request.type.ts";
+
+export type { HttpMethod };
 
 export interface RecentRequest {
   id: string;
