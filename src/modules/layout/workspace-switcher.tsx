@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Plus, Settings } from "lucide-react";
+import { FaGithub } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -14,8 +15,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  activeWorkspaceAtom,
   addWorkspaceOpenAtom,
   currentWorkspaceAtom,
+  publishWorkspaceOpenAtom,
   registryAtom,
 } from "@/context/workspace-context";
 import { useWorkspaceActions } from "@/hooks/use-workspaces";
@@ -55,6 +58,9 @@ function WorkspaceSwitcher() {
   const registry = useAtomValue(registryAtom);
   const current = useAtomValue(currentWorkspaceAtom);
   const setAddOpen = useSetAtom(addWorkspaceOpenAtom);
+  const setPublishOpen = useSetAtom(publishWorkspaceOpenAtom);
+  const active = useAtomValue(activeWorkspaceAtom);
+  const canPublish = Boolean(active && !active.git.remoteUrl);
   const { openWorkspace } = useWorkspaceActions();
   const navigate = useNavigate();
   const workspaces = registry?.workspaces ?? [];
@@ -116,6 +122,12 @@ function WorkspaceSwitcher() {
           <Plus />
           Add workspace…
         </DropdownMenuItem>
+        {canPublish ? (
+          <DropdownMenuItem onClick={() => setPublishOpen(true)}>
+            <FaGithub />
+            Publish to GitHub…
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           disabled={!current}
           onClick={() => void navigate({ to: "/settings" })}

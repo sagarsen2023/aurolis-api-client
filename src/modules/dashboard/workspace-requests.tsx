@@ -3,6 +3,7 @@ import {
   Card,
   CardAction,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -37,24 +38,25 @@ function WorkspaceRequests({
   const requests = collectRequests(collections);
 
   return (
-    <Card className="gap-3 [--card-spacing:--spacing(5)]">
+    <Card className="gap-4">
       <CardHeader>
-        <CardTitle className="text-xl font-medium tracking-[-0.01em]">
-          Requests
-        </CardTitle>
+        <CardTitle>Requests</CardTitle>
+        <CardDescription>Saved in this workspace's collections</CardDescription>
         <CardAction>
-          <Pill>{requests.length} total</Pill>
+          <Pill variant="outline" className="h-5 px-2 text-xs">
+            {requests.length} total
+          </Pill>
         </CardAction>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-3">
         {requests.length === 0 ? (
-          <p className="text-[13.5px] text-mute">
+          <p className="text-sm text-muted-foreground">
             No requests in this workspace yet. Requests are saved as{" "}
-            <span className="font-mono">collections/**/*.req.json</span> files
-            in the repository.
+            <span className="font-mono text-xs">collections/**/*.req.json</span>{" "}
+            files in the repository.
           </p>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-border">
             {requests
               .slice(0, VISIBLE_REQUESTS)
               .map(({ request, location }) => (
@@ -64,21 +66,23 @@ function WorkspaceRequests({
                   title={request.name}
                   description={
                     <>
-                      <span className="font-mono text-[12.5px] font-medium text-foreground">
+                      <span className="font-mono font-medium text-foreground">
                         {request.method}
                       </span>{" "}
                       {request.url || "No URL"}
                     </>
                   }
                   action={
-                    <span className="text-[12.5px] text-dim">{location}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {location}
+                    </span>
                   }
                 />
               ))}
           </ul>
         )}
         {requests.length > VISIBLE_REQUESTS ? (
-          <p className="text-[13.5px] text-mute">
+          <p className="text-xs text-muted-foreground">
             And {requests.length - VISIBLE_REQUESTS} more.
           </p>
         ) : null}

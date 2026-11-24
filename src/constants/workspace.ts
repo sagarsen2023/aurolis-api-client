@@ -22,6 +22,10 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
     "Couldn't reach the git server. Check your connection and try again.",
   locked: "Another git command is running in this repository. Try again.",
   cancelled: "Cancelled.",
+  remote_exists: "This workspace is already linked to a remote repository.",
+  nothing_to_publish:
+    "There's nothing to publish yet. Commit your changes first, then publish.",
+  detached_head: "Check out a branch before publishing.",
   git_unavailable:
     "Aurolis needs Git 2.31 or newer. Install it from git-scm.com, then try again.",
   git_failed: "Git reported an error.",

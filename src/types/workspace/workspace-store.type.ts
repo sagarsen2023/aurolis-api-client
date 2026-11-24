@@ -44,6 +44,7 @@ export interface WorkspaceRegistryView {
 export interface WorkspaceGitState {
   branch: string | null;
   changedFiles: number;
+  unpushedCommits: number;
   remoteUrl: string | null;
 }
 
@@ -82,6 +83,9 @@ export type WorkspaceErrorCode =
   | "network"
   | "locked"
   | "cancelled"
+  | "remote_exists"
+  | "nothing_to_publish"
+  | "detached_head"
   | "git_unavailable"
   | "git_failed"
   | "unknown";
@@ -110,6 +114,19 @@ export interface CloneWorkspaceParams {
 export interface RenameWorkspaceParams {
   id: string;
   name: string;
+}
+
+export interface PublishWorkspaceParams {
+  id: string;
+  owner: string;
+  repo: string;
+  commitChanges: boolean;
+}
+
+export interface PublishResult {
+  webUrl: string;
+  branch: string;
+  committed: boolean;
 }
 
 export interface RemoveWorkspaceParams {

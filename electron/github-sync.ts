@@ -1,11 +1,14 @@
 import { shell } from "electron";
 import { createHash } from "node:crypto";
 import githubApi, { GithubApiError } from "./github-api.ts";
+import { getAuthStatus } from "./github-auth.ts";
 import type {
   CommitFilesParams,
+  CreateRepositoryParams,
   FileChange,
   GithubRepoRef,
   PullFilesParams,
+  RepositoryNameParams,
 } from "../src/types/github/github-params.type.ts";
 import type {
   CommitFilesResponse,
@@ -27,6 +30,12 @@ const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPO_RE = /^[A-Za-z0-9._-]{1,100}$/;
 const BRANCH_RE = /^[A-Za-z0-9._/-]{1,250}$/;
 
+export const isGithubOwner = (value: unknown): value is string =>
+  typeof value === "string" && OWNER_RE.test(value);
+
+export const isGithubRepoName = (value: unknown): value is string =>
+  typeof value === "string" && REPO_RE.test(value) && !/^\.+$/.test(value);
+
 function invalid(message: string): never {
   throw new GithubApiError({ code: "invalid_input", message });
 }
@@ -35,15 +44,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function validRepoName(input: unknown): RepositoryNameParams {
+  if (!isRecord(input)) invalid("Expected an object");
+  const { owner, name } = input;
+  if (!isGithubOwner(owner)) invalid("Invalid owner");
+  if (!isGithubRepoName(name)) invalid("Invalid repository name");
+  return { owner, name };
+}
+
 function validRepoRef(input: unknown): GithubRepoRef {
   if (!isRecord(input)) invalid("Expected an object");
   const { owner, repo, branch } = input;
-  if (typeof owner !== "string" || !OWNER_RE.test(owner)) {
-    invalid("Invalid owner");
-  }
-  if (typeof repo !== "string" || !REPO_RE.test(repo) || /^\.+$/.test(repo)) {
-    invalid("Invalid repository name");
-  }
+  if (!isGithubOwner(owner)) invalid("Invalid owner");
+  if (!isGithubRepoName(repo)) invalid("Invalid repository name");
   if (
     typeof branch !== "string" ||
     !BRANCH_RE.test(branch) ||
@@ -211,6 +224,25 @@ type ApiRepository = {
   permissions?: Partial<Record<keyof GithubRepository["permissions"], boolean>>;
 };
 
+const toRepository = (r: ApiRepository): GithubRepository => ({
+  id: r.id,
+  owner: r.owner.login,
+  name: r.name,
+  fullName: r.full_name,
+  private: r.private,
+  defaultBranch: r.default_branch,
+  description: r.description,
+  pushedAt: r.pushed_at,
+  cloneUrl: r.clone_url,
+  permissions: {
+    admin: !!r.permissions?.admin,
+    maintain: !!r.permissions?.maintain,
+    push: !!r.permissions?.push,
+    triage: !!r.permissions?.triage,
+    pull: !!r.permissions?.pull,
+  },
+});
+
 export async function listRepositories(): Promise<GithubRepository[]> {
   const installations = await listInstallations();
   const byId = new Map<number, GithubRepository>();
@@ -222,30 +254,104 @@ export async function listRepositories(): Promise<GithubRepository[]> {
       endpoint: `/user/installations/${installation.id}/repositories?per_page=100`,
       pick: (page) => page.repositories,
     });
-    for (const r of repos) {
-      byId.set(r.id, {
-        id: r.id,
-        owner: r.owner.login,
-        name: r.name,
-        fullName: r.full_name,
-        private: r.private,
-        defaultBranch: r.default_branch,
-        description: r.description,
-        pushedAt: r.pushed_at,
-        cloneUrl: r.clone_url,
-        permissions: {
-          admin: !!r.permissions?.admin,
-          maintain: !!r.permissions?.maintain,
-          push: !!r.permissions?.push,
-          triage: !!r.permissions?.triage,
-          pull: !!r.permissions?.pull,
-        },
-      });
-    }
+    for (const r of repos) byId.set(r.id, toRepository(r));
   }
   return [...byId.values()].sort((a, b) =>
     a.fullName.localeCompare(b.fullName),
   );
+}
+
+const nameBase = ({ owner, name }: RepositoryNameParams) =>
+  `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
+
+async function findRepository(ref: RepositoryNameParams) {
+  try {
+    return toRepository(
+      await githubApi.get<ApiRepository>({ endpoint: nameBase(ref) }),
+    );
+  } catch (error) {
+    if (error instanceof GithubApiError && error.code === "not_found") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function isEmptyRepository(ref: RepositoryNameParams) {
+  try {
+    const commits = await githubApi.get<unknown[]>({
+      endpoint: `${nameBase(ref)}/commits?per_page=1`,
+    });
+    return commits.length === 0;
+  } catch (error) {
+    if (error instanceof GithubApiError && error.code === "empty_repository") {
+      return true;
+    }
+    throw error;
+  }
+}
+
+export async function createRepository(
+  input: unknown,
+): Promise<GithubRepository> {
+  const ref = validRepoName(input);
+  const isPrivate = (input as CreateRepositoryParams).private !== false;
+  const { user } = await getAuthStatus();
+  if (!user) throw new GithubApiError({ code: "signed_out" });
+  const forUser = user.login.toLowerCase() === ref.owner.toLowerCase();
+  try {
+    const created = await githubApi.post<ApiRepository>({
+      endpoint: forUser
+        ? "/user/repos"
+        : `/orgs/${encodeURIComponent(ref.owner)}/repos`,
+      body: { name: ref.name, private: isPrivate, auto_init: false },
+    });
+    return toRepository(created);
+  } catch (error) {
+    if (!(error instanceof GithubApiError)) throw error;
+    if (error.code === "validation" && (await findRepository(ref))) {
+      throw new GithubApiError({
+        code: "already_exists",
+        status: error.info.status,
+        message: `${ref.owner}/${ref.name} already exists.`,
+      });
+    }
+    if (error.code === "not_found") {
+      throw new GithubApiError({
+        code: "forbidden",
+        status: error.info.status,
+        message: error.message,
+      });
+    }
+    throw error;
+  }
+}
+
+export async function getEmptyRepository(
+  input: unknown,
+): Promise<GithubRepository> {
+  const ref = validRepoName(input);
+  const repository = await findRepository(ref);
+  if (!repository) {
+    throw new GithubApiError({
+      code: "not_found",
+      status: 404,
+      message: `Aurolis can't see ${ref.owner}/${ref.name}.`,
+    });
+  }
+  if (!repository.permissions.push) {
+    throw new GithubApiError({
+      code: "forbidden",
+      message: `You can't push to ${repository.fullName}.`,
+    });
+  }
+  if (!(await isEmptyRepository(ref))) {
+    throw new GithubApiError({
+      code: "not_empty",
+      message: `${repository.fullName} already has commits.`,
+    });
+  }
+  return repository;
 }
 
 type ApiTree = {

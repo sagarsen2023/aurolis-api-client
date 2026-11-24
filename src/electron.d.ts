@@ -5,7 +5,9 @@ import type {
 } from "@/types/auth/auth-response.type";
 import type {
   CommitFilesParams,
+  CreateRepositoryParams,
   PullFilesParams,
+  RepositoryNameParams,
 } from "@/types/github/github-params.type";
 import type {
   CommitFilesResponse,
@@ -20,6 +22,8 @@ import type {
   CreateWorkspaceParams,
   GitInfo,
   OpenedWorkspace,
+  PublishResult,
+  PublishWorkspaceParams,
   RemoveCheck,
   RemoveWorkspaceParams,
   RenameWorkspaceParams,
@@ -53,6 +57,12 @@ interface AurolisBridge {
     commit(
       params: CommitFilesParams,
     ): Promise<GithubResult<CommitFilesResponse>>;
+    createRepository(
+      params: CreateRepositoryParams,
+    ): Promise<GithubResult<GithubRepository>>;
+    emptyRepository(
+      params: RepositoryNameParams,
+    ): Promise<GithubResult<GithubRepository>>;
   };
   readonly workspace: {
     list(): Promise<WorkspaceResult<WorkspaceRegistryView>>;
@@ -73,6 +83,9 @@ interface AurolisBridge {
     rename(
       params: RenameWorkspaceParams,
     ): Promise<WorkspaceResult<WorkspaceRegistryView>>;
+    publish(
+      params: PublishWorkspaceParams,
+    ): Promise<WorkspaceResult<PublishResult>>;
     removeCheck(id: string): Promise<WorkspaceResult<RemoveCheck>>;
     reveal(id: string): Promise<WorkspaceResult<void>>;
     remove(

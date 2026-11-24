@@ -18,7 +18,7 @@ Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged w
 - `electron/preload.ts`: exposes `window.aurolis` (platform, versions, theme sync and GitHub sign-in) to the renderer.
 - `electron/github-auth.ts`: GitHub sign-in with the device flow; keeps tokens in the main process, encrypted with the OS keychain.
 - `electron/github-api.ts`: GitHub REST client for the main process (the counterpart of `src/services/config/fetch-api.ts`): attaches the token, refreshes once on 401, maps errors to typed codes.
-- `electron/github-sync.ts`: the GitHub operations the renderer can call over IPC: installations, repositories, pull and commit.
+- `electron/github-sync.ts`: the GitHub operations the renderer can call over IPC: installations, repositories, creating or checking a repository to publish to, pull and commit.
 - `electron-builder.json5`: packaging config; the app icon is `build/icon.png`.
 - `src/index.css`: Aurolis design tokens mapped to shadcn variables (light in `:root`, dark in `.dark`).
 - `public/aurolis-logo/`: favicon, marks and horizontal lockups used by the app.
@@ -33,6 +33,7 @@ Aurolis signs in with a **GitHub App** using the **device flow**. There is no ba
    - Tick **Enable Device Flow** and **Expire user authorization tokens**.
    - Leave the callback URL empty and turn the webhook off.
    - Repository permissions: **Contents** and **Pull requests** → Read and write. Account permissions: **Email addresses** → Read-only.
+   - To let users create a repository when they publish a local workspace, also set **Administration** → Read and write. Without it, publishing still works to an empty repository the user creates on github.com.
    - **Don't generate a client secret or a private key.** Aurolis doesn't use either.
 2. Copy `.env.example` to `.env` and set the app's Client ID and slug:
    ```bash
@@ -60,6 +61,9 @@ Use `githubService` (`src/services/github.service.ts`). Every call runs in the m
 | `pullFiles({ owner, repo, branch, path, knownFiles })` | Reads the branch and downloads only files whose SHA differs from `knownFiles`. Returns `headSha`, `changed`, `deleted` and the full `files` map to keep for the next pull. |
 | `commitFiles({ owner, repo, branch, message, changes, expectedHeadSha })` | Writes all changes as **one commit** (Git Data API) and moves the branch with `force: false`. If the branch moved since `expectedHeadSha`, nothing is written and it throws `conflict` with `remoteHeadSha`: pull, merge, then commit again. |
 
-Error codes: `signed_out`, `offline`, `rate_limited` (with `resetAt`), `not_installed`, `not_found`, `forbidden`, `conflict`, `empty_repository`, `too_large`, `validation`, `invalid_input`, `server`, `unknown`. Messages for each are in `src/constants/github.ts`.
+| `createRepository({ owner, name, private })` | Creates an empty repository for the user or an organization. Throws `already_exists` if the name is taken, or `forbidden` if the app may not create repositories there. |
+| `getEmptyRepository({ owner, name })` | Returns the repository only if Aurolis can see it, the user can push and it has no commits; otherwise `not_found`, `forbidden` or `not_empty`. |
+
+Error codes: `signed_out`, `offline`, `rate_limited` (with `resetAt`), `not_installed`, `not_found`, `forbidden`, `conflict`, `empty_repository`, `already_exists`, `not_empty`, `too_large`, `validation`, `invalid_input`, `server`, `unknown`. Messages for each are in `src/constants/github.ts`.
 
 Add new GitHub features as a function in `electron/github-sync.ts` plus an IPC channel, not as a generic "call any endpoint" bridge, so renderer code can only do what Aurolis needs.

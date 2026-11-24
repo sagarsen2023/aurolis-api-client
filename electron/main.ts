@@ -19,6 +19,8 @@ import {
 } from "./github-auth.ts";
 import {
   commitFiles,
+  createRepository,
+  getEmptyRepository,
   listInstallations,
   listRepositories,
   openInstallPage,
@@ -36,6 +38,7 @@ import {
   listWorkspaces,
   openExistingFolder,
   openWorkspace,
+  publishWorkspace,
   removeCheck,
   removeWorkspace,
   revealWorkspace,
@@ -268,6 +271,14 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.handle("aurolis:github:commit", (event, params: unknown) =>
     fromAppWindow(event) ? toResult(() => commitFiles(params)) : null,
   );
+  ipcMain.handle(
+    "aurolis:github:create-repository",
+    (event, params: unknown) =>
+      fromAppWindow(event) ? toResult(() => createRepository(params)) : null,
+  );
+  ipcMain.handle("aurolis:github:empty-repository", (event, params: unknown) =>
+    fromAppWindow(event) ? toResult(() => getEmptyRepository(params)) : null,
+  );
 
   const windowOf = (event: Electron.IpcMainInvokeEvent) =>
     BrowserWindow.fromWebContents(event.sender);
@@ -288,6 +299,7 @@ if (!app.requestSingleInstanceLock()) {
     open: (_event, id) => openWorkspace(id),
     initialize: (_event, id) => initializeWorkspace(id),
     rename: (_event, params) => renameWorkspace(params),
+    publish: (_event, params) => publishWorkspace(params),
     "remove-check": (_event, id) => removeCheck(id),
     reveal: (_event, id) => revealWorkspace(id),
     remove: (_event, params) => removeWorkspace(params),

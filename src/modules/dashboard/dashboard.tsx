@@ -12,11 +12,13 @@ import {
 import { FaGithub } from "react-icons/fa6";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { githubUserAtom } from "@/context/auth-context";
 import {
   activeWorkspaceStateAtom,
   addWorkspaceOpenAtom,
   currentEnvironmentAtom,
+  publishWorkspaceOpenAtom,
 } from "@/context/workspace-context";
 import { workspaceService } from "@/services/workspace.service";
 import type { CollectionItem } from "@/types/workspace/collection.type";
@@ -65,20 +67,23 @@ function remoteLabel(workspace: OpenedWorkspace) {
   return "Local only";
 }
 
+const PAGE = "mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 md:gap-6 md:p-6";
+
 function DashboardSkeleton() {
   return (
-    <div
-      aria-busy
-      className="mx-auto flex w-full max-w-310 flex-col gap-4 px-8 pt-8 pb-12"
-    >
-      <div className="h-12 w-80 animate-pulse rounded-xl bg-surface-raise" />
+    <div aria-busy className={PAGE}>
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
-          <div
-            key={index}
-            className="h-37.5 animate-pulse rounded-3xl bg-surface-raise"
-          />
+          <Skeleton key={index} className="h-30" />
         ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-64" />
       </div>
     </div>
   );
@@ -90,6 +95,7 @@ function WorkspaceOverview({
   const user = useAtomValue(githubUserAtom);
   const environment = useAtomValue(currentEnvironmentAtom);
   const setAddOpen = useSetAtom(addWorkspaceOpenAtom);
+  const setPublishOpen = useSetAtom(publishWorkspaceOpenAtom);
   const data = workspace.data;
   const collections = data?.collections ?? [];
   const totals = collections.reduce(
@@ -107,21 +113,22 @@ function WorkspaceOverview({
   const github = workspace.entry.remote?.github;
 
   return (
-    <div className="mx-auto flex w-full max-w-310 flex-col gap-4 px-8 pt-8 pb-12">
+    <div className={PAGE}>
       <PageHeader
-        className="mb-4"
-        size="display"
+        size="compact"
         title={
           <>
             Welcome back
-            {user ? <span className="text-mute"> @{user.login}</span> : null}
+            {user ? (
+              <span className="text-muted-foreground"> @{user.login}</span>
+            ) : null}
           </>
         }
         description={
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="flex items-center gap-1.5">
               <FolderGit2 className="size-3.5" aria-hidden />
-              <span className="font-mono">{workspace.displayPath}</span>
+              <span className="font-mono text-xs">{workspace.displayPath}</span>
             </span>
             {workspace.git.branch ? (
               <span className="flex items-center gap-1.5">
@@ -141,21 +148,21 @@ function WorkspaceOverview({
         }
         actions={
           <>
+            {workspace.git.remoteUrl ? null : (
+              <Button variant="outline" onClick={() => setPublishOpen(true)}>
+                <FaGithub aria-hidden />
+                Publish to GitHub
+              </Button>
+            )}
             <Button
               variant="outline"
-              size="lg"
-              className="h-10 gap-2 px-5 text-[15px]"
               onClick={() => void workspaceService.reveal(workspace.entry.id)}
             >
-              <FolderOpen strokeWidth={1.8} />
+              <FolderOpen />
               Show in folder
             </Button>
-            <Button
-              size="lg"
-              className="h-10 gap-2 px-5 text-[15px] hover:bg-lav-hover"
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus strokeWidth={1.8} />
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus />
               Add workspace
             </Button>
           </>
@@ -198,7 +205,7 @@ function WorkspaceOverview({
         />
       </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.08fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <WorkspaceRequests collections={collections} />
         <ResponseHealth git={workspace.git} />
       </div>

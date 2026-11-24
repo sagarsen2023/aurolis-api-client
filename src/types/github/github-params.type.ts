@@ -14,6 +14,15 @@ export interface FileChange {
   content: string | null;
 }
 
+export interface RepositoryNameParams {
+  owner: string;
+  name: string;
+}
+
+export interface CreateRepositoryParams extends RepositoryNameParams {
+  private: boolean;
+}
+
 export interface CommitFilesParams extends GithubRepoRef {
   message: string;
   changes: FileChange[];
