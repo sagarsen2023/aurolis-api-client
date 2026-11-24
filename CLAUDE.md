@@ -19,6 +19,8 @@ Install with `npm ci`. Keep `package-lock.json` in sync with `package.json` (run
 
 A local-first, open-source desktop API client (Electron + React). Workspaces live on the user's machine; GitHub is an optional sync target. There is no Aurolis backend and no client secret anywhere.
 
+The workspace, storage, switching and sync model is defined in [`docs/workspace-architecture.md`](docs/workspace-architecture.md). Read it before working on workspaces or GitHub sync, and keep it up to date when that model changes.
+
 ## Architecture
 
 ### Two processes
