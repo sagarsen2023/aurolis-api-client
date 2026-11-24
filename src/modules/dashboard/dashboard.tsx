@@ -1,16 +1,110 @@
-import { useAtomValue } from "jotai";
-import { Bookmark, Globe, Loader, Plus, Send, Upload } from "lucide-react";
+import { useAtomValue, useSetAtom } from "jotai";
+import {
+  FolderGit2,
+  FolderOpen,
+  GitBranch,
+  Globe,
+  Layers,
+  Loader,
+  Plus,
+  Send,
+} from "lucide-react";
+import { FaGithub } from "react-icons/fa6";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { currentEnvironmentAtom } from "@/context/workspace-context";
-import { DASHBOARD_STATS, DASHBOARD_USER } from "@/constants/dashboard";
-import RecentRequests from "./recent-requests";
+import { githubUserAtom } from "@/context/auth-context";
+import {
+  activeWorkspaceStateAtom,
+  addWorkspaceOpenAtom,
+  currentEnvironmentAtom,
+} from "@/context/workspace-context";
+import { workspaceService } from "@/services/workspace.service";
+import type { CollectionItem } from "@/types/workspace/collection.type";
+import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
+import GetStarted from "@/modules/workspace/get-started";
+import {
+  FormatIssues,
+  MissingWorkspace,
+  NotAWorkspace,
+  WorkspaceLoadError,
+} from "@/modules/workspace/workspace-states";
 import ResponseHealth from "./response-health";
 import StatCard from "./stat-card";
+import WorkspaceRequests from "./workspace-requests";
 
-function Dashboard() {
+function countItems(items: CollectionItem[]): {
+  requests: number;
+  examples: number;
+} {
+  return items.reduce(
+    (total, item) => {
+      if (item.type === "folder") {
+        const nested = countItems(item.items);
+        return {
+          requests: total.requests + nested.requests,
+          examples: total.examples + nested.examples,
+        };
+      }
+      return {
+        requests: total.requests + 1,
+        examples: total.examples + item.examples.length,
+      };
+    },
+    { requests: 0, examples: 0 },
+  );
+}
+
+function remoteLabel(workspace: OpenedWorkspace) {
+  const github = workspace.entry.remote?.github;
+  if (github) return `${github.owner}/${github.repo}`;
+  if (workspace.git.remoteUrl) {
+    return workspace.git.remoteUrl
+      .replace(/^https?:\/\//, "")
+      .replace(/\.git$/, "");
+  }
+  return "Local only";
+}
+
+function DashboardSkeleton() {
+  return (
+    <div
+      aria-busy
+      className="mx-auto flex w-full max-w-310 flex-col gap-4 px-8 pt-8 pb-12"
+    >
+      <div className="h-12 w-80 animate-pulse rounded-xl bg-surface-raise" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div
+            key={index}
+            className="h-37.5 animate-pulse rounded-3xl bg-surface-raise"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceOverview({
+  workspace,
+}: Readonly<{ workspace: OpenedWorkspace }>) {
+  const user = useAtomValue(githubUserAtom);
   const environment = useAtomValue(currentEnvironmentAtom);
-  const stats = DASHBOARD_STATS;
+  const setAddOpen = useSetAtom(addWorkspaceOpenAtom);
+  const data = workspace.data;
+  const collections = data?.collections ?? [];
+  const totals = collections.reduce(
+    (sum, collection) => {
+      const counts = countItems(collection.items);
+      return {
+        requests: sum.requests + counts.requests,
+        examples: sum.examples + counts.examples,
+      };
+    },
+    { requests: 0, examples: 0 },
+  );
+  const environments = data?.environments.length ?? 0;
+  const changes = workspace.git.changedFiles;
+  const github = workspace.entry.remote?.github;
 
   return (
     <div className="mx-auto flex w-full max-w-310 flex-col gap-4 px-8 pt-8 pb-12">
@@ -19,31 +113,56 @@ function Dashboard() {
         size="display"
         title={
           <>
-            Welcome back{" "}
-            <span className="text-mute">@{DASHBOARD_USER.handle}</span>
+            Welcome back
+            {user ? <span className="text-mute"> @{user.login}</span> : null}
           </>
         }
-        description="Here’s an overview of your workspace."
+        description={
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="flex items-center gap-1.5">
+              <FolderGit2 className="size-3.5" aria-hidden />
+              <span className="font-mono">{workspace.displayPath}</span>
+            </span>
+            {workspace.git.branch ? (
+              <span className="flex items-center gap-1.5">
+                <GitBranch className="size-3.5" aria-hidden />
+                {workspace.git.branch}
+              </span>
+            ) : null}
+            <span className="flex items-center gap-1.5">
+              {github ? (
+                <FaGithub className="size-3.5" aria-hidden />
+              ) : (
+                <Globe className="size-3.5" aria-hidden />
+              )}
+              {remoteLabel(workspace)}
+            </span>
+          </span>
+        }
         actions={
           <>
             <Button
               variant="outline"
               size="lg"
               className="h-10 gap-2 px-5 text-[15px]"
+              onClick={() => void workspaceService.reveal(workspace.entry.id)}
             >
-              <Upload strokeWidth={1.8} />
-              Import
+              <FolderOpen strokeWidth={1.8} />
+              Show in folder
             </Button>
             <Button
               size="lg"
               className="h-10 gap-2 px-5 text-[15px] hover:bg-lav-hover"
+              onClick={() => setAddOpen(true)}
             >
               <Plus strokeWidth={1.8} />
-              New request
+              Add workspace
             </Button>
           </>
         }
       />
+
+      <FormatIssues workspace={workspace} />
 
       <section
         aria-label="Workspace summary"
@@ -51,40 +170,66 @@ function Dashboard() {
       >
         <StatCard
           title="Requests"
-          badge={`${stats.collections} collections`}
+          badge={`${collections.length} ${collections.length === 1 ? "collection" : "collections"}`}
           icon={Send}
-          value={stats.requests}
+          value={totals.requests}
         />
         <StatCard
           title="Saved examples"
           badge="Kept responses"
           icon={Loader}
-          value={stats.savedExamples}
+          value={totals.examples}
         />
         <StatCard
           title="Environments"
-          badge={`Active: ${environment.name}`}
-          icon={Globe}
-          value={stats.environments}
+          badge={environment ? `Active: ${environment.name}` : "None yet"}
+          icon={Layers}
+          value={environments}
         />
         <StatCard
-          title="Unsaved changes"
+          title="Uncommitted changes"
           badge={
-            stats.unsavedChanges === 0
-              ? "All saved"
-              : `${stats.unsavedChanges} unsaved`
+            changes === 0
+              ? "All committed"
+              : `${changes} ${changes === 1 ? "file" : "files"}`
           }
-          icon={Bookmark}
-          value={stats.unsavedChanges}
+          icon={GitBranch}
+          value={changes}
         />
       </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.08fr_1fr]">
-        <RecentRequests />
-        <ResponseHealth />
+        <WorkspaceRequests collections={collections} />
+        <ResponseHealth git={workspace.git} />
       </div>
     </div>
   );
+}
+
+function Dashboard() {
+  const state = useAtomValue(activeWorkspaceStateAtom);
+
+  switch (state.status) {
+    case "loading":
+      return <DashboardSkeleton />;
+    case "none":
+      return <GetStarted variant="page" />;
+    case "missing":
+      return (
+        <MissingWorkspace
+          workspaceId={state.workspaceId}
+          message={state.message}
+        />
+      );
+    case "error":
+      return <WorkspaceLoadError message={state.message} />;
+    case "ready":
+      return state.workspace.isWorkspace ? (
+        <WorkspaceOverview workspace={state.workspace} />
+      ) : (
+        <NotAWorkspace workspace={state.workspace} />
+      );
+  }
 }
 
 export default Dashboard;

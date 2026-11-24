@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again.";
@@ -14,17 +14,7 @@ const isErrorResponse = (value: unknown): value is ErrorResponse =>
 const toError = (error: unknown) =>
   error instanceof Error ? error : new Error(FALLBACK_MESSAGE);
 
-export function usePromise<T>({
-  initialLoading,
-  promise,
-  onSuccess,
-  onSuccessAsync,
-  onError,
-  onErrorAsync,
-  onFinally,
-  onFinallyAsync,
-  showErrorToast = true,
-}: {
+interface UsePromiseOptions<T> {
   initialLoading?: boolean;
   showErrorToast?: boolean;
   promise: () => Promise<T>;
@@ -34,13 +24,29 @@ export function usePromise<T>({
   onErrorAsync?: (_error: Error) => Promise<void>;
   onFinally?: () => void;
   onFinallyAsync?: () => Promise<void>;
-}): {
+}
+
+export function usePromise<T>(options: UsePromiseOptions<T>): {
   loading: boolean;
   runPromise: () => Promise<T | undefined>;
 } {
-  const [loading, setLoading] = useState(initialLoading || false);
+  const [loading, setLoading] = useState(options.initialLoading || false);
+  const latest = useRef(options);
+  useLayoutEffect(() => {
+    latest.current = options;
+  });
 
-  const runPromise = async () => {
+  const runPromise = useCallback(async () => {
+    const {
+      promise,
+      onSuccess,
+      onSuccessAsync,
+      onError,
+      onErrorAsync,
+      onFinally,
+      onFinallyAsync,
+      showErrorToast = true,
+    } = latest.current;
     try {
       setLoading(true);
       const response = await promise();
@@ -63,9 +69,9 @@ export function usePromise<T>({
       onFinally?.();
       await onFinallyAsync?.();
     }
-  };
+  }, []);
 
-  if (typeof promise !== "function") {
+  if (typeof options.promise !== "function") {
     throw new Error("Promise must be a function");
   }
 

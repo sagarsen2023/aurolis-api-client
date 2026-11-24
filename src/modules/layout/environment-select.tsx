@@ -1,4 +1,4 @@
-import { useAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import {
   Select,
   SelectContent,
@@ -6,19 +6,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ENVIRONMENTS } from "@/constants/workspaces";
-import { environmentIdAtom } from "@/context/workspace-context";
+import {
+  currentEnvironmentAtom,
+  environmentIdAtom,
+  environmentsAtom,
+} from "@/context/workspace-context";
 
-const items = ENVIRONMENTS.map((e) => ({ value: e.id, label: e.name }));
+const NO_ENVIRONMENT = "__none__";
 
 function EnvironmentSelect() {
-  const [environmentId, setEnvironmentId] = useAtom(environmentIdAtom);
+  const environments = useAtomValue(environmentsAtom);
+  const current = useAtomValue(currentEnvironmentAtom);
+  const setEnvironmentId = useSetAtom(environmentIdAtom);
+  const items =
+    environments.length > 0
+      ? environments.map((e) => ({ value: e.id, label: e.name }))
+      : [{ value: NO_ENVIRONMENT, label: "No environments" }];
 
   return (
     <Select
       items={items}
-      value={environmentId}
-      onValueChange={(value) => value && setEnvironmentId(value)}
+      value={current?.id ?? NO_ENVIRONMENT}
+      disabled={environments.length === 0}
+      onValueChange={(value) => {
+        if (value && value !== NO_ENVIRONMENT) setEnvironmentId(value);
+      }}
     >
       <SelectTrigger aria-label="Environment" className="w-40 bg-card">
         <SelectValue />

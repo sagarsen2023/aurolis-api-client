@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import Header from "@/modules/layout/header";
 import SideBar from "@/modules/layout/sidebar";
 import { authService } from "@/services/auth.service";
+import { useWorkspaceBootstrap } from "@/hooks/use-workspaces";
 
 export const Route = createFileRoute("/(authenticated)")({
   component: DashboardLayout,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/(authenticated)")({
 });
 
 function DashboardLayout() {
+  useWorkspaceBootstrap();
   return (
     <div className="relative flex h-full w-full">
       <SideBar />

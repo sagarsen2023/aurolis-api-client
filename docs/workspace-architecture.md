@@ -28,7 +28,7 @@ This document is the single reference for how Aurolis stores workspaces, links t
 - **A workspace is a git repository on the user's machine**, with its own `.git` folder: a clone of a remote, a repo the user already had, or a new local repo. Aurolis reads the workspace from a folder inside it (`aurolis.json` marks that folder).
 - **Sync is plain git:** `git status` for changes, `git diff` / `git show` for diffs, `git commit` locally (works offline), `git fetch` + `git merge` to pull, `git push` to publish. It works with GitHub, GitLab, Bitbucket or any git host, like VS Code's Source Control.
 - **The user chooses where workspaces are stored**, once, right after signing in or choosing "Continue on this device". The default is an `Aurolis` folder in their home folder, and each workspace is a normal, visible folder inside it.
-- Aurolis ships its own git (`dugite`, the same as GitHub Desktop), so users don't need git installed. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
+- Aurolis uses the **git already installed** on the computer (2.31 or newer). Only when there isn't one does it fall back to its bundled git (`dugite`, the same as GitHub Desktop), so users never have to install git. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
 - All git commands, files and tokens are handled in the **Electron main process**. The renderer asks for data by workspace id over IPC and never sees paths or tokens.
 - Per-user data (drafts, UI state, history, secrets) lives **outside the repo**, so it can never be committed.
 - The GitHub REST API (`electron/github-sync.ts`) is used only for things git can't do: listing the user's repositories and permissions, the GitHub App install page, and opening pull requests.
@@ -200,8 +200,8 @@ Aurolis uses two places:
 
 Implemented in `electron/git.ts` (#21).
 
-- **Bundled git:** `dugite` ships a portable git for macOS, Windows and Linux, so Aurolis never depends on the user having git installed or on its version.
-- **Authentication:** for HTTPS remotes on github.com, the GitHub App user token from the device flow (`electron/github-auth.ts`) is the password. It's supplied per command through `GIT_ASKPASS` and an environment variable, **never written into the remote URL or `.git/config`**. The token is fetched fresh before each network command, so the 8-hour expiry is handled by the existing refresh.
+- **Which git:** the system git is used when it's installed and at least 2.31 (needed for per-command configuration). Aurolis looks on `PATH` and in the usual install locations (`/opt/homebrew/bin`, `/usr/local/bin`, `Program Files\Git`), because apps opened from Finder don't get the shell's `PATH`. On macOS it first checks `xcode-select -p`, so it never triggers the "install developer tools" prompt from `/usr/bin/git`. Without a usable system git, it falls back to the bundled `dugite` git (macOS, Windows x64/arm64, Linux), unpacked from the app archive with `asarUnpack`.
+- **Authentication:** for HTTPS remotes on github.com, the GitHub App user token from the device flow (`electron/github-auth.ts`) is the password. It's supplied per command as an `http.https://github.com/.extraheader` setting through git's environment configuration (`GIT_CONFIG_COUNT` / `GIT_CONFIG_KEY_0` / `GIT_CONFIG_VALUE_0`), scoped to github.com and **never written into the remote URL, `.git/config` or a command-line argument**. `GIT_TERMINAL_PROMPT=0` stops git from waiting for input. The token is fetched fresh before each network command, so the 8-hour expiry is handled by the existing refresh.
 - **Other hosts and SSH:** if the user's own git credential helper or SSH agent is configured, git uses it as normal. Aurolis doesn't store credentials for other hosts.
 - **Commit identity:** the repo's or user's git config (`user.name`, `user.email`) if set; otherwise the GitHub profile name with `<id>+<login>@users.noreply.github.com`. For a local-only workspace with no identity, Aurolis asks once.
 - **Settings on repos Aurolis clones or creates:** `core.autocrlf=false` (workspace files are always LF) and `core.longpaths=true` on Windows. Folders the user brought keep their own config.
@@ -369,7 +369,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 
 - Git, workspace files, secrets and tokens are only touched in the **main process**.
 - IPC takes **workspace ids**, never file paths or git arguments. Folders are only ever chosen through the native folder picker, which runs in the main process. The main process builds every git command itself; the renderer can't pass flags or refs that weren't validated.
-- Tokens are passed to git through `GIT_ASKPASS` per command, never in a URL, a config file or a log.
+- Tokens are passed to git through per-command environment configuration, scoped to github.com, never in a URL, a config file, a command-line argument or a log.
 - Every resolved path must stay inside the workspace root.
 - Secret values never reach the working tree; a pre-commit check blocks them anyway.
 - Clone URLs are limited to `https://` (and `ssh://` / `git@` when the user's own SSH setup is used). `file://` and other transports are refused.
