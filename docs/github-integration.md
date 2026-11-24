@@ -247,7 +247,7 @@ Use these GitHub features for access control:
   /collections/payments-service/        @acme/payments-team
   /environments/production.env.json     @acme/platform-leads
   ```
-- **GitHub App:** Aurolis signs in through a GitHub App with fine-grained permissions (Contents, Pull requests, Metadata) instead of an OAuth token with the broad `repo` scope. Users choose exactly which repos Aurolis can access.
+- **GitHub App:** Aurolis signs in through a GitHub App with fine-grained permissions (Contents, Pull requests, Metadata, and Administration to create a repository when publishing a local workspace) instead of an OAuth token with the broad `repo` scope. Users choose exactly which repos Aurolis can access.
 
 ### Limitations
 

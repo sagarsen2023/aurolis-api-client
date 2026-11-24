@@ -19,12 +19,33 @@ import {
 } from "./github-auth.ts";
 import {
   commitFiles,
+  createRepository,
+  getEmptyRepository,
   listInstallations,
   listRepositories,
   openInstallPage,
   pullFiles,
   toResult,
 } from "./github-sync.ts";
+import { gitInfo } from "./git.ts";
+import {
+  cancelClones,
+  checkStorageFolder,
+  chooseStorageFolder,
+  cloneWorkspace,
+  createLocalWorkspace,
+  initializeWorkspace,
+  listWorkspaces,
+  openExistingFolder,
+  openWorkspace,
+  publishWorkspace,
+  removeCheck,
+  removeWorkspace,
+  revealWorkspace,
+  renameWorkspace,
+  setStorageFolder,
+  toWorkspaceResult,
+} from "./workspace-store.ts";
 
 const APP_SCHEME = "app";
 const APP_HOST = "aurolis";
@@ -250,6 +271,46 @@ if (!app.requestSingleInstanceLock()) {
   ipcMain.handle("aurolis:github:commit", (event, params: unknown) =>
     fromAppWindow(event) ? toResult(() => commitFiles(params)) : null,
   );
+  ipcMain.handle(
+    "aurolis:github:create-repository",
+    (event, params: unknown) =>
+      fromAppWindow(event) ? toResult(() => createRepository(params)) : null,
+  );
+  ipcMain.handle("aurolis:github:empty-repository", (event, params: unknown) =>
+    fromAppWindow(event) ? toResult(() => getEmptyRepository(params)) : null,
+  );
+
+  const windowOf = (event: Electron.IpcMainInvokeEvent) =>
+    BrowserWindow.fromWebContents(event.sender);
+  const workspaceHandlers: Record<
+    string,
+    (event: Electron.IpcMainInvokeEvent, params: unknown) => Promise<unknown>
+  > = {
+    list: () => listWorkspaces(),
+    "git-info": () => gitInfo(),
+    "storage-check-default": async () =>
+      checkStorageFolder((await listWorkspaces()).defaultStorageFolder.path),
+    "storage-choose": (event) => chooseStorageFolder(windowOf(event)),
+    "storage-set": (_event, choice) => setStorageFolder(choice),
+    create: (_event, params) => createLocalWorkspace(params),
+    clone: (_event, params) => cloneWorkspace(params),
+    "clone-cancel": async () => cancelClones(),
+    "open-folder": (event) => openExistingFolder(windowOf(event)),
+    open: (_event, id) => openWorkspace(id),
+    initialize: (_event, id) => initializeWorkspace(id),
+    rename: (_event, params) => renameWorkspace(params),
+    publish: (_event, params) => publishWorkspace(params),
+    "remove-check": (_event, id) => removeCheck(id),
+    reveal: (_event, id) => revealWorkspace(id),
+    remove: (_event, params) => removeWorkspace(params),
+  };
+  for (const [action, handler] of Object.entries(workspaceHandlers)) {
+    ipcMain.handle(`aurolis:workspace:${action}`, (event, params: unknown) =>
+      fromAppWindow(event)
+        ? toWorkspaceResult(() => handler(event, params))
+        : null,
+    );
+  }
 
   // Fires for in-app theme changes and for OS changes while on "system".
   nativeTheme.on("updated", () => {

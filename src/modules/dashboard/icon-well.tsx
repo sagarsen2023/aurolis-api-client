@@ -1,22 +1,19 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Circular icon well used in stat cards and list rows. */
 function IconWell({
   icon: Icon,
-  size = "md",
   className,
-}: Readonly<{ icon: LucideIcon; size?: "md" | "lg"; className?: string }>) {
+}: Readonly<{ icon: LucideIcon; className?: string }>) {
   return (
     <span
       aria-hidden
       className={cn(
-        "grid shrink-0 place-items-center rounded-full bg-surface-icon text-ink",
-        size === "lg" ? "size-12" : "size-11",
+        "grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground",
         className,
       )}
     >
-      <Icon className="size-4.5" strokeWidth={1.8} />
+      <Icon className="size-4" />
     </span>
   );
 }

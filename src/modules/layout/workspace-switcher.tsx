@@ -1,5 +1,7 @@
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Plus, Settings } from "lucide-react";
+import { FaGithub } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -12,12 +14,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { WORKSPACES } from "@/constants/workspaces";
-import { workspaceNamesAtom } from "@/context/settings-atoms";
 import {
+  activeWorkspaceAtom,
+  addWorkspaceOpenAtom,
   currentWorkspaceAtom,
-  workspaceIdAtom,
+  publishWorkspaceOpenAtom,
+  registryAtom,
 } from "@/context/workspace-context";
+import { useWorkspaceActions } from "@/hooks/use-workspaces";
+import type { WorkspaceListItem } from "@/types/workspace/workspace-store.type";
 import { getInitials } from "@/utils/extract-initials";
 
 export function WorkspaceTile({
@@ -41,12 +46,25 @@ export function WorkspaceTile({
   );
 }
 
-/** Static for now: switching only changes local state. */
+function workspaceSubtitle(workspace: WorkspaceListItem) {
+  if (workspace.missing) return "Folder not found";
+  const github = workspace.remote?.github;
+  if (github) return `${github.owner}/${github.repo}`;
+  if (workspace.remote) return workspace.remote.url.replace(/^https?:\/\//, "");
+  return "Local";
+}
+
 function WorkspaceSwitcher() {
-  const [workspaceId, setWorkspaceId] = useAtom(workspaceIdAtom);
-  const workspace = useAtomValue(currentWorkspaceAtom);
-  const names = useAtomValue(workspaceNamesAtom);
-  const workspaceName = names[workspace.id] ?? workspace.name;
+  const registry = useAtomValue(registryAtom);
+  const current = useAtomValue(currentWorkspaceAtom);
+  const setAddOpen = useSetAtom(addWorkspaceOpenAtom);
+  const setPublishOpen = useSetAtom(publishWorkspaceOpenAtom);
+  const active = useAtomValue(activeWorkspaceAtom);
+  const canPublish = Boolean(active && !active.git.remoteUrl);
+  const { openWorkspace } = useWorkspaceActions();
+  const navigate = useNavigate();
+  const workspaces = registry?.workspaces ?? [];
+  const label = current?.name ?? "No workspace";
 
   return (
     <DropdownMenu>
@@ -56,37 +74,64 @@ function WorkspaceSwitcher() {
           "hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40 data-popup-open:bg-surface-hover",
         )}
       >
-        <WorkspaceTile name={workspaceName} />
-        <span className="max-w-48 truncate">{workspaceName}</span>
+        <WorkspaceTile name={label} />
+        <span className="max-w-48 truncate">{label}</span>
         <ChevronDown className="size-4 text-dim" aria-hidden />
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-64">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={workspaceId}
-            onValueChange={(value) => setWorkspaceId(value as string)}
-          >
-            {WORKSPACES.map((w) => (
-              <DropdownMenuRadioItem key={w.id} value={w.id}>
-                <WorkspaceTile name={names[w.id] ?? w.name} />
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-foreground">
-                    {names[w.id] ?? w.name}
-                  </span>
-                  <span className="text-xs text-dim">{w.plan}</span>
-                </span>
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
+      <DropdownMenuContent className="w-72">
+        {workspaces.length > 0 ? (
+          <>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={registry?.activeWorkspaceId ?? ""}
+                onValueChange={(value) => {
+                  if (value && value !== registry?.activeWorkspaceId) {
+                    void openWorkspace(value as string);
+                  }
+                }}
+              >
+                {workspaces.map((workspace) => (
+                  <DropdownMenuRadioItem
+                    key={workspace.id}
+                    value={workspace.id}
+                  >
+                    <WorkspaceTile name={workspace.name} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-foreground">
+                        {workspace.name}
+                      </span>
+                      <span
+                        className={cn(
+                          "truncate text-xs",
+                          workspace.missing ? "text-warning" : "text-dim",
+                        )}
+                      >
+                        {workspaceSubtitle(workspace)}
+                      </span>
+                    </span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        <DropdownMenuItem onClick={() => setAddOpen(true)}>
           <Plus />
-          Create workspace
+          Add workspace…
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        {canPublish ? (
+          <DropdownMenuItem onClick={() => setPublishOpen(true)}>
+            <FaGithub />
+            Publish to GitHub…
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem
+          disabled={!current}
+          onClick={() => void navigate({ to: "/settings" })}
+        >
           <Settings />
           Workspace settings
         </DropdownMenuItem>

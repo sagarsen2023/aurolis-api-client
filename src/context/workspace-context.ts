@@ -1,17 +1,49 @@
 import { atom } from "jotai";
-import { ENVIRONMENTS, WORKSPACES } from "@/constants/workspaces";
+import type { Environment } from "@/types/workspace/environment.type";
+import type {
+  OpenedWorkspace,
+  WorkspaceListItem,
+  WorkspaceRegistryView,
+} from "@/types/workspace/workspace-store.type";
 
-export const workspaceIdAtom = atom(WORKSPACES[0].id);
+export type ActiveWorkspaceState =
+  | { status: "loading" }
+  | { status: "none" }
+  | { status: "ready"; workspace: OpenedWorkspace }
+  | { status: "missing"; workspaceId: string; message: string }
+  | { status: "error"; workspaceId: string | null; message: string };
 
-export const currentWorkspaceAtom = atom(
-  (get) =>
-    WORKSPACES.find((w) => w.id === get(workspaceIdAtom)) ?? WORKSPACES[0],
+export const registryAtom = atom<WorkspaceRegistryView | null>(null);
+
+export const activeWorkspaceStateAtom = atom<ActiveWorkspaceState>({
+  status: "loading",
+});
+
+export const activeWorkspaceAtom = atom<OpenedWorkspace | null>((get) => {
+  const state = get(activeWorkspaceStateAtom);
+  return state.status === "ready" ? state.workspace : null;
+});
+
+export const currentWorkspaceAtom = atom<WorkspaceListItem | null>((get) => {
+  const registry = get(registryAtom);
+  if (!registry?.activeWorkspaceId) return null;
+  return (
+    registry.workspaces.find((w) => w.id === registry.activeWorkspaceId) ?? null
+  );
+});
+
+export const environmentIdAtom = atom<string | null>(null);
+
+export const environmentsAtom = atom<Environment[]>(
+  (get) => get(activeWorkspaceAtom)?.data?.environments ?? [],
 );
 
-export const environmentIdAtom = atom(ENVIRONMENTS[0].id);
+export const currentEnvironmentAtom = atom<Environment | null>((get) => {
+  const environments = get(environmentsAtom);
+  const id = get(environmentIdAtom);
+  return environments.find((e) => e.id === id) ?? environments[0] ?? null;
+});
 
-export const currentEnvironmentAtom = atom(
-  (get) =>
-    ENVIRONMENTS.find((e) => e.id === get(environmentIdAtom)) ??
-    ENVIRONMENTS[0],
-);
+export const addWorkspaceOpenAtom = atom(false);
+
+export const publishWorkspaceOpenAtom = atom(false);
