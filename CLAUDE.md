@@ -17,7 +17,7 @@ Install with `npm ci`. Keep `package-lock.json` in sync with `package.json` (run
 
 ## What Aurolis is
 
-A local-first, open-source desktop API client (Electron + React). Workspaces live on the user's machine; GitHub is an optional sync target. There is no Aurolis backend and no client secret anywhere.
+A local-first, open-source desktop API client (Electron + React). Each workspace is a git repository on the user's machine; pushing to GitHub (or any git host) is optional. There is no Aurolis backend and no client secret anywhere.
 
 The workspace, storage, switching and sync model is defined in [`docs/workspace-architecture.md`](docs/workspace-architecture.md). Read it before working on workspaces or GitHub sync, and keep it up to date when that model changes.
 
@@ -30,7 +30,8 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
   - `preload.ts`: the only bridge, exposed as `window.aurolis`. Typed in `src/electron.d.ts`.
   - `github-auth.ts`: GitHub App sign-in with the OAuth device flow. Tokens are encrypted with `safeStorage` and never leave the main process.
   - `github-api.ts`: `githubApi`, the main-process counterpart of `src/services/config/fetch-api.ts` (token, refresh-on-401, typed errors, api.github.com only).
-  - `github-sync.ts`: GitHub operations the renderer may call (installations, repositories, pull, commit).
+  - `github-sync.ts`: GitHub REST operations the renderer may call: installations, repositories and permissions, and (later) pull requests.
+  - Workspaces are local git repositories driven by a bundled git in the main process (see the architecture doc). Sync is plain git: status, diff, commit, fetch, merge, push.
 - **`src/`: renderer (React).** UI only. It never sees a token and never calls GitHub directly.
 
 ### IPC rules
