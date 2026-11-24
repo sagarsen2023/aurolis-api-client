@@ -60,8 +60,8 @@ acme-api-workspace/
 │       ├── _collection.json          # id, name, description, auth, collection variables, seq
 │       ├── create-payment.req.json   # one request per file
 │       ├── create-payment.examples/
-│       │   ├── 201-created-x7k2.json # one saved example per file
-│       │   └── 402-declined-p9qa.json
+│       │   ├── 201-created.json      # one saved example per file
+│       │   └── 402-declined.json
 │       └── refunds/
 │           ├── _folder.json          # id, name, seq, folder-level auth
 │           └── refund-payment.req.json
@@ -72,13 +72,47 @@ acme-api-workspace/
     └── production.env.json           # secret keys listed, values always empty
 ```
 
+Files are written by `src/lib/workspace-format.ts` and validated with the schemas in `src/validators/workspace.schema.ts`. Keys are sorted, indentation is 2 spaces and every file ends with a newline, so an unchanged item always produces the same bytes. File names are slugs of the item names (`Create payment` → `create-payment.req.json`); duplicates get `-2`, `-3`, and an item keeps its file name until it's renamed.
+
 ### `aurolis.json`
 
 ```json
 {
+  "defaultEnvironment": "env_local",
   "format": 1,
-  "workspace": { "id": "ws_3k9d…", "name": "Acme API" },
-  "defaultEnvironment": "local"
+  "workspace": {
+    "id": "ws_3k9d",
+    "name": "Acme API"
+  }
+}
+```
+
+### Collection (`_collection.json`)
+
+```json
+{
+  "auth": {
+    "token": "{{token}}",
+    "type": "bearer"
+  },
+  "description": "Payments API",
+  "id": "col_pay",
+  "name": "Payments Service",
+  "seq": 1000,
+  "variables": []
+}
+```
+
+### Folder (`_folder.json`)
+
+```json
+{
+  "auth": {
+    "type": "inherit"
+  },
+  "id": "f_refunds",
+  "name": "Refunds",
+  "seq": 3000
 }
 ```
 
@@ -86,15 +120,49 @@ acme-api-workspace/
 
 ```json
 {
-  "id": "r_8f2c…",
-  "name": "Create payment",
-  "seq": 2000,
+  "auth": {
+    "type": "inherit"
+  },
+  "body": {
+    "mode": "json",
+    "raw": "{ \"amount\": 4200, \"currency\": \"INR\" }"
+  },
+  "headers": [
+    {
+      "enabled": true,
+      "key": "Idempotency-Key",
+      "value": "{{$uuid}}"
+    }
+  ],
+  "id": "r_8f2c",
   "method": "POST",
-  "url": "{{baseUrl}}/payments",
+  "name": "Create payment",
   "params": [],
-  "headers": [{ "key": "Idempotency-Key", "value": "{{$uuid}}" }],
-  "body": { "mode": "json", "raw": "{ \"amount\": 4200, \"currency\": \"INR\" }" },
-  "auth": { "type": "inherit" }
+  "seq": 2000,
+  "url": "{{baseUrl}}/payments"
+}
+```
+
+- `method`: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` or `OPTIONS`.
+- `body.mode`: `none`, `json`, `text` or `xml` (with `raw`), or `urlencoded` or `form-data` (with `fields`).
+- `auth.type`: `inherit`, `none`, `bearer`, `basic` or `apikey`. Use `{{variables}}` for credentials so real values stay in environments.
+
+### Example (`<request>.examples/*.json`)
+
+```json
+{
+  "body": "{ \"id\": \"pay_8Hk2xQ\", \"status\": \"succeeded\" }",
+  "headers": [
+    {
+      "enabled": true,
+      "key": "Content-Type",
+      "value": "application/json"
+    }
+  ],
+  "id": "ex_x7k2",
+  "name": "201 Created",
+  "seq": 1000,
+  "status": 201
 }
 ```
 
@@ -104,12 +172,25 @@ acme-api-workspace/
 {
   "id": "env_prod",
   "name": "Production",
+  "seq": 2000,
   "variables": [
-    { "key": "baseUrl", "value": "https://api.acme.com" },
-    { "key": "apiKey",  "value": "", "secret": true }
+    {
+      "enabled": true,
+      "key": "baseUrl",
+      "secret": false,
+      "value": "https://api.acme.com"
+    },
+    {
+      "enabled": true,
+      "key": "apiKey",
+      "secret": true,
+      "value": ""
+    }
   ]
 }
 ```
+
+Variables marked `secret` are always written with an empty value. Globals live in `environments/_globals.env.json`.
 
 ---
 

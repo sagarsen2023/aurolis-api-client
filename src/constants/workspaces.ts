@@ -9,7 +9,7 @@ export const WORKSPACES: Workspace[] = [
 ];
 
 export const ENVIRONMENTS: Environment[] = [
-  { id: "local", name: "Local" },
-  { id: "staging", name: "Staging" },
-  { id: "production", name: "Production" },
+  { id: "local", name: "Local", seq: 1000, variables: [] },
+  { id: "staging", name: "Staging", seq: 2000, variables: [] },
+  { id: "production", name: "Production", seq: 3000, variables: [] },
 ];
