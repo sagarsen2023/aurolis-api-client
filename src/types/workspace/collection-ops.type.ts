@@ -14,6 +14,11 @@ export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
 
 export type SavedRequest = DistributiveOmit<ApiRequest, "type" | "examples">;
 
+export type SavedRequestOf<P extends RequestProtocol> = Extract<
+  SavedRequest,
+  { protocol: P }
+>;
+
 export type ExampleInput = Omit<RequestExample, "id" | "seq">;
 
 export interface CollectionSettings {

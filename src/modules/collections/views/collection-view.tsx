@@ -14,6 +14,7 @@ import AuthEditor from "../shared/auth-editor";
 import KeyValueEditor from "../shared/key-value-editor";
 import EditorSectionTabs from "../editor/editor-section-tabs";
 import ItemFormHeader from "./item-form-header";
+import { countEnabled } from "@/utils/count-enabled";
 
 function settingsOf(collection: Collection): CollectionSettings {
   return {
@@ -103,8 +104,7 @@ function CollectionForm({ collection }: Readonly<{ collection: Collection }>) {
           {
             value: "variables",
             label: "Variables",
-            count: form.variables.filter((row) => row.enabled && row.key)
-              .length,
+            count: countEnabled(form.variables),
             content: (
               <div className="flex flex-col gap-3">
                 <p className="text-[12.5px] text-mute">

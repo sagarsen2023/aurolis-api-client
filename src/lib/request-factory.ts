@@ -47,10 +47,6 @@ export function createRequest(
   }
 }
 
-export function isRealtimeProtocol(protocol: RequestProtocol) {
-  return protocol === "websocket" || protocol === "socketio";
-}
-
 export function supportsExamples(protocol: RequestProtocol) {
   return protocol === "http" || protocol === "graphql";
 }

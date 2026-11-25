@@ -69,14 +69,11 @@ const ROOT = path.join(import.meta.dirname, "..");
 const RENDERER_DIST = path.join(ROOT, "dist");
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
-// Brand grounds from the design system, so the window doesn't flash white
-// before the first paint.
 const BG_DARK = "#0c0b0c";
 const BG_LIGHT = "#f6f3f8";
 const INK_DARK = "#ffffff";
 const INK_LIGHT = "#151017";
 
-// Must match the height of the renderer's <TitleBar /> strip.
 const TITLEBAR_HEIGHT = 36;
 const IS_MAC = process.platform === "darwin";
 
@@ -91,8 +88,6 @@ function themeColors() {
   };
 }
 
-// Repaint the native parts of a window (background, and the caption buttons
-// drawn over the app on Windows/Linux) in the current theme.
 function applyThemeToWindow(win: BrowserWindow) {
   const { background, symbol } = themeColors();
   win.setBackgroundColor(background);
@@ -105,8 +100,6 @@ function applyThemeToWindow(win: BrowserWindow) {
   }
 }
 
-// In production the renderer is served from app://aurolis/ instead of file://
-// so absolute asset paths and history-based routing work exactly like in dev.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
@@ -144,12 +137,10 @@ function registerAppProtocol() {
       path.join(RENDERER_DIST, decodeURIComponent(pathname)),
     );
 
-    // Block path traversal outside the renderer bundle.
     if (!requested.startsWith(RENDERER_DIST)) {
       return new Response("Not found", { status: 404 });
     }
 
-    // Unknown paths fall back to index.html (SPA routing).
     const isKnownFile = await isFile(requested);
     const filePath = isKnownFile
       ? requested
@@ -200,14 +191,11 @@ function createWindow() {
 
   win.once("ready-to-show", () => {
     win.show();
-    // Packaged builds stay closed. `electron .` and `npm run dev` are unpackaged,
-    // so the console opens in its own window instead of docking under the hidden title bar.
     if (!app.isPackaged) {
       win.webContents.openDevTools({ mode: "detach" });
     }
   });
 
-  // Open external links in the user's browser, never inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
     return { action: "deny" };
@@ -234,7 +222,6 @@ function createWindow() {
 
 app.setName("Aurolis");
 
-// Single instance: focus the existing window instead of opening a second app.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -246,14 +233,12 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 
-  // The renderer reports the theme picked in the app ("system" follows the OS).
   ipcMain.on("aurolis:set-theme", (event, theme: unknown) => {
     if (!BrowserWindow.fromWebContents(event.sender)) return;
     if (!THEME_SOURCES.includes(theme as ThemeSource)) return;
     nativeTheme.themeSource = theme as ThemeSource;
   });
 
-  // GitHub sign-in (device flow). The token stays in this process.
   const fromAppWindow = (event: Electron.IpcMainInvokeEvent) =>
     BrowserWindow.fromWebContents(event.sender) !== null;
 
@@ -375,7 +360,6 @@ if (!app.requestSingleInstanceLock()) {
     toEngineResult,
   );
 
-  // Fires for in-app theme changes and for OS changes while on "system".
   nativeTheme.on("updated", () => {
     for (const win of BrowserWindow.getAllWindows()) applyThemeToWindow(win);
   });

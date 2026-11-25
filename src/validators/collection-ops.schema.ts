@@ -15,7 +15,7 @@ const MAX_VARIABLES = 1_000;
 
 const exampleInputSchema = exampleFileSchema.omit({ id: true, seq: true });
 
-export const collectionOpSchema = z.discriminatedUnion("op", [
+const collectionOpSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("update-workspace"),
     description: z.string().max(MAX_DESCRIPTION_LENGTH),

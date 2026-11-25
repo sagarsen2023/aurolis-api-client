@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import { breadCrumbAtom } from "@/context/breadcrumb-context";
 
-/** Renders "/ Parent / Current" after the workspace switcher. */
 function BreadCrumb() {
   const breadCrumb = useAtomValue(breadCrumbAtom);
   if (breadCrumb.length === 0) return null;

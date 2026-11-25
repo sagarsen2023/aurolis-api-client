@@ -27,6 +27,7 @@ import SplitLayout from "../split-layout";
 import UnresolvedNotice from "../unresolved-notice";
 import UrlBar from "../url-bar";
 import MessageLog from "./message-log";
+import { countEnabled } from "@/utils/count-enabled";
 
 type RealtimeDraft = Extract<
   SavedRequest,
@@ -325,7 +326,7 @@ function RealtimeEditor({
     {
       value: "params",
       label: "Params",
-      count: request.params.filter((row) => row.enabled && row.key).length,
+      count: countEnabled(request.params),
       content: (
         <KeyValueEditor
           label="Query parameters"
@@ -338,7 +339,7 @@ function RealtimeEditor({
     {
       value: "headers",
       label: "Headers",
-      count: request.headers.filter((row) => row.enabled && row.key).length,
+      count: countEnabled(request.headers),
       content: (
         <KeyValueEditor
           label="Handshake headers"

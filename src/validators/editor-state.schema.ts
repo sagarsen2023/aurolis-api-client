@@ -4,7 +4,7 @@ import { idSchema, requestFileSchema } from "./workspace.schema.ts";
 const MAX_TABS = 50;
 const MAX_DRAFTS = 500;
 
-export const editorTabSchema = z.discriminatedUnion("kind", [
+const editorTabSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("request"), id: idSchema }),
   z.object({ kind: z.literal("example"), id: idSchema, requestId: idSchema }),
   z.object({ kind: z.literal("collection"), id: idSchema }),

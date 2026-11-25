@@ -6,12 +6,10 @@ import { prepareGraphql, prepareHttp } from "@/lib/prepare-request";
 import { EngineFailure, newRunId } from "@/services/config/engine-bridge";
 import { graphqlEngineService } from "@/services/graphql-engine.service";
 import { httpEngineService } from "@/services/http-engine.service";
-import type { SavedRequest } from "@/types/workspace/collection-ops.type";
+import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
 import { useRequestContext } from "./use-request-context";
 
 const IDLE: RunState = { status: "idle" };
-
-type HttpLike = Extract<SavedRequest, { protocol: "http" | "graphql" }>;
 
 function toErrorState(error: unknown): RunState {
   if (error instanceof EngineFailure) {
@@ -41,7 +39,10 @@ export function useRequestRunner(requestId: string) {
   );
 
   const execute = useCallback(
-    async (request: HttpLike, runId: string): Promise<RunState> => {
+    async (
+      request: SavedRequestOf<"http" | "graphql">,
+      runId: string,
+    ): Promise<RunState> => {
       const context = getContext();
       if (request.protocol === "http") {
         const prepared = prepareHttp(request, context);
@@ -79,7 +80,7 @@ export function useRequestRunner(requestId: string) {
   );
 
   const send = useCallback(
-    async (request: HttpLike) => {
+    async (request: SavedRequestOf<"http" | "graphql">) => {
       const runId = newRunId();
       setRuns((current) => ({
         ...current,

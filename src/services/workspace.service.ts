@@ -1,4 +1,5 @@
 import { WORKSPACE_ERROR_MESSAGES } from "@/constants/workspace";
+import { desktopBridge } from "./config/desktop-bridge";
 import type {
   PublishWorkspaceParams,
   WorkspaceErrorCode,
@@ -29,38 +30,40 @@ export class WorkspaceFailure extends Error {
   }
 }
 
-function bridge() {
-  const workspace = window.aurolis?.workspace;
-  if (!workspace) {
-    throw new Error("Workspaces are only available in the desktop app.");
-  }
-  return workspace;
-}
+const bridge = () =>
+  desktopBridge(
+    "workspace",
+    "Workspaces are only available in the desktop app.",
+  );
 
-async function unwrap<T>(result: Promise<WorkspaceResult<T>>): Promise<T> {
+export async function unwrapWorkspace<T>(
+  result: Promise<WorkspaceResult<T>>,
+): Promise<T> {
   const response = await result;
   if (!response.ok) throw new WorkspaceFailure(response.error);
   return response.data;
 }
 
 export const workspaceService = {
-  list: () => unwrap(bridge().list()),
-  gitInfo: () => unwrap(bridge().gitInfo()),
-  chooseStorage: () => unwrap(bridge().chooseStorage()),
+  list: () => unwrapWorkspace(bridge().list()),
+  gitInfo: () => unwrapWorkspace(bridge().gitInfo()),
+  chooseStorage: () => unwrapWorkspace(bridge().chooseStorage()),
   setStorage: (choice: "default" | "chosen") =>
-    unwrap(bridge().setStorage(choice)),
-  create: (name: string) => unwrap(bridge().create({ name })),
-  clone: (url: string) => unwrap(bridge().clone({ url })),
-  cancelClone: () => unwrap(bridge().cancelClone()),
-  openFolder: () => unwrap(bridge().openFolder()),
-  open: (id: string) => unwrap(bridge().open(id)),
-  initialize: (id: string) => unwrap(bridge().initialize(id)),
-  rename: (id: string, name: string) => unwrap(bridge().rename({ id, name })),
-  publish: (params: PublishWorkspaceParams) => unwrap(bridge().publish(params)),
-  removeCheck: (id: string) => unwrap(bridge().removeCheck(id)),
+    unwrapWorkspace(bridge().setStorage(choice)),
+  create: (name: string) => unwrapWorkspace(bridge().create({ name })),
+  clone: (url: string) => unwrapWorkspace(bridge().clone({ url })),
+  cancelClone: () => unwrapWorkspace(bridge().cancelClone()),
+  openFolder: () => unwrapWorkspace(bridge().openFolder()),
+  open: (id: string) => unwrapWorkspace(bridge().open(id)),
+  initialize: (id: string) => unwrapWorkspace(bridge().initialize(id)),
+  rename: (id: string, name: string) =>
+    unwrapWorkspace(bridge().rename({ id, name })),
+  publish: (params: PublishWorkspaceParams) =>
+    unwrapWorkspace(bridge().publish(params)),
+  removeCheck: (id: string) => unwrapWorkspace(bridge().removeCheck(id)),
   remove: (id: string, deleteFolder: boolean) =>
-    unwrap(bridge().remove({ id, deleteFolder })),
-  reveal: (id: string) => unwrap(bridge().reveal(id)),
+    unwrapWorkspace(bridge().remove({ id, deleteFolder })),
+  reveal: (id: string) => unwrapWorkspace(bridge().reveal(id)),
   onChanged: (callback: (id: string) => void) =>
     window.aurolis?.workspace.onChanged(callback) ?? (() => undefined),
 };

@@ -16,7 +16,7 @@ import {
 } from "../../src/validators/engine.schema.ts";
 import { EngineError, parseInput, toEngineError } from "./engine-error.ts";
 
-export const REALTIME_EVENT_CHANNEL = "aurolis:engine:realtime-event";
+const REALTIME_EVENT_CHANNEL = "aurolis:engine:realtime-event";
 
 const MAX_LOGGED_BYTES = 1024 * 1024;
 

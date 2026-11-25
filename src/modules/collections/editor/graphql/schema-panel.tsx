@@ -2,9 +2,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGraphqlSchema } from "@/hooks/use-graphql-schema";
 import type { GraphqlField } from "@/types/engine/graphql-engine.type";
-import type { SavedRequest } from "@/types/workspace/collection-ops.type";
-
-type GraphqlDraft = Extract<SavedRequest, { protocol: "graphql" }>;
+import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
 
 const ROOTS = [
   { key: "query", label: "Queries" },
@@ -34,7 +32,9 @@ function FieldList({ fields }: Readonly<{ fields: GraphqlField[] }>) {
   );
 }
 
-function SchemaPanel({ request }: Readonly<{ request: GraphqlDraft }>) {
+function SchemaPanel({
+  request,
+}: Readonly<{ request: SavedRequestOf<"graphql"> }>) {
   const { summary: schema, loading, load } = useGraphqlSchema(request);
 
   return (

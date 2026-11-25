@@ -1,7 +1,6 @@
-export default function queryParamsFormatter(params: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}): string {
+export default function queryParamsFormatter(
+  params: Record<string, unknown>,
+): string {
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {

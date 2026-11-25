@@ -8,24 +8,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Aurolis design system → shadcn/Tailwind.
- *
- * Raw tokens live in :root (light) and .dark, named after the design system
- * (--bg, --ink, --lav, ...). The shadcn variables (--background, --primary,
- * ...) point at them, so every shadcn component picks up the brand without
- * edits. Everything is also exposed to Tailwind below, e.g. `bg-lav`,
- * `text-vio`, `text-method-post`, `bg-surface-panel`.
- */
-
 @theme inline {
-    /* Fonts */
     --font-sans: "Wix Madefor Display Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-heading: var(--font-sans);
     --font-serif: "Tiro Kannada", Georgia, serif;
     --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    /* shadcn semantic colours */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
@@ -58,7 +46,6 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    /* Surfaces */
     --color-surface: var(--bg);
     --color-surface-2: var(--bg2);
     --color-surface-panel: var(--panel);
@@ -71,12 +58,10 @@
     --color-line: var(--line);
     --color-line-strong: var(--line2);
 
-    /* Text */
     --color-ink: var(--ink);
     --color-mute: var(--mute);
     --color-dim: var(--dim);
 
-    /* Brand */
     --color-lav: var(--lav);
     --color-lav-hover: var(--lav-hover);
     --color-lav-ink: var(--lav-ink);
@@ -87,12 +72,10 @@
     --color-orb-a: var(--orb-a);
     --color-orb-c: var(--orb-c);
 
-    /* Feedback (text) */
     --color-danger: var(--red);
     --color-success: var(--green);
     --color-warning: var(--amber);
 
-    /* Feedback (pill fills + text on them) */
     --color-ok: var(--ok-bg);
     --color-ok-foreground: var(--ok-ink);
     --color-err: var(--err-bg);
@@ -100,7 +83,6 @@
     --color-warn: var(--warn-bg);
     --color-warn-foreground: var(--warn-ink);
 
-    /* Inverse, tooltip, menu, status bar */
     --color-inverse: var(--inv-bg);
     --color-inverse-foreground: var(--inv-ink);
     --color-tooltip: var(--tip-bg);
@@ -108,7 +90,6 @@
     --color-menu: var(--menu-bg);
     --color-statusbar: var(--status-bg);
 
-    /* Code + JSON */
     --color-code: var(--code-ink);
     --color-json-key: var(--j-k);
     --color-json-string: var(--j-s);
@@ -116,7 +97,6 @@
     --color-json-boolean: var(--j-b);
     --color-json-null: var(--j-z);
 
-    /* HTTP methods */
     --color-method-get: var(--m-get);
     --color-method-post: var(--m-post);
     --color-method-put: var(--m-put);
@@ -124,7 +104,6 @@
     --color-method-delete: var(--m-del);
     --color-method-head: var(--m-head);
 
-    /* Status classes */
     --color-status-2xx: var(--s-2xx);
     --color-status-2xx-foreground: var(--s-2xx-ink);
     --color-status-4xx: var(--s-4xx);
@@ -134,7 +113,6 @@
     --color-status-timeout: var(--s-to);
     --color-status-timeout-foreground: var(--s-to-ink);
 
-    /* Charts (domain) */
     --color-chart-rps: var(--c-rps);
     --color-chart-rps-fill: var(--c-rps-fill);
     --color-chart-p95: var(--c-p95);
@@ -142,20 +120,16 @@
     --color-chart-err: var(--c-err);
     --color-chart-grid: var(--chart-grid);
 
-    /* Diffs */
     --color-diff-add: var(--add-bg);
     --color-diff-add-foreground: var(--add-ink);
     --color-diff-del: var(--del-bg);
     --color-diff-del-foreground: var(--del-ink);
 
-    /* Gradient card border stops */
     --color-cardgrad-a: var(--cardgrad-a);
     --color-cardgrad-b: var(--cardgrad-b);
 
-    /* Elevation — menus, dialogs and toasts only */
     --shadow-pop: var(--shadow-pop);
 
-    /* Radius: --radius 1rem → sm 10px, md 13px, lg 16px, xl 22px (cards) */
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -172,11 +146,9 @@
     }
 }
 
-/* Light theme ("by day") */
 :root {
     --radius: 1rem;
 
-    /* Raw tokens */
     --bg: #f6f3f8;
     --bg2: #ffffff;
     --panel: #fcfbfd;
@@ -253,9 +225,7 @@
     color-scheme: light;
 }
 
-/* Dark theme (brand default) */
 .dark {
-    /* Raw tokens */
     --bg: #0c0b0c;
     --bg2: #0f0d10;
     --panel: #131114;
@@ -332,7 +302,6 @@
     color-scheme: dark;
 }
 
-/* shadcn mapping, re-resolved wherever a theme class applies */
 :root,
 .dark {
     --background: var(--bg);

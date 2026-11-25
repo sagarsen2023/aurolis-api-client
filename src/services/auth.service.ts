@@ -4,6 +4,7 @@ import type {
   GithubDeviceCodePrompt,
   GithubUser,
 } from "@/types/auth/auth-response.type";
+import { desktopBridge } from "./config/desktop-bridge";
 
 export class GithubSignInFailure extends Error {
   readonly code: GithubSignInError;
@@ -15,13 +16,11 @@ export class GithubSignInFailure extends Error {
   }
 }
 
-function bridge() {
-  const github = window.aurolis?.github;
-  if (!github) {
-    throw new Error("GitHub sign-in is only available in the desktop app.");
-  }
-  return github;
-}
+const bridge = () =>
+  desktopBridge(
+    "github",
+    "GitHub sign-in is only available in the desktop app.",
+  );
 
 export const authService = {
   loginViaGithub: async (
@@ -38,7 +37,6 @@ export const authService = {
     return result.user;
   },
 
-  /** Stops a sign-in in progress; loginViaGithub then throws "cancelled". */
   cancelGithubLogin: async () => {
     await window.aurolis?.github.cancelSignIn();
   },

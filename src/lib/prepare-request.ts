@@ -1,7 +1,10 @@
 import type { HeaderPair } from "../types/engine/engine.type.ts";
 import type { PreparedBody } from "../types/engine/http-engine.type.ts";
 import type { Collection, Folder } from "../types/workspace/collection.type.ts";
-import type { SavedRequest } from "../types/workspace/collection-ops.type.ts";
+import type {
+  SavedRequest,
+  SavedRequestOf,
+} from "../types/workspace/collection-ops.type.ts";
 import type { Environment } from "../types/workspace/environment.type.ts";
 import type {
   GraphqlOperation,
@@ -50,7 +53,7 @@ function contextScope(context: RequestContext): VariableScope {
   );
 }
 
-export function effectiveAuth(
+function effectiveAuth(
   auth: RequestAuth,
   context: Pick<RequestContext, "collection" | "folders">,
 ): RequestAuth {
@@ -176,7 +179,7 @@ function prepareBody(
 }
 
 export function prepareHttp(
-  request: Extract<SavedRequest, { protocol: "http" }>,
+  request: SavedRequestOf<"http">,
   context: RequestContext,
 ): PreparedHttp {
   const { target, resolve, unresolved } = prepareTarget(
@@ -189,7 +192,7 @@ export function prepareHttp(
 }
 
 export function prepareGraphql(
-  request: Extract<SavedRequest, { protocol: "graphql" }>,
+  request: SavedRequestOf<"graphql">,
   context: RequestContext,
 ): PreparedGraphql {
   const { target, resolve, unresolved } = prepareTarget(
@@ -206,7 +209,7 @@ export function prepareGraphql(
 }
 
 export function prepareRealtime(
-  request: Extract<SavedRequest, { protocol: "websocket" | "socketio" }>,
+  request: SavedRequestOf<"websocket" | "socketio">,
   context: RequestContext,
 ): PreparedTarget & { resolve: Resolver } {
   const scheme = request.protocol === "socketio" ? "http" : "ws";
