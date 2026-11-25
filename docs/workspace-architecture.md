@@ -30,7 +30,7 @@ This document is the single reference for how Aurolis stores workspaces, links t
 - **The user chooses where workspaces are stored**, once, right after signing in or choosing "Continue on this device". The default is an `Aurolis` folder in their home folder, and each workspace is a normal, visible folder inside it.
 - Aurolis uses the **git already installed** on the computer (2.31 or newer). It doesn't bundle git: without a usable one, it asks the user to install it. It runs on macOS, Windows and Linux; per-OS differences are listed in [Platform support](#platform-support).
 - All git commands, files and tokens are handled in the **Electron main process**. The renderer asks for data by workspace id over IPC and never sees paths or tokens.
-- Per-user data (drafts, UI state, history, secrets) lives **outside the repo**, so it can never be committed.
+- Per-user data (drafts, UI state, secrets) lives **outside the repo**, so it can never be committed.
 - The GitHub REST API (`electron/github-sync.ts`) is used only for things git can't do: listing the user's repositories and permissions, creating a repository to publish to, the GitHub App install page, and opening pull requests.
 
 ## Terms
@@ -139,7 +139,7 @@ Aurolis uses two places:
         ├── drafts.json              ← unsaved edits (Ctrl/⌘ S writes them into the working tree)
         ├── ui.json                  ← open tabs, selected environment
         ├── conflicts.json           ← unresolved fields during a merge
-        ├── history/  runs/          ← request history, load-test runs
+        ├── runs/                    ← load-test runs
         └── secrets.bin              ← environment secret values, safeStorage-encrypted
 ```
 
@@ -242,7 +242,7 @@ What this means for the code:
 | Environment **secret values** | `state/secrets.bin` | ❌ never |
 | Drafts | `state/drafts.json` | ❌ |
 | Open tabs, selected environment | `state/ui.json` | ❌ |
-| Request history, load-test runs | `state/history/`, `state/runs/` | ❌ |
+| Load-test runs | `state/runs/` | ❌ |
 | GitHub session | `<userData>/github-token.bin` | ❌ |
 
 Only **saved** files can be committed. A draft has to be saved with Ctrl/⌘ S first.
@@ -276,7 +276,7 @@ sequenceDiagram
 
 - Drafts and UI state are per workspace and already on disk, so switching needs no "unsaved changes" prompt and never loses work.
 - The renderer keeps **one workspace in memory**: the active one.
-- Requests in flight keep running; their results go to the history of the workspace they were sent from.
+- Switching doesn't cancel requests in flight, and their responses aren't shown in the other workspace.
 - Background fetching (#17) only runs for the active workspace.
 - On launch, Aurolis opens `activeWorkspaceId`. If the registry is empty, it creates a local "My workspace".
 

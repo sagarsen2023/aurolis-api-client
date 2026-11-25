@@ -1,6 +1,5 @@
 import {
   ArrowUpDown,
-  Clock,
   Globe,
   House,
   Layers,
@@ -20,7 +19,6 @@ export type RailLink =
   | "/"
   | "/collections"
   | "/environments"
-  | "/history"
   | "/load-testing"
   | "/import-export"
   | "/settings";
@@ -53,7 +51,6 @@ export const sideMenuItems: SideMenuItem[] = [
   item("overview", "Overview", "/", House),
   item("collections", "Collections", "/collections", Layers),
   item("environments", "Environments", "/environments", Globe),
-  item("history", "History", "/history", Clock),
   item("load-testing", "Load testing", "/load-testing", Zap),
   item("import-export", "Import & export", "/import-export", ArrowUpDown),
 ];
