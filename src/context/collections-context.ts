@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 import type { EngineErrorCode } from "@/types/engine/engine.type";
-import type { GraphqlSchemaSummary } from "@/types/engine/graphql-engine.type";
+import type { GraphqlSchemaResult } from "@/types/engine/graphql-engine.type";
 import type { HttpResponseData } from "@/types/engine/http-engine.type";
 import type { RealtimeEvent } from "@/types/engine/realtime-engine.type";
 import type {
@@ -58,9 +58,7 @@ export const runStatesAtom = atom<Record<string, RunState>>({});
 
 export const realtimeSessionsAtom = atom<Record<string, RealtimeSession>>({});
 
-export const graphqlSchemasAtom = atom<Record<string, GraphqlSchemaSummary>>(
-  {},
-);
+export const graphqlSchemasAtom = atom<Record<string, GraphqlSchemaResult>>({});
 
 export const expandedNodesAtom = atom<Record<string, boolean>>({});
 

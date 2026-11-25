@@ -53,6 +53,7 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
 - `src/modules/collections/`: `tree/`, `dialogs/`, `editor/` (one editor per protocol), `response/` and `views/` (collection, folder and example tabs).
 - Editor state is in `src/context/collections-context.ts`. `use-editor-state-sync.ts` loads and persists drafts and tabs, and `use-request-drafts.ts` handles drafts and saving.
 - Long descriptions (workspace, collection, folder and request docs) are markdown, edited with `src/components/ui/markdown-editor` (Write and Preview, preview by default when there is content).
+- Code (JSON, XML, GraphQL, message bodies, response bodies) uses CodeMirror 6 through `src/components/code-field.tsx` (lazy-loaded) and `code-editor.tsx`. Theme, `{{variable}}` highlighting and completion, and the language setup live in `src/lib/codemirror/`. Pass stable props: react-codemirror reconfigures the editor whenever `extensions`, `basicSetup` or `onChange` change identity, which resets autocompletion.
 
 ### Routing
 

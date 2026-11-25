@@ -39,3 +39,8 @@ export interface GraphqlSchemaSummary {
   mutation: GraphqlField[];
   subscription: GraphqlField[];
 }
+
+export interface GraphqlSchemaResult {
+  summary: GraphqlSchemaSummary;
+  introspection: Record<string, unknown>;
+}

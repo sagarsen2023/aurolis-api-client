@@ -4,7 +4,7 @@ import type {
   GraphqlField,
   GraphqlIntrospectParams,
   GraphqlResponseData,
-  GraphqlSchemaSummary,
+  GraphqlSchemaResult,
   GraphqlSendParams,
 } from "../../src/types/engine/graphql-engine.type.ts";
 import type { HttpResponseData } from "../../src/types/engine/http-engine.type.ts";
@@ -12,30 +12,15 @@ import {
   graphqlIntrospectSchema,
   graphqlSendSchema,
 } from "../../src/validators/engine.schema.ts";
+import { getIntrospectionQuery } from "graphql";
 import { EngineError, parseInput } from "./engine-error.ts";
 import { executeHttp } from "./http-engine.ts";
 
 const JSON_CONTENT_TYPE = "application/json";
 const GRAPHQL_ACCEPT = "application/graphql-response+json, application/json";
 
-const TYPE_REF = `kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } }`;
-
-const INTROSPECTION_QUERY = `query AurolisIntrospection {
-  __schema {
-    queryType { name }
-    mutationType { name }
-    subscriptionType { name }
-    types {
-      name
-      fields(includeDeprecated: false) {
-        name
-        description
-        args { name type { ${TYPE_REF} } }
-        type { ${TYPE_REF} }
-      }
-    }
-  }
-}`;
+const INTROSPECTION_OPERATION = "IntrospectionQuery";
+const INTROSPECTION_QUERY = getIntrospectionQuery({ descriptions: true });
 
 type TypeRef = { kind: string; name: string | null; ofType?: TypeRef | null };
 
@@ -166,13 +151,15 @@ function rootFields(schema: IntrospectionSchema, typeName: string | undefined) {
   return fields.map(toField).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function readSchema(response: HttpResponseData): IntrospectionSchema {
-  const payload = parseJson(response.body) as {
-    data?: { __schema?: IntrospectionSchema };
-    errors?: { message?: string }[];
-  } | null;
-  const schema = payload?.data?.__schema;
-  if (schema) return schema;
+type IntrospectionPayload = {
+  data?: { __schema?: IntrospectionSchema };
+  errors?: { message?: string }[];
+};
+
+function readIntrospection(response: HttpResponseData) {
+  const payload = parseJson(response.body) as IntrospectionPayload | null;
+  const data = payload?.data;
+  if (data?.__schema) return { data, schema: data.__schema };
   const firstError = payload?.errors?.[0]?.message;
   const reason =
     firstError ?? `The server answered ${response.status} without a schema.`;
@@ -181,19 +168,22 @@ function readSchema(response: HttpResponseData): IntrospectionSchema {
 
 export async function introspectGraphql(
   params: unknown,
-): Promise<GraphqlSchemaSummary> {
+): Promise<GraphqlSchemaResult> {
   const input: GraphqlIntrospectParams = parseInput(
     graphqlIntrospectSchema,
     params,
   );
   const response = await postGraphql(input, {
     query: INTROSPECTION_QUERY,
-    operationName: "AurolisIntrospection",
+    operationName: INTROSPECTION_OPERATION,
   });
-  const schema = readSchema(response);
+  const { data, schema } = readIntrospection(response);
   return {
-    query: rootFields(schema, schema.queryType?.name),
-    mutation: rootFields(schema, schema.mutationType?.name),
-    subscription: rootFields(schema, schema.subscriptionType?.name),
+    summary: {
+      query: rootFields(schema, schema.queryType?.name),
+      mutation: rootFields(schema, schema.mutationType?.name),
+      subscription: rootFields(schema, schema.subscriptionType?.name),
+    },
+    introspection: data,
   };
 }

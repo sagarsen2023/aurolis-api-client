@@ -2,10 +2,17 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { HttpResponseData } from "@/types/engine/http-engine.type";
 import { formatBytes } from "@/utils/format-bytes";
+import { CodeField } from "@/components/code-field";
+import type { CodeLanguage } from "@/lib/codemirror/languages";
 import { isJsonContentType, prettyJson } from "@/utils/json";
-import JsonView from "../shared/json-view";
 
 type View = "pretty" | "raw";
+
+function rawLanguage(contentType: string | null): CodeLanguage {
+  if (isJsonContentType(contentType)) return "json";
+  if (contentType && /[/+]xml\b/i.test(contentType)) return "xml";
+  return "text";
+}
 
 function ResponseBody({ response }: Readonly<{ response: HttpResponseData }>) {
   const [view, setView] = useState<View>("pretty");
@@ -38,8 +45,9 @@ function ResponseBody({ response }: Readonly<{ response: HttpResponseData }>) {
     return <p className="text-[13px] text-mute">The response has no body.</p>;
   }
 
+  const showPretty = pretty !== null && view === "pretty";
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       {pretty ? (
         <div className="flex gap-1" role="group" aria-label="Body view">
           {(["pretty", "raw"] as const).map((option) => (
@@ -55,13 +63,18 @@ function ResponseBody({ response }: Readonly<{ response: HttpResponseData }>) {
           ))}
         </div>
       ) : null}
-      {pretty && view === "pretty" ? (
-        <JsonView text={pretty} />
-      ) : (
-        <pre className="font-mono text-[12.5px] leading-relaxed break-all whitespace-pre-wrap text-code">
-          {response.body}
-        </pre>
-      )}
+      <div className="relative min-h-0 flex-1">
+        <div className="absolute inset-0">
+          <CodeField
+            readOnly
+            label="Response body"
+            value={showPretty ? pretty : response.body}
+            language={showPretty ? "json" : rawLanguage(response.contentType)}
+            height="100%"
+            className="h-full"
+          />
+        </div>
+      </div>
       {response.truncated ? (
         <p className="text-[12px] text-warning">
           Showing the first 20 MB of {formatBytes(response.size)}.

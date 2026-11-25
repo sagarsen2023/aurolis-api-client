@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRealtimeSession } from "@/hooks/use-realtime";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
+import { useVariableNames } from "@/hooks/use-variable-names";
 import { handleError } from "@/hooks/usePromise";
 import { cn } from "@/lib/utils";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
@@ -55,8 +56,10 @@ function ComposerPanel({
   connected,
   onSend,
   onSave,
+  variables,
 }: Readonly<{
   request: RealtimeDraft;
+  variables: readonly string[];
   composer: Composer;
   setComposer: (composer: Composer) => void;
   connected: boolean;
@@ -98,6 +101,7 @@ function ComposerPanel({
         label="Message"
         language={composer.format === "json" ? "json" : "text"}
         minRows={5}
+        variables={variables}
         value={composer.body}
         placeholder={
           composer.format === "json" ? '{\n  "type": "ping"\n}' : "Hello"
@@ -230,6 +234,7 @@ function RealtimeEditor({
     request.id,
   );
   const unresolved = useUnresolvedVariables(request);
+  const variableNames = useVariableNames(request.id);
   const [composer, setComposer] = useState<Composer>({
     event: "",
     body: "",
@@ -269,6 +274,7 @@ function RealtimeEditor({
           connected={connected}
           onSend={sendMessage}
           onSave={saveMessage}
+          variables={variableNames}
         />
       ),
     },

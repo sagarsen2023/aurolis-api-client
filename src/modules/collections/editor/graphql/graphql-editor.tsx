@@ -1,7 +1,10 @@
+import { RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRequestRunner } from "@/hooks/use-request-runner";
+import { useGraphqlSchema } from "@/hooks/use-graphql-schema";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
+import { useVariableNames } from "@/hooks/use-variable-names";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
 import type { GraphqlOperation } from "@/types/workspace/request.type";
 import { tryParseJson } from "@/utils/json";
@@ -29,6 +32,38 @@ function variablesError(variables: string) {
   return undefined;
 }
 
+function SchemaHint({
+  loaded,
+  loading,
+  canLoad,
+  onLoad,
+}: Readonly<{
+  loaded: boolean;
+  loading: boolean;
+  canLoad: boolean;
+  onLoad: () => void;
+}>) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-[12.5px] text-mute">
+      <span className="flex items-center gap-1.5">
+        <Sparkles className="size-3.5 text-vio" aria-hidden />
+        {loaded
+          ? "Schema loaded: fields and arguments autocomplete, and invalid queries are underlined."
+          : "Load the schema to autocomplete fields and check the query."}
+      </span>
+      <Button
+        size="xs"
+        variant="ghost"
+        disabled={loading || !canLoad}
+        onClick={onLoad}
+      >
+        <RefreshCw className={loading ? "animate-spin" : undefined} />
+        {loaded ? "Reload schema" : "Load schema"}
+      </Button>
+    </div>
+  );
+}
+
 function GraphqlEditor({
   request,
   onChange,
@@ -38,6 +73,8 @@ function GraphqlEditor({
 }>) {
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
+  const variableNames = useVariableNames(request.id);
+  const graphqlSchema = useGraphqlSchema(request);
   const running = state.status === "running";
   const operation = request.graphql;
   const setOperation = (patch: Partial<GraphqlOperation>) =>
@@ -79,9 +116,16 @@ function GraphqlEditor({
             label: "Query",
             content: (
               <div className="flex flex-col gap-3">
+                <SchemaHint
+                  loaded={graphqlSchema.schema !== null}
+                  loading={graphqlSchema.loading}
+                  canLoad={Boolean(request.url.trim())}
+                  onLoad={() => void graphqlSchema.load()}
+                />
                 <CodeEditor
                   label="GraphQL query"
                   language="graphql"
+                  graphqlSchema={graphqlSchema.schema}
                   minRows={12}
                   value={operation.query}
                   placeholder={
@@ -109,6 +153,7 @@ function GraphqlEditor({
               <CodeEditor
                 label="GraphQL variables"
                 language="json"
+                variables={variableNames}
                 value={operation.variables}
                 placeholder={'{\n  "id": "{{paymentId}}"\n}'}
                 error={variablesError(operation.variables)}
