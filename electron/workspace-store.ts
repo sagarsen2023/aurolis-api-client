@@ -21,6 +21,7 @@ import {
   MANIFEST_PATH,
   slugify,
   stableStringify,
+  WORKSPACE_PATHS,
 } from "../src/lib/workspace-format.ts";
 import {
   workspaceNameSchema,
@@ -44,7 +45,9 @@ import {
   addRemote,
   changedFileCount,
   cloneRepository,
-  commitAll,
+  changedPaths,
+  commitPaths,
+  statusEntries,
   configureManagedRepository,
   currentBranch,
   GitCommandError,
@@ -90,6 +93,21 @@ export class WorkspaceError extends Error {
     this.name = "WorkspaceError";
     this.code = code;
   }
+}
+
+export function workspacePathspecs(root: string) {
+  return WORKSPACE_PATHS.map((file) => path.posix.join(root, file));
+}
+
+async function commitWorkspaceChanges(
+  dir: string,
+  root: string,
+  message: string,
+) {
+  const entries = await statusEntries(dir, workspacePathspecs(root));
+  if (entries.length === 0) return false;
+  await commitPaths(dir, message, changedPaths(entries));
+  return true;
 }
 
 export function parseWorkspaceInput<T>(schema: z.ZodType<T>, input: unknown) {
@@ -377,7 +395,7 @@ export async function createLocalWorkspace(
       path.join(repoDir, MANIFEST_PATH),
       stableStringify(createManifest(randomUUID(), name)),
     );
-    await commitAll(repoDir, "Create workspace");
+    await commitWorkspaceChanges(repoDir, "", "Create workspace");
   } catch (error) {
     await rm(repoDir, { recursive: true, force: true });
     throw error;
@@ -603,7 +621,7 @@ export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
 
   const [branch, changedFiles, url] = await Promise.all([
     currentBranch(entry.repoDir),
-    changedFileCount(entry.repoDir, entry.root),
+    changedFileCount(entry.repoDir, workspacePathspecs(entry.root)),
     remoteUrl(entry.repoDir),
   ]);
   const unpushedCommits = url ? await unpushedCommitCount(entry.repoDir) : 0;
@@ -654,12 +672,9 @@ async function commitIfRequested(
   requested: boolean,
 ) {
   if (!requested) return false;
-  const changed = await changedFileCount(dir, root);
-  if (changed === 0) return false;
   const hasHistory = await hasCommits(dir);
   const message = hasHistory ? "Update workspace" : "Create workspace";
-  await commitAll(dir, message, root);
-  return true;
+  return commitWorkspaceChanges(dir, root, message);
 }
 
 export async function publishWorkspace(
@@ -730,7 +745,7 @@ export async function removeCheck(id: unknown): Promise<RemoveCheck> {
     };
   }
   const [changedFiles, unpushedCommits, url] = await Promise.all([
-    changedFileCount(entry.repoDir, ""),
+    changedFileCount(entry.repoDir, ["."]),
     unpushedCommitCount(entry.repoDir),
     remoteUrl(entry.repoDir),
   ]);

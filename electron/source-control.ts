@@ -16,6 +16,7 @@ import type {
 import type { WorkspaceEntry } from "../src/types/workspace/workspace-store.type.ts";
 import { commitParamsSchema } from "../src/validators/source-control.schema.ts";
 import {
+  changedPaths,
   commitPaths,
   commitsBehind,
   currentBranch,
@@ -38,6 +39,7 @@ import {
   readWorkspaceFiles,
   parseWorkspaceInput,
   WorkspaceError,
+  workspacePathspecs,
 } from "./workspace-store.ts";
 
 const MAX_CONTENT_BYTES = 1024 * 1024;
@@ -147,7 +149,7 @@ export async function listChanges(
   const [branch, url, entries, headExists, known] = await Promise.all([
     currentBranch(dir),
     remoteUrl(dir),
-    statusEntries(dir, entry.root),
+    statusEntries(dir, workspacePathspecs(entry.root)),
     hasCommits(dir),
     knownNames(entry),
   ]);
@@ -230,10 +232,10 @@ export async function commitAndSync(params: unknown): Promise<CommitResult> {
   const branch = await currentBranch(dir);
   if (!branch) throw new WorkspaceError("detached_head");
 
-  const changes = await statusEntries(dir, entry.root);
+  const changes = await statusEntries(dir, workspacePathspecs(entry.root));
   await refuseSecretLeaks(entry, dir, changes);
   const committed = changes.length > 0;
-  if (committed) await commitPaths(dir, message, entry.root);
+  if (committed) await commitPaths(dir, message, changedPaths(changes));
 
   const url = await remoteUrl(dir);
   if (!sync || !url) {
