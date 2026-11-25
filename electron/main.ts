@@ -115,7 +115,8 @@ const CSP = [
 
 async function isFile(filePath: string) {
   try {
-    return (await stat(filePath)).isFile();
+    const stats = await stat(filePath);
+    return stats.isFile();
   } catch {
     return false;
   }
@@ -134,7 +135,8 @@ function registerAppProtocol() {
     }
 
     // Unknown paths fall back to index.html (SPA routing).
-    const filePath = (await isFile(requested))
+    const isKnownFile = await isFile(requested);
+    const filePath = isKnownFile
       ? requested
       : path.join(RENDERER_DIST, "index.html");
 
@@ -288,8 +290,10 @@ if (!app.requestSingleInstanceLock()) {
   > = {
     list: () => listWorkspaces(),
     "git-info": () => gitInfo(),
-    "storage-check-default": async () =>
-      checkStorageFolder((await listWorkspaces()).defaultStorageFolder.path),
+    "storage-check-default": async () => {
+      const view = await listWorkspaces();
+      return checkStorageFolder(view.defaultStorageFolder.path);
+    },
     "storage-choose": (event) => chooseStorageFolder(windowOf(event)),
     "storage-set": (_event, choice) => setStorageFolder(choice),
     create: (_event, params) => createLocalWorkspace(params),

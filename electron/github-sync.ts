@@ -183,17 +183,64 @@ async function mapLimit<T, R>(
 type ApiInstallation = {
   id: number;
   repository_selection: string;
+  permissions?: Record<string, string>;
   account: { login: string; type: string; avatar_url: string } | null;
 };
 
-export async function listInstallations(): Promise<GithubInstallation[]> {
-  const installations = await githubApi.getAll<
+function fetchInstallations() {
+  return githubApi.getAll<
     { installations: ApiInstallation[] },
     ApiInstallation
   >({
     endpoint: "/user/installations?per_page=100",
     pick: (page) => page.installations,
   });
+}
+
+async function tryFetchInstallations(): Promise<ApiInstallation[] | null> {
+  try {
+    return await fetchInstallations();
+  } catch {
+    return null;
+  }
+}
+
+function describePermissions(permissions: Record<string, string>) {
+  const entries = Object.entries(permissions);
+  if (entries.length === 0) return "nothing";
+  return entries.map(([name, level]) => `${name}: ${level}`).join(", ");
+}
+
+async function explainCreateRefusal(owner: string, githubMessage?: string) {
+  const fallback = githubMessage ?? "GitHub refused to create the repository.";
+  const installations = await tryFetchInstallations();
+  if (!installations) return fallback;
+
+  const installation = installations.find((candidate) =>
+    sameLogin(candidate.account?.login, owner),
+  );
+  if (!installation) {
+    return `Aurolis isn't installed on ${owner}. Install the Aurolis GitHub App on ${owner}, then try again.`;
+  }
+
+  const permissions = installation.permissions ?? {};
+  const administration = permissions.administration ?? "none";
+  const granted = describePermissions(permissions);
+  if (administration !== "write") {
+    return `The Aurolis installation on ${owner} has Administration "${administration}", not "write". Open its settings on GitHub and accept the updated permissions. It currently has: ${granted}.`;
+  }
+  if (installation.repository_selection !== "all") {
+    return `The Aurolis installation on ${owner} only has access to selected repositories. Switch it to "All repositories" on GitHub, then try again.`;
+  }
+  return `${fallback} The installation on ${owner} has: ${granted}; repository access: ${installation.repository_selection}.`;
+}
+
+function sameLogin(login: string | undefined, owner: string) {
+  return login?.toLowerCase() === owner.toLowerCase();
+}
+
+export async function listInstallations(): Promise<GithubInstallation[]> {
+  const installations = await fetchInstallations();
   return installations.map((i) => ({
     id: i.id,
     account: i.account?.login ?? "",
@@ -298,7 +345,7 @@ export async function createRepository(
   const isPrivate = (input as CreateRepositoryParams).private !== false;
   const { user } = await getAuthStatus();
   if (!user) throw new GithubApiError({ code: "signed_out" });
-  const forUser = user.login.toLowerCase() === ref.owner.toLowerCase();
+  const forUser = sameLogin(user.login, ref.owner);
   try {
     const created = await githubApi.post<ApiRepository>({
       endpoint: forUser
@@ -309,22 +356,33 @@ export async function createRepository(
     return toRepository(created);
   } catch (error) {
     if (!(error instanceof GithubApiError)) throw error;
-    if (error.code === "validation" && (await findRepository(ref))) {
-      throw new GithubApiError({
-        code: "already_exists",
-        status: error.info.status,
-        message: `${ref.owner}/${ref.name} already exists.`,
-      });
-    }
-    if (error.code === "not_found") {
-      throw new GithubApiError({
-        code: "forbidden",
-        status: error.info.status,
-        message: error.message,
-      });
-    }
-    throw error;
+    throw await toCreateRepositoryError(error, ref);
   }
+}
+
+async function toCreateRepositoryError(
+  error: GithubApiError,
+  ref: RepositoryNameParams,
+): Promise<GithubApiError> {
+  const { status, message } = error.info;
+  if (error.code === "validation") {
+    const existing = await findRepository(ref);
+    if (!existing) return error;
+    return new GithubApiError({
+      code: "already_exists",
+      status,
+      message: `${ref.owner}/${ref.name} already exists.`,
+    });
+  }
+  if (error.code === "not_found" || error.code === "forbidden") {
+    const explanation = await explainCreateRefusal(ref.owner, message);
+    return new GithubApiError({
+      code: "forbidden",
+      status,
+      message: explanation,
+    });
+  }
+  return error;
 }
 
 export async function getEmptyRepository(
@@ -345,7 +403,8 @@ export async function getEmptyRepository(
       message: `You can't push to ${repository.fullName}.`,
     });
   }
-  if (!(await isEmptyRepository(ref))) {
+  const isEmpty = await isEmptyRepository(ref);
+  if (!isEmpty) {
     throw new GithubApiError({
       code: "not_empty",
       message: `${repository.fullName} already has commits.`,
@@ -532,7 +591,8 @@ export async function commitFiles(
     });
   } catch (error) {
     if (error instanceof GithubApiError && error.code === "conflict") {
-      conflict(await getHeadSha(ref), "Someone pushed to this branch first.");
+      const headSha = await getHeadSha(ref);
+      conflict(headSha, "Someone pushed to this branch first.");
     }
     throw error;
   }

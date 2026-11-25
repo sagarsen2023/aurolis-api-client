@@ -14,9 +14,11 @@ import {
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { authService, GithubSignInFailure } from "@/services/auth.service";
+import { githubService } from "@/services/github.service";
 import { usePromise } from "@/hooks/usePromise";
 import type { GithubDeviceCodePrompt } from "@/types/auth/auth-response.type";
 import { Button } from "@/components/ui/button";
+import InstallAppPanel from "./install-app-panel";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 
 interface LoginFormProps {
@@ -30,6 +32,15 @@ const TRUST: ReadonlyArray<{ icon: IconType; label: string }> = [
   { icon: LuCodeXml, label: "MIT licensed" },
 ];
 
+async function needsAppInstall() {
+  try {
+    const installations = await githubService.getInstallations();
+    return installations.length === 0;
+  } catch {
+    return false;
+  }
+}
+
 export function LoginForm({
   className,
   onContinueLocal,
@@ -37,6 +48,7 @@ export function LoginForm({
 }: LoginFormProps) {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState<GithubDeviceCodePrompt | null>(null);
+  const [needsInstall, setNeedsInstall] = useState(false);
   const inProgress = useRef(false);
 
   useEffect(
@@ -66,12 +78,21 @@ export function LoginForm({
     },
     onSuccessAsync: async (signedIn) => {
       if (!signedIn) return;
-      await navigate({ to: "/", replace: true });
+      const mustInstall = await needsAppInstall();
+      if (mustInstall) {
+        setNeedsInstall(true);
+        return;
+      }
+      await enterApp();
     },
     onFinally: () => setPrompt(null),
   });
 
   const starting = signingIn && prompt === null;
+
+  async function enterApp() {
+    await navigate({ to: "/", replace: true });
+  }
 
   return (
     <div
@@ -131,7 +152,9 @@ export function LoginForm({
               tests, versioned in a GitHub repository you own.
             </p>
 
-            {prompt ? (
+            {needsInstall ? (
+              <InstallAppPanel onDone={() => void enterApp()} />
+            ) : prompt ? (
               <DeviceCodePanel
                 prompt={prompt}
                 onCancel={() => void authService.cancelGithubLogin()}

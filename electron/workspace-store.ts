@@ -125,6 +125,14 @@ const emptyRegistry = (): WorkspaceRegistry => ({
   workspaces: [],
 });
 
+async function setAsideUnreadableRegistry() {
+  try {
+    await rename(registryFile(), `${registryFile()}.unreadable-${Date.now()}`);
+  } catch {
+    return;
+  }
+}
+
 async function loadRegistry(): Promise<WorkspaceRegistry> {
   if (registry) return registry;
   try {
@@ -134,13 +142,10 @@ async function loadRegistry(): Promise<WorkspaceRegistry> {
       registry = parsed.data;
       return registry;
     }
-    await rename(registryFile(), `${registryFile()}.unreadable-${Date.now()}`);
+    await setAsideUnreadableRegistry();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      await rename(
-        registryFile(),
-        `${registryFile()}.unreadable-${Date.now()}`,
-      ).catch(() => undefined);
+      await setAsideUnreadableRegistry();
     }
   }
   registry = emptyRegistry();
@@ -166,7 +171,8 @@ async function nearestExisting(target: string) {
 }
 
 async function insideGitRepository(target: string) {
-  let current = (await nearestExisting(target)) ?? target;
+  const existing = await nearestExisting(target);
+  let current = existing ?? target;
   while (true) {
     if (existsSync(path.join(current, ".git"))) return true;
     const parent = path.dirname(current);
@@ -215,7 +221,8 @@ export async function checkStorageFolder(
   if (process.platform === "win32" && /^\\\\/.test(target)) {
     warnings.push("network_drive");
   }
-  if (await insideGitRepository(target)) warnings.push("inside_git_repo");
+  const nested = await insideGitRepository(target);
+  if (nested) warnings.push("inside_git_repo");
   check.warnings = warnings;
   return check;
 }
@@ -309,6 +316,12 @@ async function findEntry(id: unknown) {
   return entry;
 }
 
+async function workspaceRootFor(repoDir: string, picked: string) {
+  const pickedRoot = toPosix(path.relative(repoDir, picked));
+  if (pickedRoot) return pickedRoot;
+  return findWorkspaceRoot(repoDir);
+}
+
 async function findWorkspaceRoot(repoDir: string) {
   if (existsSync(path.join(repoDir, MANIFEST_PATH))) return "";
   const queue: { dir: string; depth: number }[] = [{ dir: repoDir, depth: 0 }];
@@ -317,7 +330,8 @@ async function findWorkspaceRoot(repoDir: string) {
     if (depth >= MAX_SCAN_DEPTH) continue;
     let children: string[];
     try {
-      children = (await readdir(dir, { withFileTypes: true }))
+      const entries = await readdir(dir, { withFileTypes: true });
+      children = entries
         .filter((child) => child.isDirectory() && !SKIPPED_DIRS.has(child.name))
         .map((child) => path.join(dir, child.name))
         .sort();
@@ -419,11 +433,12 @@ export async function cloneWorkspace(params: unknown): Promise<CloneResult> {
   }
 
   const id = randomUUID();
+  const root = await findWorkspaceRoot(repoDir);
   await addEntry({
     id,
     name: repoName,
     repoDir,
-    root: await findWorkspaceRoot(repoDir),
+    root,
     managed: true,
     remote: { url, github: parseGithubRemote(url) },
     createdAt: now(),
@@ -454,8 +469,7 @@ export async function openExistingFolder(
       "That folder isn't a git repository. Pick the folder you cloned.",
     );
   }
-  const pickedRoot = toPosix(path.relative(repoDir, picked));
-  const root = pickedRoot || (await findWorkspaceRoot(repoDir));
+  const root = await workspaceRootFor(repoDir, picked);
 
   const current = await loadRegistry();
   const existing = current.workspaces.find(
@@ -625,6 +639,20 @@ export async function renameWorkspace(params: unknown) {
   return registryView();
 }
 
+async function commitIfRequested(
+  dir: string,
+  root: string,
+  requested: boolean,
+) {
+  if (!requested) return false;
+  const changed = await changedFileCount(dir, root);
+  if (changed === 0) return false;
+  const hasHistory = await hasCommits(dir);
+  const message = hasHistory ? "Update workspace" : "Create workspace";
+  await commitAll(dir, message, root);
+  return true;
+}
+
 export async function publishWorkspace(
   params: unknown,
 ): Promise<PublishResult> {
@@ -654,15 +682,13 @@ export async function publishWorkspace(
   const branch = await currentBranch(dir);
   if (!branch) throw new WorkspaceError("detached_head");
 
-  let committed = false;
-  if (commitChanges === true && (await changedFileCount(dir, entry.root)) > 0) {
-    const message = (await hasCommits(dir))
-      ? "Update workspace"
-      : "Create workspace";
-    await commitAll(dir, message, entry.root);
-    committed = true;
-  }
-  if (!(await hasCommits(dir))) throw new WorkspaceError("nothing_to_publish");
+  const committed = await commitIfRequested(
+    dir,
+    entry.root,
+    commitChanges === true,
+  );
+  const hasHistory = await hasCommits(dir);
+  if (!hasHistory) throw new WorkspaceError("nothing_to_publish");
 
   if (!existing) await addRemote(dir, url);
   try {

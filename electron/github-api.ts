@@ -138,11 +138,14 @@ async function send<T>(
   }
 }
 
-const request = async <T>(
+async function request<T>(
   method: string,
   endpoint: string,
   options: RequestOptions = {},
-) => (await send<T>(method, endpoint, options)).data;
+) {
+  const response = await send<T>(method, endpoint, options);
+  return response.data;
+}
 
 function nextPageUrl(headers: Headers) {
   const link = headers.get("link");

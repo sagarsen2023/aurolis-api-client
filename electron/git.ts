@@ -111,13 +111,17 @@ async function macDeveloperToolsInstalled() {
   return result.exitCode === 0;
 }
 
+async function isUsableCandidate(candidate: string, isBareName: boolean) {
+  if (!isBareName) return isExecutable(candidate);
+  if (!IS_MAC) return true;
+  return macDeveloperToolsInstalled();
+}
+
 async function findSystemGit(): Promise<GitBinary | null> {
   for (const candidate of systemGitCandidates()) {
     const isBareName = candidate === "git";
-    if (!isBareName && !(await isExecutable(candidate))) continue;
-    if (IS_MAC && isBareName && !(await macDeveloperToolsInstalled())) {
-      continue;
-    }
+    const usable = await isUsableCandidate(candidate, isBareName);
+    if (!usable) continue;
     const result = await runFile(candidate, ["--version"], {
       env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
     });
@@ -151,7 +155,8 @@ function getGit() {
 }
 
 export async function gitInfo(): Promise<GitInfo> {
-  return (await getGit()).info;
+  const git = await getGit();
+  return git.info;
 }
 
 const GITHUB_HTTPS = "https://github.com/";

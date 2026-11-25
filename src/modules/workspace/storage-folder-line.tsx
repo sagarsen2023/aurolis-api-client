@@ -22,7 +22,8 @@ function StorageFolderLine() {
         toast.error(check.error);
         return null;
       }
-      setRegistry(await workspaceService.setStorage("chosen"));
+      const updated = await workspaceService.setStorage("chosen");
+      setRegistry(updated);
       return check;
     },
     onSuccess: (check) => {
