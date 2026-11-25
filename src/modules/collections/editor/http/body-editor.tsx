@@ -39,7 +39,12 @@ const PLACEHOLDERS: Record<string, string> = {
 function BodyContent({
   body,
   onChange,
-}: Readonly<{ body: RequestBody; onChange: (body: RequestBody) => void }>) {
+  variables,
+}: Readonly<{
+  body: RequestBody;
+  onChange: (body: RequestBody) => void;
+  variables: readonly string[];
+}>) {
   switch (body.mode) {
     case "json":
     case "text":
@@ -47,7 +52,8 @@ function BodyContent({
       return (
         <CodeEditor
           label="Request body"
-          language={body.mode === "json" ? "json" : "text"}
+          language={body.mode === "text" ? "text" : body.mode}
+          variables={variables}
           value={body.raw}
           placeholder={PLACEHOLDERS[body.mode]}
           onChange={(raw) => onChange({ ...body, raw })}
@@ -74,10 +80,12 @@ function BodyEditor({
   body,
   method,
   onChange,
+  variables,
 }: Readonly<{
   body: RequestBody;
   method: string;
   onChange: (body: RequestBody) => void;
+  variables: readonly string[];
 }>) {
   const ignored =
     (method === "GET" || method === "HEAD") && body.mode !== "none";
@@ -95,7 +103,7 @@ function BodyEditor({
           {method} requests can't carry a body, so this body isn't sent.
         </p>
       ) : null}
-      <BodyContent body={body} onChange={onChange} />
+      <BodyContent body={body} onChange={onChange} variables={variables} />
     </div>
   );
 }

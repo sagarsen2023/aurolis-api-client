@@ -255,10 +255,8 @@ function ResponsePanel({
             <span className="text-dim">{state.response.headers.length}</span>
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="body" className="min-h-0">
-          <ScrollArea className="h-full pb-4">
-            <ResponseBody response={state.response} />
-          </ScrollArea>
+        <TabsContent value="body" className="flex min-h-0 flex-col pb-4">
+          <ResponseBody response={state.response} />
         </TabsContent>
         <TabsContent value="headers" className="min-h-0">
           <ScrollArea className="h-full pb-4">

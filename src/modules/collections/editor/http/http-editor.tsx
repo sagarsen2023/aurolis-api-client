@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { HTTP_METHODS, METHOD_TEXT_CLASS } from "@/constants/request";
 import { useRequestRunner } from "@/hooks/use-request-runner";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
+import { useVariableNames } from "@/hooks/use-variable-names";
 import { cn } from "@/lib/utils";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
 import type { HttpMethod } from "@/types/workspace/request.type";
@@ -33,6 +34,7 @@ function HttpEditor({
 }: Readonly<{ request: HttpDraft; onChange: (request: HttpDraft) => void }>) {
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
+  const variableNames = useVariableNames(request.id);
   const running = state.status === "running";
 
   const top = (
@@ -106,6 +108,7 @@ function HttpEditor({
               <BodyEditor
                 body={request.body}
                 method={request.method}
+                variables={variableNames}
                 onChange={(body) => onChange({ ...request, body })}
               />
             ),

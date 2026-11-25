@@ -1,12 +1,6 @@
-import { useAtom, useAtomValue } from "jotai";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { requestTimeoutAtom } from "@/context/settings-atoms";
-import { graphqlSchemasAtom } from "@/context/collections-context";
-import { useRequestContext } from "@/hooks/use-request-context";
-import { usePromise } from "@/hooks/usePromise";
-import { prepareGraphql } from "@/lib/prepare-request";
-import { graphqlEngineService } from "@/services/graphql-engine.service";
+import { useGraphqlSchema } from "@/hooks/use-graphql-schema";
 import type { GraphqlField } from "@/types/engine/graphql-engine.type";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
 
@@ -41,30 +35,15 @@ function FieldList({ fields }: Readonly<{ fields: GraphqlField[] }>) {
 }
 
 function SchemaPanel({ request }: Readonly<{ request: GraphqlDraft }>) {
-  const [schemas, setSchemas] = useAtom(graphqlSchemasAtom);
-  const timeoutSeconds = useAtomValue(requestTimeoutAtom);
-  const getContext = useRequestContext(request.id);
-  const schema = schemas[request.id];
-
-  const { loading, runPromise: load } = usePromise({
-    promise: () => {
-      const prepared = prepareGraphql(request, getContext());
-      return graphqlEngineService.introspect({
-        url: prepared.url,
-        headers: prepared.headers,
-        timeoutMs: Number(timeoutSeconds) * 1000,
-      });
-    },
-    onSuccess: (summary) =>
-      setSchemas((current) => ({ ...current, [request.id]: summary })),
-  });
+  const { summary: schema, loading, load } = useGraphqlSchema(request);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[12.5px] text-mute">
-          Loads the root fields from the server with an introspection query,
-          using this request's URL, headers and auth.
+          Loads the schema with an introspection query, using this request's
+          URL, headers and auth. Once loaded, the Query editor autocompletes
+          fields and arguments and flags invalid queries.
         </p>
         <Button
           size="sm"

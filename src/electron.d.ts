@@ -48,7 +48,7 @@ import type {
 import type {
   GraphqlIntrospectParams,
   GraphqlResponseData,
-  GraphqlSchemaSummary,
+  GraphqlSchemaResult,
   GraphqlSendParams,
 } from "@/types/engine/graphql-engine.type";
 import type {
@@ -133,7 +133,7 @@ interface AurolisBridge {
     ): Promise<EngineResult<GraphqlResponseData>>;
     introspectGraphql(
       params: GraphqlIntrospectParams,
-    ): Promise<EngineResult<GraphqlSchemaSummary>>;
+    ): Promise<EngineResult<GraphqlSchemaResult>>;
     cancel(runId: string): Promise<EngineResult<void>>;
     connectRealtime(params: RealtimeConnectParams): Promise<EngineResult<void>>;
     sendRealtime(params: RealtimeSendParams): Promise<EngineResult<void>>;

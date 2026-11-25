@@ -19,7 +19,7 @@ export default defineConfig({
         vite: {
           build: {
             rolldownOptions: {
-              external: ["ws", "socket.io-client"],
+              external: ["ws", "socket.io-client", "graphql"],
             },
           },
         },
