@@ -8,6 +8,7 @@
 // Docs: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow
 
 import { app, net, safeStorage } from "electron";
+import { osKeychainAvailable } from "./keychain.ts";
 import path from "node:path";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import type {
@@ -146,14 +147,6 @@ function parseStoredSession(raw: string): StoredGithubSession | null {
     }
   }
   return null;
-}
-
-function osKeychainAvailable() {
-  if (!safeStorage.isEncryptionAvailable()) return false;
-  return !(
-    process.platform === "linux" &&
-    safeStorage.getSelectedStorageBackend() === "basic_text"
-  );
 }
 
 async function saveSession(session: StoredGithubSession) {

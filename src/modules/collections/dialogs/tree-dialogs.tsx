@@ -1,25 +1,10 @@
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FormDialog } from "@/components/form-dialog";
+import { NameField } from "@/components/name-field";
 import { Input } from "@/components/ui/input";
 import { NEW_EXAMPLE_STATUS, PROTOCOL_OPTIONS } from "@/constants/request";
 import {
@@ -31,69 +16,11 @@ import { useCollectionActions } from "@/hooks/use-collection-actions";
 import { useEditorTabs } from "@/hooks/use-editor-tabs";
 import { usePromise } from "@/hooks/usePromise";
 import { cn } from "@/lib/utils";
+import { nameError } from "@/utils/name";
 import type { CollectionOp } from "@/types/workspace/collection-ops.type";
 import type { RequestProtocol } from "@/types/workspace/request.type";
 
 type DialogOf<K extends TreeDialog["kind"]> = Extract<TreeDialog, { kind: K }>;
-
-const MAX_NAME_LENGTH = 200;
-
-function nameError(name: string) {
-  if (!name.trim()) return "Enter a name.";
-  if (name.trim().length > MAX_NAME_LENGTH)
-    return "Use 200 characters or fewer.";
-  return undefined;
-}
-
-function FormDialog({
-  open,
-  title,
-  description,
-  submitLabel,
-  busy,
-  canSubmit,
-  onSubmit,
-  onClose,
-  children,
-  wide,
-}: Readonly<{
-  open: boolean;
-  title: string;
-  description: ReactNode;
-  submitLabel: string;
-  busy: boolean;
-  canSubmit: boolean;
-  onSubmit: () => void;
-  onClose: () => void;
-  children: ReactNode;
-  wide?: boolean;
-}>) {
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (canSubmit && !busy) onSubmit();
-  };
-  return (
-    <Dialog open={open} onOpenChange={(next) => (next ? null : onClose())}>
-      <DialogContent className={cn(wide && "sm:max-w-xl")}>
-        <form className="flex flex-col gap-6" onSubmit={submit}>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
-          {children}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit || busy}>
-              {submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function useCreate(onCreated: (createdId: string) => void, success: string) {
   const { apply } = useCollectionActions();
@@ -112,33 +39,6 @@ function useCreate(onCreated: (createdId: string) => void, success: string) {
   return { loading, create };
 }
 
-function NameField({
-  name,
-  setName,
-  touched,
-  label,
-  placeholder,
-}: Readonly<{
-  name: string;
-  setName: (name: string) => void;
-  touched: boolean;
-  label: string;
-  placeholder: string;
-}>) {
-  return (
-    <Input
-      id="tree-dialog-name"
-      label={label}
-      autoFocus
-      value={name}
-      maxLength={MAX_NAME_LENGTH}
-      placeholder={placeholder}
-      error={touched ? nameError(name) : undefined}
-      onChange={(event) => setName(event.target.value)}
-    />
-  );
-}
-
 function NewCollectionDialog({ onClose }: Readonly<{ onClose: () => void }>) {
   const [name, setName] = useState("");
   const { openTab } = useEditorTabs();
@@ -148,7 +48,6 @@ function NewCollectionDialog({ onClose }: Readonly<{ onClose: () => void }>) {
   }, "Collection created");
   return (
     <FormDialog
-      open
       title="New collection"
       description="A collection groups related requests, usually one API or service. It's saved as a folder under collections/."
       submitLabel="Create collection"
@@ -186,7 +85,6 @@ function NewFolderDialog({
   }, "Folder created");
   return (
     <FormDialog
-      open
       title="New folder"
       description={`Inside ${dialog.parentName}. Folders can set auth for the requests in them.`}
       submitLabel="Create folder"
@@ -276,7 +174,6 @@ function NewRequestDialog({
   }, "Request created");
   return (
     <FormDialog
-      open
       wide
       title="New request"
       description={`Inside ${dialog.parentName}. Each request is saved as its own .req.json file.`}
@@ -343,7 +240,6 @@ function NewExampleDialog({
   }, "Example created");
   return (
     <FormDialog
-      open
       title="New example"
       description={`A saved response for ${dialog.requestName}, kept in the repository next to the request.`}
       submitLabel="Create example"
@@ -405,30 +301,14 @@ function DeleteDialog({
     },
   });
   return (
-    <AlertDialog open onOpenChange={(next) => (next ? null : onClose())}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            Delete {dialog.target} “{dialog.name}”?
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {dialog.detail ? `${dialog.detail} ` : ""}
-            Its files are removed from the working tree. Until you commit, you
-            can still restore them with git.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <Button
-            variant="destructive"
-            disabled={loading}
-            onClick={() => void runPromise()}
-          >
-            Delete
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      title={`Delete ${dialog.target} “${dialog.name}”?`}
+      description={`${dialog.detail ? `${dialog.detail} ` : ""}Its files are removed from the working tree. Until you commit, you can still restore them with git.`}
+      confirmLabel="Delete"
+      busy={loading}
+      onConfirm={() => void runPromise()}
+      onClose={onClose}
+    />
   );
 }
 

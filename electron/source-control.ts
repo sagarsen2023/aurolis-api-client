@@ -33,6 +33,7 @@ import {
   unpushedCommitCount,
   type StatusEntry,
 } from "./git.ts";
+import { secretValues } from "./secret-store.ts";
 import {
   findEntry,
   readWorkspaceFiles,
@@ -164,6 +165,37 @@ export async function listChanges(
   };
 }
 
+async function findSecretLeaks(
+  entry: WorkspaceEntry,
+  dir: string,
+  changes: StatusEntry[],
+) {
+  const secrets = await secretValues(entry.id);
+  if (secrets.length === 0) return [];
+  const leaks: string[] = [];
+  for (const change of changes) {
+    if (statusOf(change.code) === "deleted") continue;
+    const content = await workingContent(dir, change.path);
+    if (content && secrets.some((secret) => content.includes(secret))) {
+      leaks.push(relativeToRoot(change.path, entry.root));
+    }
+  }
+  return leaks;
+}
+
+async function refuseSecretLeaks(
+  entry: WorkspaceEntry,
+  dir: string,
+  changes: StatusEntry[],
+) {
+  const leaks = await findSecretLeaks(entry, dir, changes);
+  if (leaks.length === 0) return;
+  throw new WorkspaceError(
+    "secret_leak",
+    `A secret value appears in ${leaks.join(", ")}. Replace it with its {{variable}} and save, then commit.`,
+  );
+}
+
 async function bringInRemoteChanges(dir: string, branch: string) {
   await fetchOrigin(dir);
   const tracking = await hasUpstream(dir);
@@ -200,6 +232,7 @@ export async function commitAndSync(params: unknown): Promise<CommitResult> {
   if (!branch) throw new WorkspaceError("detached_head");
 
   const changes = await statusEntries(dir, entry.root);
+  await refuseSecretLeaks(entry, dir, changes);
   const committed = changes.length > 0;
   if (committed) await commitPaths(dir, message, entry.root);
 

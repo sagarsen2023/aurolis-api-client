@@ -5,6 +5,7 @@ import type {
   RequestExample,
   RequestProtocol,
 } from "./request.type.ts";
+import type { EnvironmentVariable } from "./environment.type.ts";
 import type { OpenedWorkspace } from "./workspace-store.type.ts";
 
 export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
@@ -28,8 +29,19 @@ export interface FolderSettings {
   auth: RequestAuth;
 }
 
+export interface EnvironmentSettings {
+  name: string;
+  variables: EnvironmentVariable[];
+}
+
 export type CollectionOp =
   | { op: "update-workspace"; description: string }
+  | { op: "create-environment"; name: string }
+  | { op: "update-environment"; id: string; settings: EnvironmentSettings }
+  | { op: "duplicate-environment"; id: string }
+  | { op: "delete-environment"; id: string }
+  | { op: "update-globals"; variables: EnvironmentVariable[] }
+  | { op: "set-default-environment"; id: string | null }
   | { op: "create-collection"; name: string; description: string }
   | { op: "update-collection"; id: string; settings: CollectionSettings }
   | { op: "delete-collection"; id: string }

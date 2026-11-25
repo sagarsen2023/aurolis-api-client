@@ -254,9 +254,9 @@ Only **saved** files can be committed. A draft has to be saved with Ctrl/⌘ S f
   { "enabled": true, "key": "apiKey", "secret": true, "value": "" }
   ```
 - The real value is stored in `state/secrets.bin`, keyed by environment id + variable key, encrypted with Electron `safeStorage` (macOS Keychain, Windows DPAPI, libsecret/KWallet on Linux).
-- Values are merged in only when a request is sent, in the main process.
-- Without a real keychain (Linux `basic_text`), secrets are kept **in memory only** for the session, with a warning.
-- Before every commit, Aurolis checks that no known secret value appears in a staged file and refuses to commit if one does.
+- `electron/secret-store.ts` merges the values into the workspace when it's opened, so they can be edited on the Environments screen and used in requests. Saving, duplicating, renaming and deleting an environment keeps `secrets.bin` in step.
+- Without a real keychain (Linux `basic_text`), secrets are kept **in memory only** for the session. The Environments screen shows a warning when an environment has secrets.
+- Before every commit, Aurolis checks that no secret value (4 characters or longer) appears in a changed file under the workspace root, and refuses to commit if one does, naming the files.
 
 ## Switching workspaces
 
@@ -296,10 +296,27 @@ Creating, renaming, saving and deleting collections, folders, requests and examp
 3. Serialize the tree twice, before and after the change, with the parsed paths as `previousPaths`, and write only the files whose content changed (atomically). Files that only differ from the disk because of normalization are left alone.
 4. Delete the files that were parsed and are now gone, then remove folders left empty. Renaming an item moves its file (and a request's `.examples/` folder) and changes nothing else.
 
-The store never writes outside `collections/` (plus `aurolis.json` for the workspace description), never overwrites a file it couldn't parse, and never deletes one. Folders without a `_folder.json` aren't given one unless their settings are saved.
+The store never writes outside `collections/` and `environments/` (plus `aurolis.json` for the workspace description and default environment), never overwrites a file it couldn't parse, and never deletes one. Folders without a `_folder.json` aren't given one unless their settings are saved.
 
 ### Save (#25)
 Edits to a request are drafts in `drafts.json` until saved. Ctrl/⌘ S saves the active request, Ctrl/⌘ Shift S saves all of them, and "Discard changes" drops the draft. Saving runs the `save-request` operation above, so only that request's file changes. No git command runs. Open tabs and the active tab are kept in `ui.json`. Collection, folder and example settings are saved directly from their tabs.
+
+### Environments (#9, #25)
+The Environments screen lists **Globals** first, then the workspace's environments. Creating, renaming, saving, duplicating and deleting an environment, saving globals and choosing the default all go through `aurolis:collection:apply` like collection edits, and only write `environments/` and `aurolis.json`.
+
+- **Use** picks the environment on this device, like the environment menu in the header. The choice is kept in `state/ui.json`, so it isn't committed. **Make default** writes `defaultEnvironment` to `aurolis.json`, so it's committed and picked when the workspace opens.
+- A variable can be marked secret with the lock in its row. See [Secrets](#secrets).
+- Deleting an environment that is the default clears the default.
+
+### Commit and sync (#25)
+"Commit & sync" in the header (with the number of changed files) opens a dialog that asks for a commit message and lists what changed as **items, not files**: requests by name under their collection, plus folders, collection settings, environments, globals and workspace settings, each marked `A`, `M`, `D`, or `R` for renamed and moved items. Deleted items are named from `git show HEAD:<file>`.
+
+- **Commit only:** `git add -- <workspace root>`, the [secret check](#secrets), then `git commit -m <message>`. It works offline.
+- **Commit & sync:** the same commit, then `git fetch`, `git merge --no-edit @{upstream}` when the branch has one, then `git push --set-upstream origin <branch>`. A merge that conflicts is aborted, so the working tree is left as it was, and the dialog says what happened.
+- **Sync:** offered when there is nothing to commit but local commits haven't been pushed yet.
+- Unsaved drafts aren't committed; the dialog says how many there are.
+
+Field-level merging, pushing to a branch with a pull request when the branch is protected, and committing selected items are still to come in #13, #14 and #15.
 
 ### See changes (#10)
 `git status --porcelain=v2 -- <root>` lists changed files. The format module maps them to API items (request, folder, collection, environment), so a renamed request shows as one moved request. The request-level diff compares `git show HEAD:<file>` with the working file, both parsed by the format module.
@@ -438,7 +455,8 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 | [Switching workspaces](#switching-workspaces) | #6 |
 | Local mode, [sign out](#sign-out-7) | #7 |
 | [Edit collections](#edit-collections-25), examples, [save](#save-25) and drafts, request engines (HTTP, GraphQL, WebSocket and Socket.IO) | #25 (replaces #8) |
-| [Secrets](#secrets) | #9 |
+| [Environments](#environments-9-25), [Secrets](#secrets) | #9 |
+| [Commit and sync](#commit-and-sync-25) from the header | #25 |
 | [See changes](#see-changes-10) | #10 |
 | [Clone](#clone-a-workspace-11), [open an existing folder](#open-an-existing-folder-11) | #11 |
 | [Publish](#publish-a-local-workspace-12) | #12 |

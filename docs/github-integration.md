@@ -320,7 +320,7 @@ Variables marked `secret` are always written with an empty value. Globals live i
 |---|---|
 | Shared, non-secret values (base URLs, tenant ids) | Committed in `environments/*.env.json` |
 | Secret keys | Committed with **key only, empty value**, marked `"secret": true` |
-| Your real secret values | `environments/*.local.json` (gitignored) or the OS keychain, merged in at runtime |
+| Your real secret values | Encrypted with the OS keychain in Aurolis's own data folder, outside the repository, and merged in when the workspace opens |
 | Team-shared secrets (optional) | Encrypted with **sops/age** (keys per member), or a vault reference such as `{{vault:payments/stripe_key}}` |
 
 - A plain-text secret never goes into git.

@@ -40,6 +40,7 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
   merge_conflict:
     "Your commit and the commits on GitHub change the same lines. Your commit is saved on this computer; the merge was stopped and nothing else changed. Resolve it in a terminal or editor, then sync again.",
   nothing_to_commit: "There's nothing to commit.",
+  secret_leak: "Nothing was committed.",
   sync_failed:
     "Committed on this computer, but syncing with the remote failed.",
   item_not_found:

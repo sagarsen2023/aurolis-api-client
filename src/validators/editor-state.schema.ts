@@ -14,6 +14,7 @@ export const editorTabSchema = z.discriminatedUnion("kind", [
 export const editorUiStateSchema = z.object({
   tabs: z.array(editorTabSchema).max(MAX_TABS),
   activeTabId: idSchema.nullable(),
+  environmentId: idSchema.nullable().default(null),
 });
 
 export const requestDraftsSchema = z
