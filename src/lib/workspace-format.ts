@@ -31,8 +31,13 @@ import type {
 export const WORKSPACE_FORMAT_VERSION = 1;
 export const MANIFEST_PATH = "aurolis.json";
 
-const COLLECTIONS_DIR = "collections";
-const ENVIRONMENTS_DIR = "environments";
+export const COLLECTIONS_DIR = "collections";
+export const ENVIRONMENTS_DIR = "environments";
+export const WORKSPACE_PATHS = [
+  MANIFEST_PATH,
+  COLLECTIONS_DIR,
+  ENVIRONMENTS_DIR,
+];
 const COLLECTION_FILE = "_collection.json";
 const FOLDER_FILE = "_folder.json";
 const GLOBALS_FILE = "_globals.env.json";

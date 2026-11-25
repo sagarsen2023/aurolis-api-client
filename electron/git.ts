@@ -38,10 +38,11 @@ function runFile(
     cwd?: string;
     env?: Record<string, string | undefined>;
     signal?: AbortSignal;
+    input?: string;
   } = {},
 ): Promise<GitRunResult> {
   return new Promise((resolve) => {
-    execFile(
+    const child = execFile(
       file,
       args,
       {
@@ -66,6 +67,7 @@ function runFile(
         });
       },
     );
+    if (options.input !== undefined) child.stdin?.end(options.input);
   });
 }
 
@@ -246,6 +248,7 @@ export async function runGit(
     network?: boolean;
     signal?: AbortSignal;
     allowFailure?: boolean;
+    input?: string;
   } = {},
 ): Promise<GitRunResult> {
   const git = await getGit();
@@ -261,6 +264,7 @@ export async function runGit(
       cwd: repoDir,
       env,
       signal: options.signal,
+      input: options.input,
     });
     if (options.signal?.aborted) {
       throw new GitCommandError("cancelled", "Cancelled.");
@@ -370,7 +374,7 @@ export async function currentBranch(dir: string) {
   return result.exitCode === 0 ? result.stdout.trim() || null : null;
 }
 
-export async function changedFileCount(dir: string, root: string) {
+export async function changedFileCount(dir: string, pathspecs: string[]) {
   const result = await runGit(
     dir,
     [
@@ -379,7 +383,7 @@ export async function changedFileCount(dir: string, root: string) {
       "-z",
       "--untracked-files=all",
       "--",
-      root || ".",
+      ...pathspecs,
     ],
     { allowFailure: true },
   );
@@ -428,11 +432,38 @@ async function commitIdentity(dir: string) {
   ];
 }
 
-export async function commitPaths(dir: string, message: string, root = "") {
-  const pathspec = root || ".";
-  await runGit(dir, ["add", "--all", "--", pathspec]);
+export function changedPaths(entries: StatusEntry[]) {
+  return entries.flatMap((entry) =>
+    entry.oldPath ? [entry.path, entry.oldPath] : [entry.path],
+  );
+}
+
+const PATHSPEC_FROM_STDIN = ["--pathspec-from-file=-", "--pathspec-file-nul"];
+
+export async function commitPaths(
+  dir: string,
+  message: string,
+  paths: string[],
+) {
+  const input = `${paths.join("\0")}\0`;
+  await runGit(
+    dir,
+    ["--literal-pathspecs", "add", "--all", ...PATHSPEC_FROM_STDIN],
+    { input },
+  );
   const identity = await commitIdentity(dir);
-  await runGit(dir, [...identity, "commit", "-m", message, "--", pathspec]);
+  await runGit(
+    dir,
+    [
+      ...identity,
+      "--literal-pathspecs",
+      "commit",
+      "-m",
+      message,
+      ...PATHSPEC_FROM_STDIN,
+    ],
+    { input },
+  );
 }
 
 export type StatusEntry = {
@@ -441,7 +472,7 @@ export type StatusEntry = {
   oldPath: string | null;
 };
 
-export async function statusEntries(dir: string, root: string) {
+export async function statusEntries(dir: string, pathspecs: string[]) {
   const result = await runGit(dir, [
     "-c",
     "core.quotePath=false",
@@ -450,7 +481,7 @@ export async function statusEntries(dir: string, root: string) {
     "-z",
     "--untracked-files=all",
     "--",
-    root || ".",
+    ...pathspecs,
   ]);
   const parts = result.stdout.split("\0");
   const entries: StatusEntry[] = [];
@@ -524,12 +555,6 @@ export async function pushBranch(dir: string, branch: string) {
     ],
     { network: true },
   );
-}
-
-export async function commitAll(dir: string, message: string, root = "") {
-  await runGit(dir, ["add", "--all", "--", root || "."]);
-  const identity = await commitIdentity(dir);
-  await runGit(dir, [...identity, "commit", "-m", message]);
 }
 
 export async function hasCommits(dir: string) {

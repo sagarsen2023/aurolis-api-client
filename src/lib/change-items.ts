@@ -9,6 +9,11 @@ import type {
   HttpMethod,
   RequestProtocol,
 } from "../types/workspace/request.type.ts";
+import {
+  COLLECTIONS_DIR,
+  ENVIRONMENTS_DIR,
+  MANIFEST_PATH,
+} from "./workspace-format.ts";
 
 export interface ChangedFileContent {
   path: string;
@@ -36,9 +41,6 @@ type ItemMeta = {
 
 type DraftItem = ChangedItem & { id: string | null; groupDir: string | null };
 
-const COLLECTIONS = "collections";
-const ENVIRONMENTS = "environments";
-const MANIFEST = "aurolis.json";
 const KIND_ORDER: ChangedItemKind[] = [
   "workspace",
   "collection",
@@ -70,11 +72,11 @@ function parseMeta(content: string | null): ItemMeta {
 }
 
 function kindOf(file: string): ChangedItemKind {
-  if (file === MANIFEST) return "workspace";
-  if (file.startsWith(`${ENVIRONMENTS}/`)) {
+  if (file === MANIFEST_PATH) return "workspace";
+  if (file.startsWith(`${ENVIRONMENTS_DIR}/`)) {
     return baseOf(file) === "_globals.env.json" ? "globals" : "environment";
   }
-  if (!file.startsWith(`${COLLECTIONS}/`)) return "file";
+  if (!file.startsWith(`${COLLECTIONS_DIR}/`)) return "file";
   if (file.endsWith("/_collection.json")) return "collection";
   if (file.endsWith("/_folder.json")) return "folder";
   if (file.endsWith(".req.json")) return "request";
@@ -84,7 +86,7 @@ function kindOf(file: string): ChangedItemKind {
 
 function collectionDir(file: string) {
   const parts = file.split("/");
-  return parts[0] === COLLECTIONS && parts.length > 2
+  return parts[0] === COLLECTIONS_DIR && parts.length > 2
     ? `${parts[0]}/${parts[1]}`
     : null;
 }

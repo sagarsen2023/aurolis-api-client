@@ -9,6 +9,8 @@ import {
 } from "../src/lib/collection-ops.ts";
 import {
   fromFiles,
+  COLLECTIONS_DIR,
+  ENVIRONMENTS_DIR,
   MANIFEST_PATH,
   stableStringify,
   toFilesWithPaths,
@@ -48,8 +50,6 @@ import {
   WorkspaceError,
 } from "./workspace-store.ts";
 
-const COLLECTIONS_DIR = "collections";
-const ENVIRONMENTS_DIR = "environments";
 const ENVIRONMENT_OPS = new Set<CollectionOpName>([
   "create-environment",
   "update-environment",

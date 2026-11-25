@@ -312,7 +312,7 @@ The Environments screen lists the workspace's environments, then **Globals**. Cr
 ### Commit and sync (#25)
 "Commit & sync" in the header (with the number of changed files) opens a dialog that asks for a commit message and lists what changed as **items, not files**: requests by name under their collection, plus folders, collection settings, environments, globals and workspace settings, each marked `A`, `M`, `D`, or `R` for renamed and moved items. Deleted items are named from `git show HEAD:<file>`.
 
-- **Commit only:** `git add -- <workspace root>`, the [secret check](#secrets), then `git commit -m <message>`. It works offline.
+- **Commit only:** the changed workspace files (`aurolis.json`, `collections/` and `environments/` under the root) are staged and committed by path, after the [secret check](#secrets). Other files in the repository, such as a README or source code, are never listed or committed. It works offline.
 - **Commit & sync:** the same commit, then `git fetch`, `git merge --no-edit @{upstream}` when the branch has one, then `git push --set-upstream origin <branch>`. A merge that conflicts is aborted, so the working tree is left as it was, and the dialog says what happened.
 - **Sync:** offered when there is nothing to commit but local commits haven't been pushed yet.
 - Unsaved drafts aren't committed; the dialog says how many there are.
@@ -320,7 +320,7 @@ The Environments screen lists the workspace's environments, then **Globals**. Cr
 Field-level merging, pushing to a branch with a pull request when the branch is protected, and committing selected items are still to come in #13, #14 and #15.
 
 ### See changes (#10)
-`git status --porcelain=v2 -- <root>` lists changed files. The format module maps them to API items (request, folder, collection, environment), so a renamed request shows as one moved request. The request-level diff compares `git show HEAD:<file>` with the working file, both parsed by the format module.
+`git status -- <root>/aurolis.json <root>/collections <root>/environments` lists changed workspace files; other files in the repository are left out. The format module maps them to API items (request, folder, collection, environment), so a renamed request shows as one moved request. The request-level diff compares `git show HEAD:<file>` with the working file, both parsed by the format module.
 
 ### Clone a workspace (#11)
 Pick a GitHub repository (with the read-only badge from its permissions) or paste any HTTPS git URL, plus an optional workspace root. If that remote and root are already a workspace, open it. Otherwise `git clone --filter=blob:none` into `<storage folder>/<repo-name>` (or the folder chosen with "Clone into…"). For a subfolder root, a sparse checkout limits the files on disk to that folder. If `aurolis.json` is missing, offer to initialize the root as a workspace.
@@ -334,7 +334,7 @@ Offered for any workspace without an `origin` ("Publish to GitHub" on the dashbo
 - **Repository name:** prefilled with the workspace name as a slug (`Payments API` → `payments-api`). Letters, numbers, `.`, `-` and `_`.
 - **Owner:** the signed-in user, or an organization where the Aurolis GitHub App is installed.
 - **New or existing:** create a new repository (private by default, or public), or use an **empty** repository the user already created.
-- **Uncommitted changes:** when there are any, a switch (on by default) commits them under the workspace root first.
+- **Uncommitted changes:** when the workspace files have any, a switch (on by default) commits them first. Other files in the repository are left alone.
 
 Then it runs two steps, each shown with its status:
 
