@@ -68,3 +68,22 @@ export function formatJson(text: string): string | null {
     formatted,
   );
 }
+
+const VARIABLE_VALUE = Symbol("variable");
+
+export function parseJsonWithVariables(
+  text: string,
+): { ok: true; value: unknown } | { ok: false } {
+  const { masked, placeholders } = maskVariables(text);
+  const unquoted = new Set(
+    placeholders.filter((entry) => entry.quoted).map((entry) => entry.token),
+  );
+  try {
+    const value: unknown = JSON.parse(masked, (_key, entry: unknown) =>
+      typeof entry === "string" && unquoted.has(entry) ? VARIABLE_VALUE : entry,
+    );
+    return { ok: true, value };
+  } catch {
+    return { ok: false };
+  }
+}

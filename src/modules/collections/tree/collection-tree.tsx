@@ -199,6 +199,7 @@ function RequestNode({
   const { apply } = useCollectionActions();
   const hasExamples = request.examples.length > 0;
   const expanded = hasExamples && tree.isExpanded(request.id, false);
+  const current = drafts[request.id] ?? request;
 
   const duplicate = () => {
     apply({ op: "duplicate-request", id: request.id })
@@ -247,8 +248,8 @@ function RequestNode({
     <>
       <TreeRow
         depth={depth}
-        label={request.name}
-        leading={<RequestBadge request={request} />}
+        label={current.name}
+        leading={<RequestBadge request={current} />}
         active={activeTabId === request.id}
         dirty={request.id in drafts}
         expanded={expanded}

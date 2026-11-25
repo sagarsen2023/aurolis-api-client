@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useSetAtom } from "jotai";
-import { Copy, FileText, SendHorizontal, TriangleAlert } from "lucide-react";
+import {
+  Copy,
+  FileCode2,
+  FileText,
+  SendHorizontal,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,10 +134,12 @@ function ResponseSummary({
   state,
   canSaveExample,
   onSaveExample,
+  onShowTypescript,
 }: Readonly<{
   state: Extract<RunState, { status: "done" }>;
   canSaveExample: boolean;
   onSaveExample: () => void;
+  onShowTypescript?: () => void;
 }>) {
   const { response, graphqlErrors } = state;
   const copyBody = () => {
@@ -171,6 +179,17 @@ function ResponseSummary({
           >
             <FileText />
             Save as example
+          </Button>
+        ) : null}
+        {onShowTypescript ? (
+          <Button
+            size="xs"
+            variant="outline"
+            disabled={prettyJson(response.body) === null}
+            onClick={onShowTypescript}
+          >
+            <FileCode2 />
+            TypeScript
           </Button>
         ) : null}
       </div>
@@ -223,11 +242,13 @@ function ResponsePanel({
   requestId,
   state,
   canSaveExample,
+  onShowTypescript,
   onCancel,
 }: Readonly<{
   requestId: string;
   state: RunState;
   canSaveExample: boolean;
+  onShowTypescript?: () => void;
   onCancel: () => void;
 }>) {
   const [savingExample, setSavingExample] = useState(false);
@@ -245,6 +266,7 @@ function ResponsePanel({
         state={state}
         canSaveExample={canSaveExample}
         onSaveExample={() => setSavingExample(true)}
+        onShowTypescript={onShowTypescript}
       />
       <UnresolvedNotice names={state.unresolved} />
       <Tabs defaultValue="body" className="min-h-0 flex-1 gap-2">

@@ -1,5 +1,5 @@
 import { useCallback, type KeyboardEvent } from "react";
-import { Wand2 } from "lucide-react";
+import { FileCode2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import type { GraphQLSchema } from "graphql";
 import { CodeField } from "@/components/code-field";
@@ -25,6 +25,7 @@ function CodeEditor({
   error,
   variables,
   graphqlSchema,
+  onShowTypescript,
 }: Readonly<{
   value: string;
   onChange: (value: string) => void;
@@ -36,8 +37,10 @@ function CodeEditor({
   error?: string;
   variables?: readonly string[];
   graphqlSchema?: GraphQLSchema | null;
+  onShowTypescript?: () => void;
 }>) {
-  const canFormat = language === "json";
+  const isJson = language === "json";
+  const minHeight = `${minRows * ROW_HEIGHT_PX + 20}px`;
 
   const beautify = useCallback(() => {
     const formatted = formatJson(value);
@@ -50,25 +53,37 @@ function CodeEditor({
 
   return (
     <div
-      className={cn("relative flex min-h-0 flex-col gap-1", className)}
+      className={cn("flex min-h-0 flex-col gap-1.5", className)}
       onKeyDown={(event) => {
-        if (!canFormat || !isFormatShortcut(event)) return;
+        if (!isJson || !isFormatShortcut(event)) return;
         event.preventDefault();
         beautify();
       }}
     >
-      {canFormat ? (
-        <Button
-          variant="ghost"
-          size="xs"
-          className="absolute top-1.5 right-2 z-10"
-          title="Beautify (Shift Alt F)"
-          onClick={beautify}
-          disabled={!value.trim()}
-        >
-          <Wand2 />
-          Beautify
-        </Button>
+      {isJson ? (
+        <div className="flex items-center justify-end gap-1">
+          {onShowTypescript ? (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={onShowTypescript}
+              disabled={!value.trim()}
+            >
+              <FileCode2 />
+              TypeScript
+            </Button>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="xs"
+            title="Beautify (Shift Alt F)"
+            onClick={beautify}
+            disabled={!value.trim()}
+          >
+            <Wand2 />
+            Beautify
+          </Button>
+        </div>
       ) : null}
       <CodeField
         label={label}
@@ -78,7 +93,7 @@ function CodeEditor({
         placeholder={placeholder}
         variables={variables}
         graphqlSchema={graphqlSchema}
-        minHeight={`${minRows * ROW_HEIGHT_PX + 20}px`}
+        minHeight={minHeight}
         invalid={Boolean(error)}
       />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

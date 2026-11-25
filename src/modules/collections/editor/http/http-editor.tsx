@@ -2,10 +2,14 @@ import { Button } from "@/components/ui/button";
 import { HTTP_METHODS, METHOD_TEXT_CLASS } from "@/constants/request";
 import { useRequestRunner } from "@/hooks/use-request-runner";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
+import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
 import { useVariableNames } from "@/hooks/use-variable-names";
+import type { TypescriptSourceId } from "@/context/collections-context";
+import { payloadSource, responseSource } from "@/lib/typescript-sources";
 import { cn } from "@/lib/utils";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
 import type { HttpMethod } from "@/types/workspace/request.type";
+import { toTypeName } from "@/utils/generate-typescript-interface";
 import ResponsePanel from "../../response/response-panel";
 import AuthEditor from "../../shared/auth-editor";
 import KeyValueEditor from "../../shared/key-value-editor";
@@ -35,6 +39,17 @@ function HttpEditor({
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
   const variableNames = useVariableNames(request.id);
+  const showTypescript = useTypescriptSheet(request.name);
+  const openTypescript = (initial: TypescriptSourceId) =>
+    showTypescript(
+      [
+        responseSource(state, toTypeName(request.name, "Response")),
+        request.body.mode === "json"
+          ? payloadSource(request.body.raw, toTypeName(request.name, "Request"))
+          : null,
+      ],
+      initial,
+    );
   const running = state.status === "running";
 
   const top = (
@@ -109,6 +124,7 @@ function HttpEditor({
                 body={request.body}
                 method={request.method}
                 variables={variableNames}
+                onShowTypescript={() => openTypescript("payload")}
                 onChange={(body) => onChange({ ...request, body })}
               />
             ),
@@ -151,6 +167,7 @@ function HttpEditor({
         <ResponsePanel
           requestId={request.id}
           state={state}
+          onShowTypescript={() => openTypescript("response")}
           canSaveExample
           onCancel={cancel}
         />

@@ -42,6 +42,11 @@ import type {
 } from "@/types/workspace/editor-state.type";
 import type { EngineResult } from "@/types/engine/engine.type";
 import type {
+  CommitParams,
+  CommitResult,
+  SourceControlChanges,
+} from "@/types/workspace/source-control.type";
+import type {
   HttpResponseData,
   HttpSendParams,
 } from "@/types/engine/http-engine.type";
@@ -125,6 +130,10 @@ interface AurolisBridge {
     loadEditorState(id: string): Promise<WorkspaceResult<EditorState>>;
     saveDrafts(params: SaveDraftsParams): Promise<WorkspaceResult<void>>;
     saveUiState(params: SaveUiStateParams): Promise<WorkspaceResult<void>>;
+  };
+  readonly sourceControl: {
+    changes(id: string): Promise<WorkspaceResult<SourceControlChanges>>;
+    commit(params: CommitParams): Promise<WorkspaceResult<CommitResult>>;
   };
   readonly engine: {
     sendHttp(params: HttpSendParams): Promise<EngineResult<HttpResponseData>>;

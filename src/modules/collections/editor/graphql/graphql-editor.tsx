@@ -4,9 +4,13 @@ import { Input } from "@/components/ui/input";
 import { useRequestRunner } from "@/hooks/use-request-runner";
 import { useGraphqlSchema } from "@/hooks/use-graphql-schema";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
+import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
 import { useVariableNames } from "@/hooks/use-variable-names";
+import type { TypescriptSourceId } from "@/context/collections-context";
+import { payloadSource, responseSource } from "@/lib/typescript-sources";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
 import type { GraphqlOperation } from "@/types/workspace/request.type";
+import { toTypeName } from "@/utils/generate-typescript-interface";
 import { tryParseJson } from "@/utils/json";
 import ResponsePanel from "../../response/response-panel";
 import AuthEditor from "../../shared/auth-editor";
@@ -75,6 +79,19 @@ function GraphqlEditor({
   const unresolved = useUnresolvedVariables(request);
   const variableNames = useVariableNames(request.id);
   const graphqlSchema = useGraphqlSchema(request);
+  const showTypescript = useTypescriptSheet(request.name);
+  const openTypescript = (initial: TypescriptSourceId) =>
+    showTypescript(
+      [
+        responseSource(state, toTypeName(request.name, "Response")),
+        payloadSource(
+          operation.variables,
+          toTypeName(request.name, "Variables"),
+          "Variables",
+        ),
+      ],
+      initial,
+    );
   const running = state.status === "running";
   const operation = request.graphql;
   const setOperation = (patch: Partial<GraphqlOperation>) =>
@@ -154,6 +171,7 @@ function GraphqlEditor({
                 label="GraphQL variables"
                 language="json"
                 variables={variableNames}
+                onShowTypescript={() => openTypescript("payload")}
                 value={operation.variables}
                 placeholder={'{\n  "id": "{{paymentId}}"\n}'}
                 error={variablesError(operation.variables)}
@@ -218,6 +236,7 @@ function GraphqlEditor({
         <ResponsePanel
           requestId={request.id}
           state={state}
+          onShowTypescript={() => openTypescript("response")}
           canSaveExample
           onCancel={cancel}
         />

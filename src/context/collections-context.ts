@@ -64,6 +64,23 @@ export const expandedNodesAtom = atom<Record<string, boolean>>({});
 
 export const treeDialogAtom = atom<TreeDialog | null>(null);
 
+export type TypescriptSourceId = "response" | "payload";
+
+export interface TypescriptSource {
+  id: TypescriptSourceId;
+  label: string;
+  json: string;
+  rootName: string;
+}
+
+export interface TypescriptSheetState {
+  title: string;
+  sources: TypescriptSource[];
+  initial: TypescriptSourceId;
+}
+
+export const typescriptSheetAtom = atom<TypescriptSheetState | null>(null);
+
 export const unsavedCountAtom = atom(
   (get) => Object.keys(get(draftsAtom)).length,
 );

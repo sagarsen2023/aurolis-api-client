@@ -34,6 +34,7 @@ import {
   saveDrafts,
   saveUiState,
 } from "./collection-store.ts";
+import { commitAndSync, listChanges } from "./source-control.ts";
 import { toEngineResult } from "./engines/engine-error.ts";
 import { introspectGraphql, sendGraphql } from "./engines/graphql-engine.ts";
 import { cancelRun, sendHttp } from "./engines/http-engine.ts";
@@ -348,6 +349,14 @@ if (!app.requestSingleInstanceLock()) {
       "editor-load": (_event, id) => loadEditorState(id),
       "editor-save-drafts": (_event, params) => saveDrafts(params),
       "editor-save-ui": (_event, params) => saveUiState(params),
+    },
+    toWorkspaceResult,
+  );
+  registerHandlers(
+    "source-control",
+    {
+      changes: (_event, id) => listChanges(id),
+      commit: (_event, params) => commitAndSync(params),
     },
     toWorkspaceResult,
   );

@@ -74,6 +74,12 @@ const aurolis = {
       collectionCall("editor-save-drafts", params),
     saveUiState: (params: unknown) => collectionCall("editor-save-ui", params),
   },
+  sourceControl: {
+    changes: (id: string) =>
+      ipcRenderer.invoke("aurolis:source-control:changes", id),
+    commit: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:source-control:commit", params),
+  },
   engine: {
     sendHttp: (params: unknown) => engineCall("http-send", params),
     sendGraphql: (params: unknown) => engineCall("graphql-send", params),
