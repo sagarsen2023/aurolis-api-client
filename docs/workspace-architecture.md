@@ -302,9 +302,10 @@ The store never writes outside `collections/` and `environments/` (plus `aurolis
 Edits to a request are drafts in `drafts.json` until saved. Ctrl/⌘ S saves the active request, Ctrl/⌘ Shift S saves all of them, and "Discard changes" drops the draft. Saving runs the `save-request` operation above, so only that request's file changes. No git command runs. Open tabs and the active tab are kept in `ui.json`. Collection, folder and example settings are saved directly from their tabs.
 
 ### Environments (#9, #25)
-The Environments screen lists **Globals** first, then the workspace's environments. Creating, renaming, saving, duplicating and deleting an environment, saving globals and choosing the default all go through `aurolis:collection:apply` like collection edits, and only write `environments/` and `aurolis.json`.
+The Environments screen lists the workspace's environments, then **Globals**. Creating, renaming, saving, duplicating and deleting an environment, saving globals and choosing the default all go through `aurolis:collection:apply` like collection edits, and only write `environments/` and `aurolis.json`.
 
-- **Use** picks the environment on this device, like the environment menu in the header. The choice is kept in `state/ui.json`, so it isn't committed. **Make default** writes `defaultEnvironment` to `aurolis.json`, so it's committed and picked when the workspace opens.
+- **Set active** picks the environment on this device, like the environment menu in the header. The choice is kept in `state/ui.json`, so it isn't committed.
+- Edits stay as unsaved changes (marked with a dot) while you switch between environments, until you save them with Save or Ctrl/⌘ S, or discard them. **Make default** writes `defaultEnvironment` to `aurolis.json`, so it's committed and picked when the workspace opens.
 - A variable can be marked secret with the lock in its row. See [Secrets](#secrets).
 - Deleting an environment that is the default clears the default.
 
