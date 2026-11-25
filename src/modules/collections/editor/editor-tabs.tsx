@@ -10,7 +10,10 @@ import {
   findRequestById,
 } from "@/lib/collection-ops";
 import { cn } from "@/lib/utils";
-import type { EditorTab } from "@/types/workspace/editor-state.type";
+import type {
+  EditorTab,
+  RequestDrafts,
+} from "@/types/workspace/editor-state.type";
 import type { WorkspaceData } from "@/types/workspace/workspace.type";
 import type { ReactNode } from "react";
 import RequestBadge from "../shared/request-badge";
@@ -20,16 +23,16 @@ type TabLabel = { title: string; icon: ReactNode };
 function labelFor(
   data: WorkspaceData | null,
   tab: EditorTab,
-  drafts: Record<string, { name: string }>,
+  drafts: RequestDrafts,
 ): TabLabel | null {
   switch (tab.kind) {
     case "request": {
       const request = findRequestById(data, tab.id);
       if (!request) return null;
-      const title = drafts[tab.id]?.name ?? request.name;
+      const current = drafts[tab.id] ?? request;
       return {
-        title,
-        icon: <RequestBadge request={request} className="w-auto" />,
+        title: current.name,
+        icon: <RequestBadge request={current} className="w-auto" />,
       };
     }
     case "example": {

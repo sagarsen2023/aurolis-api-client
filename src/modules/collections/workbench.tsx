@@ -8,6 +8,7 @@ import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
 import TreeDialogs from "./dialogs/tree-dialogs";
 import EditorPane from "./editor/editor-pane";
 import CollectionTree from "./tree/collection-tree";
+import TypescriptSheet from "./typescript/typescript-sheet";
 
 function CollectionsWorkbench({
   workspace,
@@ -26,6 +27,7 @@ function CollectionsWorkbench({
         </ResizablePanel>
       </ResizablePanelGroup>
       <TreeDialogs />
+      <TypescriptSheet />
     </>
   );
 }

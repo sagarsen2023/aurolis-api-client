@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   activeWorkspaceAtom,
+  commitDialogOpenAtom,
   publishWorkspaceOpenAtom,
 } from "@/context/workspace-context";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,7 @@ function SavePill() {
   const workspace = useAtomValue(activeWorkspaceAtom);
   const setPublishOpen = useSetAtom(publishWorkspaceOpenAtom);
   const unsaved = useAtomValue(unsavedCountAtom);
+  const setCommitOpen = useSetAtom(commitDialogOpenAtom);
   if (!workspace) return null;
   if (unsaved > 0) return <UnsavedPill count={unsaved} />;
 
@@ -110,7 +112,20 @@ function SavePill() {
   return (
     <Tooltip>
       <TooltipTrigger
-        render={<span role="status" tabIndex={0} className={PILL} />}
+        render={
+          detail ? (
+            <button
+              type="button"
+              className={cn(
+                PILL,
+                "transition-colors outline-none hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40",
+              )}
+              onClick={() => setCommitOpen(true)}
+            />
+          ) : (
+            <span role="status" tabIndex={0} className={PILL} />
+          )
+        }
       >
         <span className="relative">
           <Icon className="size-4" aria-hidden />
@@ -122,12 +137,18 @@ function SavePill() {
             )}
           />
         </span>
-        {detail ? "Not synced" : "All saved"}
+        {detail ? "Commit & sync" : "All saved"}
+        {workspace.git.changedFiles > 0 ? (
+          <span className="rounded-full bg-warn px-1.5 text-[11px] leading-4 font-medium text-warn-foreground">
+            {workspace.git.changedFiles}
+          </span>
+        ) : null}
         <span className="sr-only">{detail ? `: ${detail}` : null}</span>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        {detail ??
-          `Everything is committed and pushed to ${remoteName(workspace)}`}
+        {detail
+          ? `${detail}. Click to review, commit and sync.`
+          : `Everything is committed and pushed to ${remoteName(workspace)}`}
       </TooltipContent>
     </Tooltip>
   );

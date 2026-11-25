@@ -7,6 +7,7 @@ import { activeWorkspaceAtom } from "@/context/workspace-context";
 import { useCollectionActions } from "@/hooks/use-collection-actions";
 import { formKey, useItemForm } from "@/hooks/use-item-form";
 import { usePromise } from "@/hooks/usePromise";
+import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
 import { findExampleById } from "@/lib/collection-ops";
 import type { ExampleInput } from "@/types/workspace/collection-ops.type";
 import type {
@@ -17,6 +18,7 @@ import EditorSectionTabs from "../editor/editor-section-tabs";
 import StatusPill from "../response/status-pill";
 import CodeEditor from "../shared/code-editor";
 import KeyValueEditor from "../shared/key-value-editor";
+import { toTypeName } from "@/utils/generate-typescript-interface";
 import ItemFormHeader from "./item-form-header";
 
 type ExampleForm = Omit<ExampleInput, "status"> & { status: string };
@@ -45,6 +47,7 @@ function ExampleEditor({
   const { apply } = useCollectionActions();
   const setDialog = useSetAtom(treeDialogAtom);
   const invalidStatus = statusError(form.status);
+  const showTypescript = useTypescriptSheet(`the ${example.name} example`);
   const { loading, runPromise: save } = usePromise({
     promise: () =>
       apply({
@@ -112,6 +115,19 @@ function ExampleEditor({
               <CodeEditor
                 label="Example body"
                 language="json"
+                onShowTypescript={() =>
+                  showTypescript(
+                    [
+                      {
+                        id: "response",
+                        label: "Example",
+                        json: form.body,
+                        rootName: toTypeName(request.name, "Response"),
+                      },
+                    ],
+                    "response",
+                  )
+                }
                 minRows={16}
                 value={form.body}
                 onChange={(body) => setForm({ ...form, body })}

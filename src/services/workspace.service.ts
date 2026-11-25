@@ -19,7 +19,8 @@ export class WorkspaceFailure extends Error {
         info.code === "unknown" ||
         info.code === "missing_folder" ||
         info.code === "storage_invalid" ||
-        info.code === "invalid_input");
+        info.code === "invalid_input" ||
+        info.code === "sync_failed");
     super(showDetail ? `${base} ${info.message}` : base);
     this.name = "WorkspaceFailure";
     this.code = info.code;

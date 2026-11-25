@@ -33,6 +33,15 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
     "This repository isn't an Aurolis workspace yet. Initialize it first.",
   newer_format:
     "This workspace was saved by a newer version of Aurolis. Update Aurolis to edit it.",
+  push_rejected:
+    "GitHub has newer commits on this branch. Sync again to bring them in first.",
+  protected_branch:
+    "This branch is protected on GitHub, so it can't be pushed to directly. Your commit is saved on this computer.",
+  merge_conflict:
+    "Your commit and the commits on GitHub change the same lines. Your commit is saved on this computer; the merge was stopped and nothing else changed. Resolve it in a terminal or editor, then sync again.",
+  nothing_to_commit: "There's nothing to commit.",
+  sync_failed:
+    "Committed on this computer, but syncing with the remote failed.",
   item_not_found:
     "That item no longer exists. It may have been changed outside Aurolis.",
   unknown: "Something went wrong. Try again.",

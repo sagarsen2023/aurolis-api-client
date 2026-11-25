@@ -91,6 +91,11 @@ export type WorkspaceErrorCode =
   | "not_a_workspace"
   | "newer_format"
   | "item_not_found"
+  | "push_rejected"
+  | "protected_branch"
+  | "merge_conflict"
+  | "nothing_to_commit"
+  | "sync_failed"
   | "unknown";
 
 export interface WorkspaceErrorInfo {

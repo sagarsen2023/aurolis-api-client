@@ -40,10 +40,12 @@ function BodyContent({
   body,
   onChange,
   variables,
+  onShowTypescript,
 }: Readonly<{
   body: RequestBody;
   onChange: (body: RequestBody) => void;
   variables: readonly string[];
+  onShowTypescript: () => void;
 }>) {
   switch (body.mode) {
     case "json":
@@ -54,6 +56,7 @@ function BodyContent({
           label="Request body"
           language={body.mode === "text" ? "text" : body.mode}
           variables={variables}
+          onShowTypescript={onShowTypescript}
           value={body.raw}
           placeholder={PLACEHOLDERS[body.mode]}
           onChange={(raw) => onChange({ ...body, raw })}
@@ -81,11 +84,13 @@ function BodyEditor({
   method,
   onChange,
   variables,
+  onShowTypescript,
 }: Readonly<{
   body: RequestBody;
   method: string;
   onChange: (body: RequestBody) => void;
   variables: readonly string[];
+  onShowTypescript: () => void;
 }>) {
   const ignored =
     (method === "GET" || method === "HEAD") && body.mode !== "none";
@@ -103,7 +108,12 @@ function BodyEditor({
           {method} requests can't carry a body, so this body isn't sent.
         </p>
       ) : null}
-      <BodyContent body={body} onChange={onChange} variables={variables} />
+      <BodyContent
+        body={body}
+        onChange={onChange}
+        variables={variables}
+        onShowTypescript={onShowTypescript}
+      />
     </div>
   );
 }

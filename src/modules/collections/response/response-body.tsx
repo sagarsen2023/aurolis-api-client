@@ -8,6 +8,11 @@ import { isJsonContentType, prettyJson } from "@/utils/json";
 
 type View = "pretty" | "raw";
 
+const VIEWS: ReadonlyArray<{ value: View; label: string }> = [
+  { value: "pretty", label: "Pretty" },
+  { value: "raw", label: "Raw" },
+];
+
 function rawLanguage(contentType: string | null): CodeLanguage {
   if (isJsonContentType(contentType)) return "json";
   if (contentType && /[/+]xml\b/i.test(contentType)) return "xml";
@@ -50,15 +55,15 @@ function ResponseBody({ response }: Readonly<{ response: HttpResponseData }>) {
     <div className="flex h-full min-h-0 flex-col gap-2">
       {pretty ? (
         <div className="flex gap-1" role="group" aria-label="Body view">
-          {(["pretty", "raw"] as const).map((option) => (
+          {VIEWS.map((option) => (
             <Button
-              key={option}
+              key={option.value}
               size="xs"
-              variant={view === option ? "secondary" : "ghost"}
-              aria-pressed={view === option}
-              onClick={() => setView(option)}
+              variant={view === option.value ? "secondary" : "ghost"}
+              aria-pressed={view === option.value}
+              onClick={() => setView(option.value)}
             >
-              {option === "pretty" ? "Pretty" : "Raw"}
+              {option.label}
             </Button>
           ))}
         </div>

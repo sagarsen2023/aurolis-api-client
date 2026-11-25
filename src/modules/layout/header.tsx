@@ -1,6 +1,7 @@
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import AddWorkspaceSheet from "@/modules/workspace/add-workspace-sheet";
 import PublishSheet from "@/modules/workspace/publish-sheet";
+import CommitDialog from "@/modules/source-control/commit-dialog";
 import BreadCrumb from "./breadcrumb";
 import EnvironmentSelect from "./environment-select";
 import SavePill from "./save-pill";
@@ -20,6 +21,7 @@ function Header() {
       </div>
       <AddWorkspaceSheet />
       <PublishSheet />
+      <CommitDialog />
     </header>
   );
 }
