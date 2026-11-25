@@ -43,5 +43,3 @@ export const CHANGE_STATUS: Record<
     className: "text-danger",
   },
 };
-
-export const DIFFSTAT_BLOCKS = 5;

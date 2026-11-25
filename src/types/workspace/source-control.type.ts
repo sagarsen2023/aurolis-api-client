@@ -1,32 +1,44 @@
+import type { HttpMethod, RequestProtocol } from "./request.type.ts";
+
 export type ChangeStatus =
   "added" | "modified" | "deleted" | "renamed" | "conflicted";
 
-export type DiffLineKind = "hunk" | "add" | "delete" | "context";
+export type ChangedItemKind =
+  | "workspace"
+  | "collection"
+  | "folder"
+  | "request"
+  | "example"
+  | "environment"
+  | "globals"
+  | "file";
 
-export interface DiffLine {
-  kind: DiffLineKind;
-  text: string;
-  oldLine: number | null;
-  newLine: number | null;
+export interface ChangedItem {
+  key: string;
+  kind: ChangedItemKind;
+  name: string;
+  previousName: string | null;
+  status: ChangeStatus;
+  location: string[];
+  protocol: RequestProtocol | null;
+  method: HttpMethod | null;
 }
 
-export interface ChangedFile {
-  path: string;
-  oldPath: string | null;
-  status: ChangeStatus;
-  additions: number;
-  deletions: number;
-  binary: boolean;
-  truncated: boolean;
-  lines: DiffLine[];
+export type ChangeGroupKind = "collection" | "environments" | "workspace";
+
+export interface ChangeGroup {
+  key: string;
+  kind: ChangeGroupKind;
+  name: string;
+  items: ChangedItem[];
 }
 
 export interface SourceControlChanges {
   branch: string | null;
   remoteUrl: string | null;
   unpushedCommits: number;
-  files: ChangedFile[];
-  truncatedFiles: number;
+  fileCount: number;
+  groups: ChangeGroup[];
 }
 
 export interface CommitParams {

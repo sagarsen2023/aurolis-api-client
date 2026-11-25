@@ -466,25 +466,11 @@ export async function statusEntries(dir: string, root: string) {
   return entries;
 }
 
-export async function diffAgainstHead(dir: string, paths: string[]) {
-  if (paths.length === 0) return "";
-  const result = await runGit(
-    dir,
-    [
-      "-c",
-      "core.quotePath=false",
-      "diff",
-      "HEAD",
-      "--no-color",
-      "--no-ext-diff",
-      "--find-renames",
-      "--unified=3",
-      "--",
-      ...paths,
-    ],
-    { allowFailure: true },
-  );
-  return result.exitCode === 0 ? result.stdout : "";
+export async function showHeadFile(dir: string, repoPath: string) {
+  const result = await runGit(dir, ["show", `HEAD:${repoPath}`], {
+    allowFailure: true,
+  });
+  return result.exitCode === 0 ? result.stdout : null;
 }
 
 export async function hasUpstream(dir: string) {

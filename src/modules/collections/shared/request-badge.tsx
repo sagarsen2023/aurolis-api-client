@@ -1,22 +1,30 @@
 import { cn } from "@/lib/utils";
 import { METHOD_TEXT_CLASS, PROTOCOL_OPTIONS } from "@/constants/request";
-import type { ApiRequest } from "@/types/workspace/request.type";
-import type { SavedRequest } from "@/types/workspace/collection-ops.type";
+import type {
+  HttpMethod,
+  RequestProtocol,
+} from "@/types/workspace/request.type";
+
+type BadgeRequest = {
+  protocol: RequestProtocol;
+  method?: HttpMethod | null;
+};
 
 function RequestBadge({
   request,
   className,
-}: Readonly<{ request: ApiRequest | SavedRequest; className?: string }>) {
+}: Readonly<{ request: BadgeRequest; className?: string }>) {
   if (request.protocol === "http") {
+    const method = request.method ?? "GET";
     return (
       <span
         className={cn(
           "w-11 shrink-0 font-mono text-[10.5px] font-semibold tracking-tight",
-          METHOD_TEXT_CLASS[request.method],
+          METHOD_TEXT_CLASS[method],
           className,
         )}
       >
-        {request.method === "DELETE" ? "DEL" : request.method}
+        {method === "DELETE" ? "DEL" : method}
       </span>
     );
   }
