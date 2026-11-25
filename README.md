@@ -19,7 +19,7 @@ Collections hold HTTP (REST), GraphQL, WebSocket and Socket.IO requests, each sa
 - `electron/main.ts`: main process. Serves the built app from `app://aurolis/` in production.
 - `electron/preload.ts`: exposes `window.aurolis` (platform, versions, theme sync and GitHub sign-in) to the renderer.
 - `electron/github-auth.ts`: GitHub sign-in with the device flow; keeps tokens in the main process, encrypted with the OS keychain.
-- `electron/github-api.ts`: GitHub REST client for the main process (the counterpart of `src/services/config/fetch-api.ts`): attaches the token, refreshes once on 401, maps errors to typed codes.
+- `electron/github-api.ts`: GitHub REST client for the main process: attaches the token, refreshes once on 401, maps errors to typed codes.
 - `electron/github-sync.ts`: the GitHub operations the renderer can call over IPC: installations, repositories, creating or checking a repository to publish to, pull and commit.
 - `electron/collection-store.ts`: creates, saves and deletes collections, folders, requests and examples as workspace files, and keeps drafts and open tabs outside the repo.
 - `electron/engines/`: the HTTP, GraphQL and realtime (WebSocket and Socket.IO) engines that send requests.
