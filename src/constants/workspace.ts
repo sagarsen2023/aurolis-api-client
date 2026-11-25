@@ -29,6 +29,12 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
   git_unavailable:
     "Aurolis needs Git 2.31 or newer. Install it from git-scm.com, then try again.",
   git_failed: "Git reported an error.",
+  not_a_workspace:
+    "This repository isn't an Aurolis workspace yet. Initialize it first.",
+  newer_format:
+    "This workspace was saved by a newer version of Aurolis. Update Aurolis to edit it.",
+  item_not_found:
+    "That item no longer exists. It may have been changed outside Aurolis.",
   unknown: "Something went wrong. Try again.",
 };
 

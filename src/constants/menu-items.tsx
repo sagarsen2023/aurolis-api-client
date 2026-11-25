@@ -2,6 +2,7 @@ import {
   ArrowUpDown,
   Clock,
   Globe,
+  House,
   Layers,
   Settings,
   Zap,
@@ -17,6 +18,7 @@ export interface BreadCrumbItem {
 
 export type RailLink =
   | "/"
+  | "/collections"
   | "/environments"
   | "/history"
   | "/load-testing"
@@ -48,7 +50,8 @@ function item(
 
 /** Main destinations, top of the rail. */
 export const sideMenuItems: SideMenuItem[] = [
-  item("collections", "Collections", "/", Layers),
+  item("overview", "Overview", "/", House),
+  item("collections", "Collections", "/collections", Layers),
   item("environments", "Environments", "/environments", Globe),
   item("history", "History", "/history", Clock),
   item("load-testing", "Load testing", "/load-testing", Zap),

@@ -33,8 +33,10 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
   - `github-sync.ts`: GitHub REST operations the renderer may call: installations, repositories and permissions, creating or checking an empty repository to publish to, and (later) pull requests.
   - `git.ts`: runs the system git (2.31 or newer; Aurolis doesn't bundle git), one queue per repository, GitHub token through per-command environment config, typed errors.
   - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / publish / remove, and file watching.
+  - `collection-store.ts`: applies collection operations (create, update, delete collections, folders, requests and examples) to the files in a workspace, one queue per workspace, writing only changed files. Also keeps per-user drafts and open tabs in the workspace's state folder.
+  - `engines/`: the three request engines. `http-engine.ts` (REST, with cancel and timeout), `graphql-engine.ts` (queries and introspection over the HTTP engine), `realtime-engine.ts` (WebSocket through `ws`, Socket.IO through `socket.io-client`, events pushed on `aurolis:engine:realtime-event`). Errors are typed and returned as values.
   - Workspaces are local git repositories (see the architecture doc). Sync is plain git: status, diff, commit, fetch, merge, push.
-- **`src/`: renderer (React).** UI only. It never sees a token and never calls GitHub directly.
+- **`src/`: renderer (React).** UI only. It never sees a token, never calls GitHub directly and never sends requests itself.
 
 ### IPC rules
 
@@ -43,6 +45,14 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
 - Treat everything from the renderer as untrusted: validate it in the main process (names, ids, paths, sizes).
 - Return errors as values (`{ ok: true, data } | { ok: false, error }`) so typed codes survive IPC. Renderer services unwrap them and throw a typed failure (`GithubApiFailure`, `GithubSignInFailure`).
 - When adding a channel, update `electron/preload.ts`, `src/electron.d.ts` and the matching service in `src/services/`.
+
+### Collections and requests
+
+- Pure, shared logic lives in `src/lib/` and is imported by both processes: `collection-ops.ts` (operations on the parsed tree), `request-factory.ts`, `prepare-request.ts` (variables, inherited auth, query params, body) and `variables.ts` (`{{name}}`: environment, then collection variables, then globals).
+- The renderer prepares a request, then calls an engine service (`http-engine.service.ts`, `graphql-engine.service.ts`, `realtime-engine.service.ts`).
+- `src/modules/collections/`: `tree/`, `dialogs/`, `editor/` (one editor per protocol), `response/` and `views/` (collection, folder and example tabs).
+- Editor state is in `src/context/collections-context.ts`. `use-editor-state-sync.ts` loads and persists drafts and tabs, and `use-request-drafts.ts` handles drafts and saving.
+- Long descriptions (workspace, collection, folder and request docs) are markdown, edited with `src/components/ui/markdown-editor` (Write and Preview, preview by default when there is content).
 
 ### Routing
 
@@ -62,7 +72,7 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
 
 ### Folder conventions (calmui)
 
-- `src/components/ui/`: shadcn primitives (ESLint ignores this folder).
+- `src/components/ui/`: shadcn primitives (ESLint ignores this folder). Add them with `npx shadcn add <name>` (style `base-maia`, Base UI). `Input` and `Textarea` take `label` and `error`, like in the other calmui projects.
 - `src/modules/<feature>/`: feature components (`auth`, `dashboard`, `layout`).
 - `src/services/`: service objects; `src/services/config/` holds `fetch-api.ts` and `query-urls.ts`.
 - `src/types/<feature>/*.type.ts`: types, also imported by `electron/` with relative `.ts` paths.

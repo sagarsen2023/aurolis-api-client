@@ -3,6 +3,12 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 const workspaceCall = (action: string, params?: unknown) =>
   ipcRenderer.invoke(`aurolis:workspace:${action}`, params);
 
+const collectionCall = (action: string, params?: unknown) =>
+  ipcRenderer.invoke(`aurolis:collection:${action}`, params);
+
+const engineCall = (action: string, params?: unknown) =>
+  ipcRenderer.invoke(`aurolis:engine:${action}`, params);
+
 // Minimal bridge. Add IPC calls here as the app needs them;
 // never expose ipcRenderer or Node APIs directly.
 const aurolis = {
@@ -58,6 +64,32 @@ const aurolis = {
       ipcRenderer.on("aurolis:workspace:changed", listener);
       return () => {
         ipcRenderer.removeListener("aurolis:workspace:changed", listener);
+      };
+    },
+  },
+  collection: {
+    apply: (params: unknown) => collectionCall("apply", params),
+    loadEditorState: (id: string) => collectionCall("editor-load", id),
+    saveDrafts: (params: unknown) =>
+      collectionCall("editor-save-drafts", params),
+    saveUiState: (params: unknown) => collectionCall("editor-save-ui", params),
+  },
+  engine: {
+    sendHttp: (params: unknown) => engineCall("http-send", params),
+    sendGraphql: (params: unknown) => engineCall("graphql-send", params),
+    introspectGraphql: (params: unknown) =>
+      engineCall("graphql-introspect", params),
+    cancel: (runId: string) => engineCall("cancel", runId),
+    connectRealtime: (params: unknown) =>
+      engineCall("realtime-connect", params),
+    sendRealtime: (params: unknown) => engineCall("realtime-send", params),
+    disconnectRealtime: (id: string) => engineCall("realtime-disconnect", id),
+    onRealtimeEvent: (callback: (event: unknown) => void) => {
+      const listener = (_event: IpcRendererEvent, payload: unknown) =>
+        callback(payload);
+      ipcRenderer.on("aurolis:engine:realtime-event", listener);
+      return () => {
+        ipcRenderer.removeListener("aurolis:engine:realtime-event", listener);
       };
     },
   },

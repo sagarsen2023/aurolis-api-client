@@ -88,11 +88,11 @@ export class WorkspaceError extends Error {
 
 const userData = () => app.getPath("userData");
 const registryFile = () => path.join(userData(), "workspaces.json");
-const stateDir = (id: string) => path.join(userData(), "workspaces", id);
+export const stateDir = (id: string) => path.join(userData(), "workspaces", id);
 const defaultStorageFolder = () => path.join(app.getPath("home"), "Aurolis");
 const toPosix = (value: string) => value.split(path.sep).join("/");
 
-const isInside = (child: string, parent: string) => {
+export const isInside = (child: string, parent: string) => {
   const relative = path.relative(parent, child);
   return (
     relative === "" ||
@@ -108,7 +108,7 @@ export function displayPath(target: string) {
     : target;
 }
 
-async function writeAtomic(file: string, content: string) {
+export async function writeAtomic(file: string, content: string) {
   await mkdir(path.dirname(file), { recursive: true });
   const temp = `${file}.${process.pid}.tmp`;
   await writeFile(temp, content, "utf8");
@@ -309,7 +309,7 @@ function validName(name: unknown) {
   return parsed.data;
 }
 
-async function findEntry(id: unknown) {
+export async function findEntry(id: unknown) {
   const current = await loadRegistry();
   const entry = current.workspaces.find((w) => w.id === id);
   if (!entry) throw new WorkspaceError("not_found");
@@ -496,7 +496,7 @@ export async function openExistingFolder(
   return { workspaceId: id, alreadyAdded: false };
 }
 
-async function readWorkspaceFiles(rootDir: string) {
+export async function readWorkspaceFiles(rootDir: string) {
   const files: Record<string, string> = {};
   const oversized: string[] = [];
 
