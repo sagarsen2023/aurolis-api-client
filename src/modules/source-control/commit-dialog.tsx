@@ -35,10 +35,8 @@ import type {
 } from "@/types/workspace/source-control.type";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
 import { isModEnter, MOD_KEY } from "@/utils/platform";
-import ChangedFileRow from "./changed-file-row";
-import DiffStat from "./diff-stat";
+import ChangeGroup from "./change-group";
 
-const OPEN_DIFFS_UP_TO = 3;
 const COMMIT_KEEPING_CODES = new Set([
   "sync_failed",
   "merge_conflict",
@@ -63,14 +61,8 @@ function successMessage(result: CommitResult) {
   return "Committed on this computer";
 }
 
-function totals(changes: SourceControlChanges) {
-  return changes.files.reduce(
-    (sum, file) => ({
-      additions: sum.additions + file.additions,
-      deletions: sum.deletions + file.deletions,
-    }),
-    { additions: 0, deletions: 0 },
-  );
+function itemCount(changes: SourceControlChanges) {
+  return changes.groups.reduce((sum, group) => sum + group.items.length, 0);
 }
 
 function UnsavedNotice({ count }: Readonly<{ count: number }>) {
@@ -99,18 +91,15 @@ function UnsavedNotice({ count }: Readonly<{ count: number }>) {
 function ChangesSummary({
   changes,
 }: Readonly<{ changes: SourceControlChanges }>) {
-  const { additions, deletions } = totals(changes);
-  const count = changes.files.length + changes.truncatedFiles;
+  const count = itemCount(changes);
+  const unpushed = changes.unpushedCommits;
   return (
-    <div className="flex items-center justify-between gap-2 text-[13px] text-mute">
-      <span>
-        {count} {count === 1 ? "file" : "files"} changed
-        {changes.unpushedCommits > 0
-          ? ` · ${changes.unpushedCommits} ${changes.unpushedCommits === 1 ? "commit" : "commits"} not pushed yet`
-          : ""}
-      </span>
-      <DiffStat additions={additions} deletions={deletions} />
-    </div>
+    <span className="text-[13px] text-mute">
+      {count} {count === 1 ? "change" : "changes"}
+      {unpushed > 0
+        ? ` · ${unpushed} ${unpushed === 1 ? "commit" : "commits"} not pushed yet`
+        : ""}
+    </span>
   );
 }
 
@@ -169,7 +158,7 @@ function CommitForm({
     void commit();
   };
 
-  const fileCount = changes?.files.length ?? 0;
+  const fileCount = changes?.fileCount ?? 0;
   const canCommit = fileCount > 0 && Boolean(message.trim()) && !committing;
   const canSyncOnly = fileCount === 0 && (changes?.unpushedCommits ?? 0) > 0;
 
@@ -257,20 +246,11 @@ function CommitForm({
           </p>
         ) : null}
         {changes && fileCount > 0 ? (
-          <ul className="flex max-h-[42vh] flex-col gap-2 overflow-y-auto pr-1">
-            {changes.files.map((file) => (
-              <ChangedFileRow
-                key={`${file.status}:${file.path}`}
-                file={file}
-                defaultOpen={fileCount <= OPEN_DIFFS_UP_TO}
-              />
+          <ul className="flex max-h-[46vh] flex-col gap-2 overflow-y-auto pr-1">
+            {changes.groups.map((group) => (
+              <ChangeGroup key={group.key} group={group} />
             ))}
           </ul>
-        ) : null}
-        {changes && changes.truncatedFiles > 0 ? (
-          <p className="text-[12px] text-mute">
-            And {changes.truncatedFiles} more files, all included in the commit.
-          </p>
         ) : null}
       </div>
 
