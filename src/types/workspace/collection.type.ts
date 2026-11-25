@@ -5,6 +5,7 @@ export interface Folder {
   id: string;
   name: string;
   seq: number;
+  description: string;
   auth: RequestAuth;
   items: CollectionItem[];
 }

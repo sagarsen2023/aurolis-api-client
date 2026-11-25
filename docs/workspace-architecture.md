@@ -288,8 +288,18 @@ Shown once after sign-in or "Continue on this device". Saves `storageFolder` in 
 ### Create a local workspace (#5, #7)
 `git init` in `<storage folder>/<name-slug>`, write `aurolis.json`, make the first commit, add the registry entry (`managed: true`) and open it.
 
-### Save (#8)
-Ctrl/⌘ S serializes the item (#4), writes only its changed files into the working tree, and removes it from `drafts.json`. No git command runs.
+### Edit collections (#25)
+Creating, renaming, saving and deleting collections, folders, requests and examples all go through one main-process call, `aurolis:collection:apply`, with a typed operation (`src/lib/collection-ops.ts`, validated by `src/validators/collection-ops.schema.ts`). `electron/collection-store.ts` runs it in one queue per workspace:
+
+1. Read the workspace root from disk and parse it with the format module (#4).
+2. Apply the operation to the parsed tree. New ids are generated in the main process.
+3. Serialize the tree twice, before and after the change, with the parsed paths as `previousPaths`, and write only the files whose content changed (atomically). Files that only differ from the disk because of normalization are left alone.
+4. Delete the files that were parsed and are now gone, then remove folders left empty. Renaming an item moves its file (and a request's `.examples/` folder) and changes nothing else.
+
+The store never writes outside `collections/` (plus `aurolis.json` for the workspace description), never overwrites a file it couldn't parse, and never deletes one. Folders without a `_folder.json` aren't given one unless their settings are saved.
+
+### Save (#25)
+Edits to a request are drafts in `drafts.json` until saved. Ctrl/⌘ S saves the active request, Ctrl/⌘ Shift S saves all of them, and "Discard changes" drops the draft. Saving runs the `save-request` operation above, so only that request's file changes. No git command runs. Open tabs and the active tab are kept in `ui.json`. Collection, folder and example settings are saved directly from their tabs.
 
 ### See changes (#10)
 `git status --porcelain=v2 -- <root>` lists changed files. The format module maps them to API items (request, folder, collection, environment), so a renamed request shows as one moved request. The request-level diff compares `git show HEAD:<file>` with the working file, both parsed by the format module.
@@ -394,6 +404,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 - Every resolved path must stay inside the workspace root.
 - Secret values never reach the working tree; a pre-commit check blocks them anyway.
 - Clone URLs are limited to `https://` (and `ssh://` / `git@` when the user's own SSH setup is used). `file://` and other transports are refused.
+- Requests run in the main process (`electron/engines/`). The engines only accept `http(s)://` and `ws(s)://` URLs, validate headers and sizes, and never attach the GitHub token. Response bodies are shown as text, JSON or images, never rendered as HTML.
 
 ## Limits
 
@@ -426,7 +437,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 | [First-run storage step](#choose-the-storage-folder-5-7) | #7 |
 | [Switching workspaces](#switching-workspaces) | #6 |
 | Local mode, [sign out](#sign-out-7) | #7 |
-| [Save](#save-8), drafts | #8 |
+| [Edit collections](#edit-collections-25), examples, [save](#save-25) and drafts, request engines (HTTP, GraphQL, WebSocket and Socket.IO) | #25 (replaces #8) |
 | [Secrets](#secrets) | #9 |
 | [See changes](#see-changes-10) | #10 |
 | [Clone](#clone-a-workspace-11), [open an existing folder](#open-an-existing-folder-11) | #11 |

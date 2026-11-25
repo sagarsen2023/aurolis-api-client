@@ -31,6 +31,31 @@ import type {
   WorkspaceRegistryView,
   WorkspaceResult,
 } from "@/types/workspace/workspace-store.type";
+import type {
+  ApplyCollectionOpParams,
+  CollectionOpResult,
+} from "@/types/workspace/collection-ops.type";
+import type {
+  EditorState,
+  SaveDraftsParams,
+  SaveUiStateParams,
+} from "@/types/workspace/editor-state.type";
+import type { EngineResult } from "@/types/engine/engine.type";
+import type {
+  HttpResponseData,
+  HttpSendParams,
+} from "@/types/engine/http-engine.type";
+import type {
+  GraphqlIntrospectParams,
+  GraphqlResponseData,
+  GraphqlSchemaSummary,
+  GraphqlSendParams,
+} from "@/types/engine/graphql-engine.type";
+import type {
+  RealtimeConnectParams,
+  RealtimeEvent,
+  RealtimeSendParams,
+} from "@/types/engine/realtime-engine.type";
 
 interface AurolisBridge {
   readonly isElectron: true;
@@ -92,6 +117,28 @@ interface AurolisBridge {
       params: RemoveWorkspaceParams,
     ): Promise<WorkspaceResult<WorkspaceRegistryView>>;
     onChanged(callback: (id: string) => void): () => void;
+  };
+  readonly collection: {
+    apply(
+      params: ApplyCollectionOpParams,
+    ): Promise<WorkspaceResult<CollectionOpResult>>;
+    loadEditorState(id: string): Promise<WorkspaceResult<EditorState>>;
+    saveDrafts(params: SaveDraftsParams): Promise<WorkspaceResult<void>>;
+    saveUiState(params: SaveUiStateParams): Promise<WorkspaceResult<void>>;
+  };
+  readonly engine: {
+    sendHttp(params: HttpSendParams): Promise<EngineResult<HttpResponseData>>;
+    sendGraphql(
+      params: GraphqlSendParams,
+    ): Promise<EngineResult<GraphqlResponseData>>;
+    introspectGraphql(
+      params: GraphqlIntrospectParams,
+    ): Promise<EngineResult<GraphqlSchemaSummary>>;
+    cancel(runId: string): Promise<EngineResult<void>>;
+    connectRealtime(params: RealtimeConnectParams): Promise<EngineResult<void>>;
+    sendRealtime(params: RealtimeSendParams): Promise<EngineResult<void>>;
+    disconnectRealtime(id: string): Promise<EngineResult<void>>;
+    onRealtimeEvent(callback: (event: RealtimeEvent) => void): () => void;
   };
 }
 

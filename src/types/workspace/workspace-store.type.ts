@@ -88,6 +88,9 @@ export type WorkspaceErrorCode =
   | "detached_head"
   | "git_unavailable"
   | "git_failed"
+  | "not_a_workspace"
+  | "newer_format"
+  | "item_not_found"
   | "unknown";
 
 export interface WorkspaceErrorInfo {

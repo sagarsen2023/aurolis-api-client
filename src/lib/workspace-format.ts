@@ -87,6 +87,7 @@ export function createManifest(id: string, name: string): WorkspaceManifest {
   return {
     format: WORKSPACE_FORMAT_VERSION,
     workspace: { id, name },
+    description: "",
     defaultEnvironment: null,
   };
 }
@@ -412,6 +413,7 @@ export function fromFiles(files: WorkspaceFiles): ParsedWorkspace {
       id: meta.id,
       name: meta.name,
       seq: meta.seq,
+      description: meta.description ?? "",
       auth: meta.auth ?? { type: "inherit" },
       items: [],
     };

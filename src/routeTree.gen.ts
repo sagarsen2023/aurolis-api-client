@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as authenticatedRouteRouteImport } from './routes/(authenticated)/route'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as authenticatedIndexRouteImport } from './routes/(authenticated)/index'
+import { Route as authenticatedCollectionsIndexRouteImport } from './routes/(authenticated)/collections/index'
 import { Route as authenticatedEnvironmentsIndexRouteImport } from './routes/(authenticated)/environments/index'
 import { Route as authenticatedHistoryIndexRouteImport } from './routes/(authenticated)/history/index'
 import { Route as authenticatedImportExportIndexRouteImport } from './routes/(authenticated)/import-export/index'
@@ -32,6 +33,12 @@ const authenticatedIndexRoute = authenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => authenticatedRouteRoute,
 } as any)
+const authenticatedCollectionsIndexRoute =
+  authenticatedCollectionsIndexRouteImport.update({
+    id: '/collections/',
+    path: '/collections/',
+    getParentRoute: () => authenticatedRouteRoute,
+  } as any)
 const authenticatedEnvironmentsIndexRoute =
   authenticatedEnvironmentsIndexRouteImport.update({
     id: '/environments/',
@@ -66,6 +73,7 @@ const authenticatedSettingsIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof authenticatedIndexRoute
   '/sign-in': typeof authSignInRoute
+  '/collections/': typeof authenticatedCollectionsIndexRoute
   '/environments/': typeof authenticatedEnvironmentsIndexRoute
   '/history/': typeof authenticatedHistoryIndexRoute
   '/import-export/': typeof authenticatedImportExportIndexRoute
@@ -75,6 +83,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
   '/': typeof authenticatedIndexRoute
+  '/collections': typeof authenticatedCollectionsIndexRoute
   '/environments': typeof authenticatedEnvironmentsIndexRoute
   '/history': typeof authenticatedHistoryIndexRoute
   '/import-export': typeof authenticatedImportExportIndexRoute
@@ -86,6 +95,7 @@ export interface FileRoutesById {
   '/(authenticated)': typeof authenticatedRouteRouteWithChildren
   '/(auth)/sign-in': typeof authSignInRoute
   '/(authenticated)/': typeof authenticatedIndexRoute
+  '/(authenticated)/collections/': typeof authenticatedCollectionsIndexRoute
   '/(authenticated)/environments/': typeof authenticatedEnvironmentsIndexRoute
   '/(authenticated)/history/': typeof authenticatedHistoryIndexRoute
   '/(authenticated)/import-export/': typeof authenticatedImportExportIndexRoute
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sign-in'
+    | '/collections/'
     | '/environments/'
     | '/history/'
     | '/import-export/'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
   to:
     | '/sign-in'
     | '/'
+    | '/collections'
     | '/environments'
     | '/history'
     | '/import-export'
@@ -116,6 +128,7 @@ export interface FileRouteTypes {
     | '/(authenticated)'
     | '/(auth)/sign-in'
     | '/(authenticated)/'
+    | '/(authenticated)/collections/'
     | '/(authenticated)/environments/'
     | '/(authenticated)/history/'
     | '/(authenticated)/import-export/'
@@ -149,6 +162,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof authenticatedIndexRouteImport
+      parentRoute: typeof authenticatedRouteRoute
+    }
+    '/(authenticated)/collections/': {
+      id: '/(authenticated)/collections/'
+      path: '/collections'
+      fullPath: '/collections/'
+      preLoaderRoute: typeof authenticatedCollectionsIndexRouteImport
       parentRoute: typeof authenticatedRouteRoute
     }
     '/(authenticated)/environments/': {
@@ -191,6 +211,7 @@ declare module '@tanstack/react-router' {
 
 interface authenticatedRouteRouteChildren {
   authenticatedIndexRoute: typeof authenticatedIndexRoute
+  authenticatedCollectionsIndexRoute: typeof authenticatedCollectionsIndexRoute
   authenticatedEnvironmentsIndexRoute: typeof authenticatedEnvironmentsIndexRoute
   authenticatedHistoryIndexRoute: typeof authenticatedHistoryIndexRoute
   authenticatedImportExportIndexRoute: typeof authenticatedImportExportIndexRoute
@@ -200,6 +221,7 @@ interface authenticatedRouteRouteChildren {
 
 const authenticatedRouteRouteChildren: authenticatedRouteRouteChildren = {
   authenticatedIndexRoute: authenticatedIndexRoute,
+  authenticatedCollectionsIndexRoute: authenticatedCollectionsIndexRoute,
   authenticatedEnvironmentsIndexRoute: authenticatedEnvironmentsIndexRoute,
   authenticatedHistoryIndexRoute: authenticatedHistoryIndexRoute,
   authenticatedImportExportIndexRoute: authenticatedImportExportIndexRoute,

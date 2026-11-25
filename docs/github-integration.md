@@ -79,6 +79,7 @@ Files are written by `src/lib/workspace-format.ts` and validated with the schema
 ```json
 {
   "defaultEnvironment": "env_local",
+  "description": "# Acme API\n\nRequests for the Acme services.",
   "format": 1,
   "workspace": {
     "id": "ws_3k9d",
@@ -86,6 +87,8 @@ Files are written by `src/lib/workspace-format.ts` and validated with the schema
   }
 }
 ```
+
+`description` is markdown, shown on the Overview page. Collection, folder and request descriptions are markdown too.
 
 ### Collection (`_collection.json`)
 
@@ -110,6 +113,7 @@ Files are written by `src/lib/workspace-format.ts` and validated with the schema
   "auth": {
     "type": "inherit"
   },
+  "description": "Refunds for **captured** payments.",
   "id": "f_refunds",
   "name": "Refunds",
   "seq": 3000
@@ -117,6 +121,10 @@ Files are written by `src/lib/workspace-format.ts` and validated with the schema
 ```
 
 ### Request file (`*.req.json`)
+
+Every request has `id`, `name`, `seq`, `description` (markdown), `url`, `params`, `headers`, `auth` and a `protocol`. A file without `protocol` is read as `http`, so files written before protocols existed keep working.
+
+**HTTP (`"protocol": "http"`)**
 
 ```json
 {
@@ -127,6 +135,7 @@ Files are written by `src/lib/workspace-format.ts` and validated with the schema
     "mode": "json",
     "raw": "{ \"amount\": 4200, \"currency\": \"INR\" }"
   },
+  "description": "",
   "headers": [
     {
       "enabled": true,
@@ -138,16 +147,106 @@ Files are written by `src/lib/workspace-format.ts` and validated with the schema
   "method": "POST",
   "name": "Create payment",
   "params": [],
+  "protocol": "http",
   "seq": 2000,
   "url": "{{baseUrl}}/payments"
 }
 ```
 
-- `method`: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` or `OPTIONS`.
-- `body.mode`: `none`, `json`, `text` or `xml` (with `raw`), or `urlencoded` or `form-data` (with `fields`).
+**GraphQL (`"protocol": "graphql"`)**
+
+```json
+{
+  "auth": {
+    "type": "inherit"
+  },
+  "description": "",
+  "graphql": {
+    "operationName": "Payment",
+    "query": "query Payment($id: ID!) { payment(id: $id) { id status } }",
+    "variables": "{ \"id\": \"{{paymentId}}\" }"
+  },
+  "headers": [],
+  "id": "r_gq1",
+  "name": "Payment by id",
+  "params": [],
+  "protocol": "graphql",
+  "seq": 4000,
+  "url": "{{baseUrl}}/graphql"
+}
+```
+
+**WebSocket (`"protocol": "websocket"`)**
+
+```json
+{
+  "auth": {
+    "token": "{{token}}",
+    "type": "bearer"
+  },
+  "description": "",
+  "headers": [],
+  "id": "r_ws1",
+  "messages": [
+    {
+      "body": "{ \"type\": \"subscribe\", \"channel\": \"payments\" }",
+      "event": "",
+      "format": "json",
+      "id": "m_sub",
+      "name": "Subscribe"
+    }
+  ],
+  "name": "Payment events",
+  "params": [],
+  "protocol": "websocket",
+  "seq": 5000,
+  "url": "wss://{{host}}/events"
+}
+```
+
+**Socket.IO (`"protocol": "socketio"`)**
+
+```json
+{
+  "auth": {
+    "type": "inherit"
+  },
+  "description": "",
+  "headers": [],
+  "id": "r_sio1",
+  "messages": [
+    {
+      "body": "{ \"room\": \"merchant_42\" }",
+      "event": "join",
+      "format": "json",
+      "id": "m_join",
+      "name": "join"
+    }
+  ],
+  "name": "Live dashboard",
+  "params": [],
+  "protocol": "socketio",
+  "seq": 6000,
+  "socketio": {
+    "events": [
+      "payment.updated"
+    ],
+    "path": "/socket.io"
+  },
+  "url": "{{baseUrl}}"
+}
+```
+
+- `method` (HTTP): `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD` or `OPTIONS`.
+- `body.mode` (HTTP): `none`, `json`, `text` or `xml` (with `raw`), or `urlencoded` or `form-data` (with `fields`). `GET` and `HEAD` never send a body.
+- `graphql.variables` is JSON text, so it can hold `{{variables}}`. It must parse to an object when the request is sent.
+- `messages` (WebSocket and Socket.IO) are saved messages: `format` is `json` or `text`, and `event` is the Socket.IO event name.
+- `socketio.events` lists the events to log; an empty list logs every event.
 - `auth.type`: `inherit`, `none`, `bearer`, `basic` or `apikey`. Use `{{variables}}` for credentials so real values stay in environments.
 
 ### Example (`<request>.examples/*.json`)
+
+A saved response of an HTTP or GraphQL request. Realtime requests keep saved messages instead.
 
 ```json
 {

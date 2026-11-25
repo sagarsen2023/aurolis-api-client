@@ -1,0 +1,174 @@
+.aurolis-md-editor .w-md-editor {
+  --color-canvas-default: transparent;
+  --color-canvas-subtle: var(--muted);
+  --color-border-default: var(--border);
+  --color-border-muted: var(--border);
+  --color-fg-default: var(--foreground);
+  --color-fg-muted: var(--muted-foreground);
+  --color-accent-fg: var(--primary);
+  --color-neutral-muted: var(--muted);
+  --md-editor-background-color: transparent;
+  --md-editor-box-shadow-color: transparent;
+
+  background-color: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.aurolis-md-editor .w-md-editor-toolbar {
+  background-color: color-mix(in oklab, var(--muted) 45%, transparent);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 8px;
+  min-height: 44px;
+}
+
+.aurolis-md-editor .w-md-editor-toolbar ul {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.aurolis-md-editor .w-md-editor-toolbar li > button {
+  height: 30px;
+  width: 30px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--muted-foreground);
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+
+.aurolis-md-editor .w-md-editor-toolbar li > button:hover,
+.aurolis-md-editor .w-md-editor-toolbar li > button:focus-visible {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.aurolis-md-editor .w-md-editor-toolbar li.active > button {
+  background-color: var(--accent);
+  color: var(--foreground);
+}
+
+.aurolis-md-editor .w-md-editor-toolbar-divider {
+  height: 18px;
+  margin: 0 4px;
+  background-color: var(--border);
+}
+
+.aurolis-md-editor .w-md-editor-text,
+.aurolis-md-editor .w-md-editor-text-pre,
+.aurolis-md-editor .w-md-editor-text-pre > code,
+.aurolis-md-editor .w-md-editor-text-input {
+  font-family: inherit !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+.aurolis-md-editor .w-md-editor-text {
+  padding: 14px 16px;
+}
+
+.aurolis-md-editor .w-md-editor-text-input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.aurolis-md-editor .w-md-editor-text-input::selection {
+  background-color: color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+.aurolis-md-editor .w-md-editor-text-pre .token.title,
+.aurolis-md-editor .w-md-editor-text-pre .token.bold {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.aurolis-md-editor .w-md-editor-text-pre .token.punctuation,
+.aurolis-md-editor .w-md-editor-text-pre .token.url,
+.aurolis-md-editor .w-md-editor-text-pre .token.code {
+  color: var(--muted-foreground);
+}
+
+.aurolis-md-editor .w-md-editor-bar {
+  width: 100%;
+  height: 10px;
+  bottom: 0;
+  right: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  cursor: ns-resize;
+}
+
+.aurolis-md-editor .w-md-editor-bar svg {
+  display: none;
+}
+
+.aurolis-md-editor .w-md-editor-bar::after {
+  content: "";
+  width: 36px;
+  height: 4px;
+  margin-top: 3px;
+  border-radius: 9999px;
+  background-color: var(--border);
+}
+
+.aurolis-md-editor .w-md-editor-preview {
+  padding: 14px 16px;
+  box-shadow: none;
+}
+
+.aurolis-markdown .wmde-markdown {
+  background-color: transparent;
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.aurolis-markdown .wmde-markdown a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.aurolis-markdown .wmde-markdown blockquote {
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.aurolis-markdown .wmde-markdown code,
+.aurolis-markdown .wmde-markdown pre {
+  background-color: var(--muted);
+  border-radius: calc(var(--radius) - 4px);
+}
+
+.aurolis-markdown .wmde-markdown hr {
+  background-color: var(--border);
+  height: 1px;
+}
+
+.aurolis-markdown .wmde-markdown h1,
+.aurolis-markdown .wmde-markdown h2 {
+  border-bottom-color: var(--border);
+}
+
+.aurolis-markdown .wmde-markdown ul {
+  list-style: disc;
+}
+
+.aurolis-markdown .wmde-markdown ol {
+  list-style: decimal;
+}
+
+.aurolis-markdown .wmde-markdown img {
+  background-color: transparent;
+}

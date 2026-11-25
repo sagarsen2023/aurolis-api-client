@@ -2,6 +2,8 @@
 
 Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged with Electron.
 
+Collections hold HTTP (REST), GraphQL, WebSocket and Socket.IO requests, each saved as a `*.req.json` file in the workspace's git repository, with saved examples next to them. Requests run in the main process through three engines, so there is no CORS and any header can be set.
+
 ## Scripts
 
 | Command | What it does |
@@ -19,6 +21,8 @@ Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged w
 - `electron/github-auth.ts`: GitHub sign-in with the device flow; keeps tokens in the main process, encrypted with the OS keychain.
 - `electron/github-api.ts`: GitHub REST client for the main process (the counterpart of `src/services/config/fetch-api.ts`): attaches the token, refreshes once on 401, maps errors to typed codes.
 - `electron/github-sync.ts`: the GitHub operations the renderer can call over IPC: installations, repositories, creating or checking a repository to publish to, pull and commit.
+- `electron/collection-store.ts`: creates, saves and deletes collections, folders, requests and examples as workspace files, and keeps drafts and open tabs outside the repo.
+- `electron/engines/`: the HTTP, GraphQL and realtime (WebSocket and Socket.IO) engines that send requests.
 - `electron-builder.json5`: packaging config; the app icon is `build/icon.png`.
 - `src/index.css`: Aurolis design tokens mapped to shadcn variables (light in `:root`, dark in `.dark`).
 - `public/aurolis-logo/`: favicon, marks and horizontal lockups used by the app.

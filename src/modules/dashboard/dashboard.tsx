@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { githubUserAtom } from "@/context/auth-context";
 import {
-  activeWorkspaceStateAtom,
   addWorkspaceOpenAtom,
   currentEnvironmentAtom,
   publishWorkspaceOpenAtom,
@@ -23,15 +22,11 @@ import {
 import { workspaceService } from "@/services/workspace.service";
 import type { CollectionItem } from "@/types/workspace/collection.type";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
-import GetStarted from "@/modules/workspace/get-started";
-import {
-  FormatIssues,
-  MissingWorkspace,
-  NotAWorkspace,
-  WorkspaceLoadError,
-} from "@/modules/workspace/workspace-states";
+import { FormatIssues } from "@/modules/workspace/workspace-states";
+import WorkspaceGate from "@/modules/workspace/workspace-gate";
 import ResponseHealth from "./response-health";
 import StatCard from "./stat-card";
+import WorkspaceAbout from "./workspace-about";
 import WorkspaceRequests from "./workspace-requests";
 
 function countItems(items: CollectionItem[]): {
@@ -209,34 +204,18 @@ function WorkspaceOverview({
         <WorkspaceRequests collections={collections} />
         <ResponseHealth git={workspace.git} />
       </div>
+
+      <WorkspaceAbout workspace={workspace} />
     </div>
   );
 }
 
 function Dashboard() {
-  const state = useAtomValue(activeWorkspaceStateAtom);
-
-  switch (state.status) {
-    case "loading":
-      return <DashboardSkeleton />;
-    case "none":
-      return <GetStarted variant="page" />;
-    case "missing":
-      return (
-        <MissingWorkspace
-          workspaceId={state.workspaceId}
-          message={state.message}
-        />
-      );
-    case "error":
-      return <WorkspaceLoadError message={state.message} />;
-    case "ready":
-      return state.workspace.isWorkspace ? (
-        <WorkspaceOverview workspace={state.workspace} />
-      ) : (
-        <NotAWorkspace workspace={state.workspace} />
-      );
-  }
+  return (
+    <WorkspaceGate loading={<DashboardSkeleton />}>
+      {(workspace) => <WorkspaceOverview workspace={workspace} />}
+    </WorkspaceGate>
+  );
 }
 
 export default Dashboard;

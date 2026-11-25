@@ -11,6 +11,10 @@ import {
   publishWorkspaceOpenAtom,
 } from "@/context/workspace-context";
 import { cn } from "@/lib/utils";
+import { unsavedCountAtom } from "@/context/collections-context";
+import { useSaveRequests } from "@/hooks/use-request-drafts";
+import { usePromise } from "@/hooks/usePromise";
+import { MOD_KEY } from "@/utils/platform";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
 
 const PILL =
@@ -39,10 +43,41 @@ function remoteName(workspace: OpenedWorkspace) {
     .replace(/\.git$/, "");
 }
 
+function UnsavedPill({ count }: Readonly<{ count: number }>) {
+  const { saveAll } = useSaveRequests();
+  const { loading, runPromise } = usePromise({ promise: saveAll });
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            disabled={loading}
+            className={cn(
+              PILL,
+              "transition-colors outline-none hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40",
+            )}
+            onClick={() => void runPromise()}
+          />
+        }
+      >
+        <span className="size-2 rounded-full bg-vio" aria-hidden />
+        {plural(count, "unsaved request")}
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        Save all ({MOD_KEY} Shift S). Drafts are kept on this computer until you
+        save them.
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function SavePill() {
   const workspace = useAtomValue(activeWorkspaceAtom);
   const setPublishOpen = useSetAtom(publishWorkspaceOpenAtom);
+  const unsaved = useAtomValue(unsavedCountAtom);
   if (!workspace) return null;
+  if (unsaved > 0) return <UnsavedPill count={unsaved} />;
 
   if (!workspace.git.remoteUrl) {
     return (

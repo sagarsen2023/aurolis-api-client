@@ -29,6 +29,20 @@ import {
 } from "./github-sync.ts";
 import { gitInfo } from "./git.ts";
 import {
+  applyOperation,
+  loadEditorState,
+  saveDrafts,
+  saveUiState,
+} from "./collection-store.ts";
+import { toEngineResult } from "./engines/engine-error.ts";
+import { introspectGraphql, sendGraphql } from "./engines/graphql-engine.ts";
+import { cancelRun, sendHttp } from "./engines/http-engine.ts";
+import {
+  connectRealtime,
+  disconnectRealtime,
+  sendRealtime,
+} from "./engines/realtime-engine.ts";
+import {
   cancelClones,
   checkStorageFolder,
   chooseStorageFolder,
@@ -308,13 +322,49 @@ if (!app.requestSingleInstanceLock()) {
     reveal: (_event, id) => revealWorkspace(id),
     remove: (_event, params) => removeWorkspace(params),
   };
-  for (const [action, handler] of Object.entries(workspaceHandlers)) {
-    ipcMain.handle(`aurolis:workspace:${action}`, (event, params: unknown) =>
-      fromAppWindow(event)
-        ? toWorkspaceResult(() => handler(event, params))
-        : null,
-    );
-  }
+  type Handler = (
+    event: Electron.IpcMainInvokeEvent,
+    params: unknown,
+  ) => Promise<unknown>;
+  type ResultWrapper = (operation: () => Promise<unknown>) => Promise<unknown>;
+
+  const registerHandlers = (
+    area: string,
+    handlers: Record<string, Handler>,
+    wrap: ResultWrapper,
+  ) => {
+    for (const [action, handler] of Object.entries(handlers)) {
+      ipcMain.handle(`aurolis:${area}:${action}`, (event, params: unknown) =>
+        fromAppWindow(event) ? wrap(() => handler(event, params)) : null,
+      );
+    }
+  };
+
+  registerHandlers("workspace", workspaceHandlers, toWorkspaceResult);
+  registerHandlers(
+    "collection",
+    {
+      apply: (_event, params) => applyOperation(params),
+      "editor-load": (_event, id) => loadEditorState(id),
+      "editor-save-drafts": (_event, params) => saveDrafts(params),
+      "editor-save-ui": (_event, params) => saveUiState(params),
+    },
+    toWorkspaceResult,
+  );
+  registerHandlers(
+    "engine",
+    {
+      "http-send": (_event, params) => sendHttp(params),
+      "graphql-send": (_event, params) => sendGraphql(params),
+      "graphql-introspect": (_event, params) => introspectGraphql(params),
+      cancel: async (_event, runId) => cancelRun(runId),
+      "realtime-connect": (event, params) =>
+        connectRealtime(params, event.sender),
+      "realtime-send": (_event, params) => sendRealtime(params),
+      "realtime-disconnect": (_event, id) => disconnectRealtime(id),
+    },
+    toEngineResult,
+  );
 
   // Fires for in-app theme changes and for OS changes while on "system".
   nativeTheme.on("updated", () => {
