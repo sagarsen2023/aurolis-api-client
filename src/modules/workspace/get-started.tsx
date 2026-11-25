@@ -17,6 +17,7 @@ import {
 } from "@/services/workspace.service";
 import ClonePanel from "./clone-panel";
 import StorageFolderLine from "./storage-folder-line";
+import StorageStep from "./storage-step";
 
 function Option({
   icon: Icon,
@@ -54,16 +55,10 @@ function GetStarted({
   const { openWorkspace, reloadRegistry } = useWorkspaceActions();
   const [name, setName] = useState("");
   const hasWorkspaces = (registry?.workspaces.length ?? 0) > 0;
-
-  const ensureStorage = async () => {
-    if (!registry?.storageFolder) await workspaceService.setStorage("default");
-  };
+  const needsStorage = Boolean(registry) && !registry?.storageFolder;
 
   const { loading: creating, runPromise: createLocal } = usePromise({
-    promise: async () => {
-      await ensureStorage();
-      return workspaceService.create(name.trim() || "My workspace");
-    },
+    promise: () => workspaceService.create(name.trim() || "My workspace"),
     onSuccessAsync: async ({ workspaceId }) => {
       toast.success("Workspace created");
       setName("");
@@ -112,67 +107,77 @@ function GetStarted({
               ) : null}
             </>
           }
-          description="A workspace is a git repository with your collections and environments. Clone one from GitHub, start a new one, or open a repository you already have."
+          description={
+            needsStorage
+              ? "First, choose where your workspaces live on this computer. Then clone one from GitHub, start a new one, or open a repository you already have."
+              : "A workspace is a git repository with your collections and environments. Clone one from GitHub, start a new one, or open a repository you already have."
+          }
         />
       ) : null}
 
-      <Card className="gap-4 px-6 py-6">
-        <div>
-          <h2 className="text-xl font-medium tracking-[-0.01em] text-foreground">
-            Clone a repository
-          </h2>
-          <p className="text-[13.5px] text-mute">
-            Paste a GitHub URL or owner/repo, any https:// or SSH git URL, or
-            pick one of your repositories.
-          </p>
-        </div>
-        <ClonePanel onDone={onDone} />
-      </Card>
+      {needsStorage ? (
+        <StorageStep variant={variant} />
+      ) : (
+        <>
+          <Card className="gap-4 px-6 py-6">
+            <div>
+              <h2 className="text-xl font-medium tracking-[-0.01em] text-foreground">
+                Clone a repository
+              </h2>
+              <p className="text-[13.5px] text-mute">
+                Paste a GitHub URL or owner/repo, any https:// or SSH git URL,
+                or pick one of your repositories.
+              </p>
+            </div>
+            <ClonePanel onDone={onDone} />
+          </Card>
 
-      <div className={cn("grid gap-4", isPage && "md:grid-cols-2")}>
-        <Option
-          icon={FolderPlus}
-          title="Create a local workspace"
-          description="A new git repository on this computer. Publish it to GitHub any time."
-        >
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void createLocal();
-            }}
-          >
-            <Input
-              aria-label="Workspace name"
-              placeholder="My workspace"
-              value={name}
-              maxLength={100}
-              onChange={(event) => setName(event.target.value)}
-              className="h-9 bg-surface-raise"
-            />
-            <Button type="submit" variant="outline" disabled={creating}>
-              <Plus />
-              Create
-            </Button>
-          </form>
-        </Option>
-        <Option
-          icon={FolderGit2}
-          title="Open a folder on this computer"
-          description="Use a repository you already cloned. Aurolis works on it in place."
-        >
-          <Button
-            variant="outline"
-            className="self-start"
-            disabled={opening}
-            onClick={() => void openFolder()}
-          >
-            Choose folder…
-          </Button>
-        </Option>
-      </div>
+          <div className={cn("grid gap-4", isPage && "md:grid-cols-2")}>
+            <Option
+              icon={FolderPlus}
+              title="Create a local workspace"
+              description="A new git repository on this computer. Publish it to GitHub any time."
+            >
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void createLocal();
+                }}
+              >
+                <Input
+                  aria-label="Workspace name"
+                  placeholder="My workspace"
+                  value={name}
+                  maxLength={100}
+                  onChange={(event) => setName(event.target.value)}
+                  className="h-9 bg-surface-raise"
+                />
+                <Button type="submit" variant="outline" disabled={creating}>
+                  <Plus />
+                  Create
+                </Button>
+              </form>
+            </Option>
+            <Option
+              icon={FolderGit2}
+              title="Open a folder on this computer"
+              description="Use a repository you already cloned. Aurolis works on it in place."
+            >
+              <Button
+                variant="outline"
+                className="self-end"
+                disabled={opening}
+                onClick={() => void openFolder()}
+              >
+                Choose folder…
+              </Button>
+            </Option>
+          </div>
 
-      <StorageFolderLine />
+          <StorageFolderLine />
+        </>
+      )}
     </div>
   );
 }

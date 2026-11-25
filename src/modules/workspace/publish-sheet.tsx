@@ -164,7 +164,6 @@ function PublishFlow({
   const [result, setResult] = useState<PublishResult | null>(null);
   const request = useRef<PublishRequest | null>(null);
   const ready = useRef<GithubRepository | null>(null);
-
   const [installations, setInstallations] = useState<GithubInstallation[]>([]);
   const { loading: loadingOwners, runPromise: loadOwners } = usePromise({
     initialLoading: true,

@@ -42,8 +42,6 @@ export const githubService = {
 
   openInstallPage: () => bridge().openInstallPage(),
 
-  isInstalled: async () => (await githubService.getInstallations()).length > 0,
-
   getRepositories: () => unwrap(bridge().repositories()),
 
   pullFiles: (params: PullFilesParams) => unwrap(bridge().pull(params)),
