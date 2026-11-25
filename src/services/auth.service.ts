@@ -43,13 +43,15 @@ export const authService = {
     await window.aurolis?.github.cancelSignIn();
   },
 
-  getStatus: async () =>
-    (await window.aurolis?.github.getStatus()) ?? {
-      signedIn: false,
-      user: null,
-    },
+  getStatus: async () => {
+    const status = await window.aurolis?.github.getStatus();
+    return status ?? { signedIn: false, user: null };
+  },
 
-  isSignedIn: async () => (await authService.getStatus()).signedIn,
+  isSignedIn: async () => {
+    const status = await authService.getStatus();
+    return status.signedIn;
+  },
 
   logout: async () => {
     await window.aurolis?.github.signOut();

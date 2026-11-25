@@ -56,7 +56,7 @@ Use `githubService` (`src/services/github.service.ts`). Every call runs in the m
 
 | Method | What it does |
 |---|---|
-| `getInstallations()` / `isInstalled()` | Accounts the app is installed on. Sign-in opens the install page when this is empty. |
+| `getInstallations()` | Accounts the app is installed on. When this is empty after sign-in, the sign-in screen shows an install step that opens the install page and continues once an installation appears. |
 | `getRepositories()` | Repositories reachable through the app, with the user's `permissions` (`push` = can commit). |
 | `pullFiles({ owner, repo, branch, path, knownFiles })` | Reads the branch and downloads only files whose SHA differs from `knownFiles`. Returns `headSha`, `changed`, `deleted` and the full `files` map to keep for the next pull. |
 | `commitFiles({ owner, repo, branch, message, changes, expectedHeadSha })` | Writes all changes as **one commit** (Git Data API) and moves the branch with `force: false`. If the branch moved since `expectedHeadSha`, nothing is written and it throws `conflict` with `remoteHeadSha`: pull, merge, then commit again. |

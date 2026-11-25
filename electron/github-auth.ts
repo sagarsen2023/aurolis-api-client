@@ -74,7 +74,8 @@ async function postForm<T>(url: string, body: Record<string, string>) {
     },
     body: new URLSearchParams(body).toString(),
   });
-  return (await response.json()) as T;
+  const data = await response.json();
+  return data as T;
 }
 
 function sleep(ms: number, signal: AbortSignal) {
@@ -165,13 +166,19 @@ async function saveSession(session: StoredGithubSession) {
   );
 }
 
+type GithubUserResponse = {
+  id: number;
+  login: string;
+  name: string | null;
+  avatar_url: string;
+};
+
 async function loadSession(): Promise<StoredGithubSession | null> {
   if (sessionCache !== undefined) return sessionCache;
   if (!osKeychainAvailable()) return (sessionCache = null);
   try {
-    sessionCache = parseStoredSession(
-      safeStorage.decryptString(await readFile(TOKEN_FILE())),
-    );
+    const encrypted = await readFile(TOKEN_FILE());
+    sessionCache = parseStoredSession(safeStorage.decryptString(encrypted));
   } catch {
     sessionCache = null;
   }
@@ -256,12 +263,8 @@ async function fetchUser(token: string): Promise<UserFetch> {
     });
     if (response.status === 401) return { kind: "unauthorized" };
     if (!response.ok) return { kind: "offline" };
-    const data = (await response.json()) as {
-      id: number;
-      login: string;
-      name: string | null;
-      avatar_url: string;
-    };
+    const body = await response.json();
+    const data = body as GithubUserResponse;
     return {
       kind: "ok",
       user: {

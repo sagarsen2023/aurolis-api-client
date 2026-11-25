@@ -5,7 +5,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/(auth)/sign-in")({
   component: RouteComponent,
   beforeLoad: async () => {
-    if (await authService.isSignedIn()) {
+    const signedIn = await authService.isSignedIn();
+    if (signedIn) {
       throw redirect({ to: "/", replace: true });
     }
   },
