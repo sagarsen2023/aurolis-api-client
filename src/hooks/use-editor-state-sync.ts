@@ -8,7 +8,10 @@ import {
   graphqlSchemasAtom,
   runStatesAtom,
 } from "@/context/collections-context";
-import { activeWorkspaceAtom } from "@/context/workspace-context";
+import {
+  activeWorkspaceAtom,
+  environmentIdAtom,
+} from "@/context/workspace-context";
 import {
   findCollectionById,
   findExampleById,
@@ -72,6 +75,7 @@ export function useEditorStateSync() {
   const [drafts, setDrafts] = useAtom(draftsAtom);
   const [tabs, setTabs] = useAtom(editorTabsAtom);
   const [activeTabId, setActiveTabId] = useAtom(activeTabIdAtom);
+  const [environmentId, setEnvironmentId] = useAtom(environmentIdAtom);
   const setRuns = useSetAtom(runStatesAtom);
   const setSchemas = useSetAtom(graphqlSchemasAtom);
   const ready = Boolean(workspaceId) && loadedFor === workspaceId;
@@ -89,12 +93,16 @@ export function useEditorStateSync() {
     let cancelled = false;
     collectionService
       .loadEditorState(workspaceId)
-      .catch(() => ({ drafts: {}, ui: { tabs: [], activeTabId: null } }))
+      .catch(() => ({
+        drafts: {},
+        ui: { tabs: [], activeTabId: null, environmentId: null },
+      }))
       .then((state) => {
         if (cancelled) return;
         setDrafts(state.drafts);
         setTabs(state.ui.tabs);
         setActiveTabId(state.ui.activeTabId);
+        if (state.ui.environmentId) setEnvironmentId(state.ui.environmentId);
         setLoadedFor(workspaceId);
       });
     return () => {
@@ -104,6 +112,7 @@ export function useEditorStateSync() {
     workspaceId,
     setActiveTabId,
     setDrafts,
+    setEnvironmentId,
     setLoadedFor,
     setRuns,
     setSchemas,
@@ -128,7 +137,10 @@ export function useEditorStateSync() {
   useDebouncedSave(ready, drafts, () =>
     collectionService.saveDrafts(workspaceId as string, drafts),
   );
-  const ui = useMemo(() => ({ tabs, activeTabId }), [tabs, activeTabId]);
+  const ui = useMemo(
+    () => ({ tabs, activeTabId, environmentId }),
+    [tabs, activeTabId, environmentId],
+  );
   useDebouncedSave(ready, ui, () =>
     collectionService.saveUiState(workspaceId as string, ui),
   );

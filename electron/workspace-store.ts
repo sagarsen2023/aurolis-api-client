@@ -11,7 +11,6 @@ import {
   rename,
   rm,
   statfs,
-  writeFile,
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -61,6 +60,12 @@ import {
   unpushedCommitCount,
 } from "./git.ts";
 import { isGithubOwner, isGithubRepoName } from "./github-sync.ts";
+import {
+  forgetWorkspaceSecrets,
+  mergeSecrets,
+  secretsPersisted,
+} from "./secret-store.ts";
+import { stateDir, userData, writeAtomic } from "./user-data.ts";
 
 const WORKSPACE_DIRS = ["collections", "environments"];
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -86,9 +91,7 @@ export class WorkspaceError extends Error {
   }
 }
 
-const userData = () => app.getPath("userData");
 const registryFile = () => path.join(userData(), "workspaces.json");
-export const stateDir = (id: string) => path.join(userData(), "workspaces", id);
 const defaultStorageFolder = () => path.join(app.getPath("home"), "Aurolis");
 const toPosix = (value: string) => value.split(path.sep).join("/");
 
@@ -106,13 +109,6 @@ export function displayPath(target: string) {
   return isInside(target, home)
     ? `~${target.slice(home.length) || ""}`
     : target;
-}
-
-export async function writeAtomic(file: string, content: string) {
-  await mkdir(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.tmp`;
-  await writeFile(temp, content, "utf8");
-  await rename(temp, file);
 }
 
 let registry: WorkspaceRegistry | null = null;
@@ -608,14 +604,18 @@ export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
   current.activeWorkspaceId = entry.id;
   await saveRegistry();
   watchWorkspace(entry);
+  const data = isWorkspace
+    ? await mergeSecrets(entry.id, parsed.workspace)
+    : null;
 
   return {
     entry,
     displayPath: displayPath(rootDir),
     isWorkspace,
-    data: isWorkspace ? parsed.workspace : null,
+    data,
     issues,
     git: { branch, changedFiles, unpushedCommits, remoteUrl: url },
+    secretsPersisted: secretsPersisted(),
   };
 }
 
@@ -750,6 +750,7 @@ export async function removeWorkspace(params: unknown) {
   }
   await saveRegistry();
   await rm(stateDir(entry.id), { recursive: true, force: true });
+  forgetWorkspaceSecrets(entry.id);
 
   const canDelete =
     deleteFolder === true &&

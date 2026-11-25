@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  environmentVariableSchema,
   exampleFileSchema,
   idSchema,
   keyValueSchema,
@@ -10,6 +11,7 @@ import {
 } from "./workspace.schema.ts";
 
 const MAX_DESCRIPTION_LENGTH = 100_000;
+const MAX_VARIABLES = 1_000;
 
 const exampleInputSchema = exampleFileSchema.omit({ id: true, seq: true });
 
@@ -17,6 +19,25 @@ export const collectionOpSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("update-workspace"),
     description: z.string().max(MAX_DESCRIPTION_LENGTH),
+  }),
+  z.object({ op: z.literal("create-environment"), name: nameSchema }),
+  z.object({
+    op: z.literal("update-environment"),
+    id: idSchema,
+    settings: z.object({
+      name: nameSchema,
+      variables: z.array(environmentVariableSchema).max(MAX_VARIABLES),
+    }),
+  }),
+  z.object({ op: z.literal("duplicate-environment"), id: idSchema }),
+  z.object({ op: z.literal("delete-environment"), id: idSchema }),
+  z.object({
+    op: z.literal("update-globals"),
+    variables: z.array(environmentVariableSchema).max(MAX_VARIABLES),
+  }),
+  z.object({
+    op: z.literal("set-default-environment"),
+    id: idSchema.nullable(),
   }),
   z.object({
     op: z.literal("create-collection"),

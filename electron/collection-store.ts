@@ -23,8 +23,10 @@ import {
 } from "../src/validators/editor-state.schema.ts";
 import type {
   CollectionOp,
+  CollectionOpName,
   CollectionOpResult,
 } from "../src/types/workspace/collection-ops.type.ts";
+import type { WorkspaceData } from "../src/types/workspace/workspace.type.ts";
 import type {
   EditorState,
   EditorUiState,
@@ -32,22 +34,43 @@ import type {
 } from "../src/types/workspace/editor-state.type.ts";
 import type { WorkspaceEntry } from "../src/types/workspace/workspace-store.type.ts";
 import {
+  copyEnvironmentSecrets,
+  forgetEnvironmentSecrets,
+  storeEnvironmentSecrets,
+} from "./secret-store.ts";
+import { stateFile, writeAtomic } from "./user-data.ts";
+import {
   findEntry,
   isInside,
   openWorkspace,
   readWorkspaceFiles,
-  stateDir,
   WorkspaceError,
-  writeAtomic,
 } from "./workspace-store.ts";
 
 const COLLECTIONS_DIR = "collections";
+const ENVIRONMENTS_DIR = "environments";
+const ENVIRONMENT_OPS = new Set<CollectionOpName>([
+  "create-environment",
+  "update-environment",
+  "duplicate-environment",
+  "delete-environment",
+  "update-globals",
+]);
+const MANIFEST_OPS = new Set<CollectionOpName>([
+  "update-workspace",
+  "set-default-environment",
+  "delete-environment",
+]);
 const GENERATED_ID_PREFIX = "generated-";
 const DRAFTS_FILE = "drafts.json";
 const UI_FILE = "ui.json";
 const MAX_STATE_BYTES = 5 * 1024 * 1024;
 
-const EMPTY_UI: EditorUiState = { tabs: [], activeTabId: null };
+const EMPTY_UI: EditorUiState = {
+  tabs: [],
+  activeTabId: null,
+  environmentId: null,
+};
 
 type FileChanges = { writes: Record<string, string>; deletes: string[] };
 
@@ -76,13 +99,17 @@ function workspaceRoot(entry: WorkspaceEntry) {
   return path.join(entry.repoDir, entry.root);
 }
 
-function isCollectionFile(relative: string) {
-  return relative.startsWith(`${COLLECTIONS_DIR}/`);
+function areaDir(op: CollectionOp) {
+  return ENVIRONMENT_OPS.has(op.op) ? ENVIRONMENTS_DIR : COLLECTIONS_DIR;
+}
+
+function isInArea(relative: string, op: CollectionOp) {
+  return relative.startsWith(`${areaDir(op)}/`);
 }
 
 function isWritable(relative: string, op: CollectionOp) {
-  if (relative === MANIFEST_PATH) return op.op === "update-workspace";
-  return isCollectionFile(relative);
+  if (relative === MANIFEST_PATH) return MANIFEST_OPS.has(op.op);
+  return isInArea(relative, op);
 }
 
 function generatedPaths(paths: Record<string, string>, keepId: string | null) {
@@ -123,17 +150,16 @@ function planChanges(
     writes[file] = content;
   }
   const deletes = Object.keys(baseline.files).filter(
-    (file) =>
-      isCollectionFile(file) && file in onDisk && !(file in after.files),
+    (file) => isInArea(file, op) && file in onDisk && !(file in after.files),
   );
   return { writes, deletes };
 }
 
-function resolveInside(rootDir: string, relative: string) {
+function resolveInside(rootDir: string, relative: string, op: CollectionOp) {
   const absolute = path.resolve(rootDir, ...relative.split("/"));
   if (relative === MANIFEST_PATH) return absolute;
-  const collectionsDir = path.join(rootDir, COLLECTIONS_DIR);
-  if (!isInside(absolute, collectionsDir) || absolute === collectionsDir) {
+  const area = path.join(rootDir, areaDir(op));
+  if (!isInside(absolute, area) || absolute === area) {
     throw new WorkspaceError("invalid_input", `Refused to touch ${relative}.`);
   }
   return absolute;
@@ -148,10 +174,14 @@ async function isEmptyDirectory(dir: string) {
   }
 }
 
-async function removeEmptyParents(rootDir: string, file: string) {
-  const collectionsDir = path.join(rootDir, COLLECTIONS_DIR);
+async function removeEmptyParents(
+  rootDir: string,
+  file: string,
+  op: CollectionOp,
+) {
+  const area = path.join(rootDir, areaDir(op));
   let dir = path.dirname(file);
-  while (isInside(dir, collectionsDir) && dir !== collectionsDir) {
+  while (isInside(dir, area) && dir !== area) {
     const empty = await isEmptyDirectory(dir);
     if (!empty) return;
     await rmdir(dir);
@@ -159,13 +189,19 @@ async function removeEmptyParents(rootDir: string, file: string) {
   }
 }
 
-async function applyChanges(rootDir: string, changes: FileChanges) {
+async function applyChanges(
+  rootDir: string,
+  changes: FileChanges,
+  op: CollectionOp,
+) {
   for (const [file, content] of Object.entries(changes.writes)) {
-    await writeAtomic(resolveInside(rootDir, file), content);
+    await writeAtomic(resolveInside(rootDir, file, op), content);
   }
-  const removed = changes.deletes.map((file) => resolveInside(rootDir, file));
+  const removed = changes.deletes.map((file) =>
+    resolveInside(rootDir, file, op),
+  );
   for (const file of removed) await rm(file, { force: true });
-  for (const file of removed) await removeEmptyParents(rootDir, file);
+  for (const file of removed) await removeEmptyParents(rootDir, file, op);
 }
 
 function assertEditable(files: Record<string, string>) {
@@ -175,6 +211,36 @@ function assertEditable(files: Record<string, string>) {
     throw new WorkspaceError("newer_format");
   }
   return parsed;
+}
+
+async function syncSecrets(
+  workspaceId: string,
+  op: CollectionOp,
+  applied: { workspace: WorkspaceData; createdId: string | null },
+) {
+  switch (op.op) {
+    case "update-environment":
+      await storeEnvironmentSecrets(
+        workspaceId,
+        applied.workspace.environments.filter((entry) => entry.id === op.id),
+      );
+      return;
+    case "update-globals":
+      if (applied.workspace.globals) {
+        await storeEnvironmentSecrets(workspaceId, [applied.workspace.globals]);
+      }
+      return;
+    case "duplicate-environment":
+      if (applied.createdId) {
+        await copyEnvironmentSecrets(workspaceId, op.id, applied.createdId);
+      }
+      return;
+    case "delete-environment":
+      await forgetEnvironmentSecrets(workspaceId, op.id);
+      return;
+    default:
+      return;
+  }
 }
 
 async function runOperation(
@@ -197,7 +263,8 @@ async function runOperation(
   const baseline = toFilesWithPaths(parsed.workspace, options);
   const serialized = toFilesWithPaths(applied.workspace, options);
   const changes = planChanges(files, baseline, serialized, op);
-  await applyChanges(rootDir, changes);
+  await applyChanges(rootDir, changes, op);
+  await syncSecrets(entry.id, op, applied);
   const workspace = await openWorkspace(entry.id);
   return { workspace, createdId: applied.createdId };
 }
@@ -211,9 +278,6 @@ export async function applyOperation(
   const entry = await findEntry(workspaceId);
   return enqueue(entry.id, () => runOperation(entry, op as CollectionOp));
 }
-
-const stateFile = (workspaceId: string, name: string) =>
-  path.join(stateDir(workspaceId), "state", name);
 
 async function readState<T>(
   file: string,

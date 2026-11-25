@@ -55,6 +55,7 @@ export interface OpenedWorkspace {
   data: WorkspaceData | null;
   issues: FormatIssue[];
   git: WorkspaceGitState;
+  secretsPersisted: boolean;
 }
 
 export interface RemoveCheck {
@@ -96,6 +97,7 @@ export type WorkspaceErrorCode =
   | "merge_conflict"
   | "nothing_to_commit"
   | "sync_failed"
+  | "secret_leak"
   | "unknown";
 
 export interface WorkspaceErrorInfo {

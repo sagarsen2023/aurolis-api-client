@@ -11,6 +11,7 @@ export type EditorTabKind = EditorTab["kind"];
 export interface EditorUiState {
   tabs: EditorTab[];
   activeTabId: string | null;
+  environmentId: string | null;
 }
 
 export type RequestDrafts = Record<string, SavedRequest>;

@@ -12,6 +12,7 @@ import type {
   ApiRequest,
   RequestExample,
 } from "../types/workspace/request.type.ts";
+import type { Environment } from "../types/workspace/environment.type.ts";
 import type { WorkspaceData } from "../types/workspace/workspace.type.ts";
 import { createRequest } from "./request-factory.ts";
 
@@ -293,7 +294,85 @@ const deleteExample: OpHandler<"delete-example"> = (workspace, op) => {
   return null;
 };
 
+const GLOBALS_ID = "globals";
+
+function requireEnvironment(workspace: WorkspaceData, id: string) {
+  const environment = workspace.environments.find((entry) => entry.id === id);
+  if (!environment) throw new CollectionOpError("Environment not found.");
+  return environment;
+}
+
+const createEnvironment: OpHandler<"create-environment"> = (
+  workspace,
+  op,
+  newId,
+) => {
+  const environment: Environment = {
+    id: newId(),
+    name: op.name,
+    seq: nextSeq(workspace.environments),
+    variables: [],
+  };
+  workspace.environments.push(environment);
+  return environment.id;
+};
+
+const updateEnvironment: OpHandler<"update-environment"> = (workspace, op) => {
+  Object.assign(requireEnvironment(workspace, op.id), op.settings);
+  return null;
+};
+
+const duplicateEnvironment: OpHandler<"duplicate-environment"> = (
+  workspace,
+  op,
+  newId,
+) => {
+  const source = requireEnvironment(workspace, op.id);
+  const copy: Environment = {
+    ...structuredClone(source),
+    id: newId(),
+    name: copyName(source.name, workspace.environments),
+    seq: seqAfter(workspace.environments, source.seq),
+  };
+  workspace.environments.push(copy);
+  return copy.id;
+};
+
+const deleteEnvironment: OpHandler<"delete-environment"> = (workspace, op) => {
+  requireEnvironment(workspace, op.id);
+  remove(workspace.environments, op.id);
+  if (workspace.manifest.defaultEnvironment === op.id) {
+    workspace.manifest.defaultEnvironment = null;
+  }
+  return null;
+};
+
+const updateGlobals: OpHandler<"update-globals"> = (workspace, op) => {
+  workspace.globals = {
+    id: workspace.globals?.id ?? GLOBALS_ID,
+    name: "Globals",
+    seq: 0,
+    variables: op.variables,
+  };
+  return null;
+};
+
+const setDefaultEnvironment: OpHandler<"set-default-environment"> = (
+  workspace,
+  op,
+) => {
+  if (op.id) requireEnvironment(workspace, op.id);
+  workspace.manifest.defaultEnvironment = op.id;
+  return null;
+};
+
 const HANDLERS: { [K in CollectionOpName]: OpHandler<K> } = {
+  "create-environment": createEnvironment,
+  "update-environment": updateEnvironment,
+  "duplicate-environment": duplicateEnvironment,
+  "delete-environment": deleteEnvironment,
+  "update-globals": updateGlobals,
+  "set-default-environment": setDefaultEnvironment,
   "update-workspace": updateWorkspace,
   "create-collection": createCollection,
   "update-collection": updateCollection,
