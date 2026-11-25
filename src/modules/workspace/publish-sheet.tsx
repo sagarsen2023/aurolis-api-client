@@ -331,33 +331,30 @@ function PublishFlow({
         start();
       }}
     >
-      <Field
-        label="Repository name"
-        htmlFor="publish-repo-name"
-        error={nameTouched ? nameError : null}
-        hint={
-          <>
-            Prefilled from the workspace name. It will be{" "}
-            <span className="font-mono text-foreground">
-              github.com/{fullName}
-            </span>
-          </>
-        }
-      >
+      <div className="flex flex-col gap-2">
         <Input
           id="publish-repo-name"
+          label="Repository name"
           autoFocus
           value={name}
           maxLength={100}
           spellCheck={false}
-          aria-invalid={nameTouched && Boolean(nameError)}
+          error={nameTouched && nameError ? nameError : undefined}
           onChange={(event) => {
             setName(event.target.value);
             setNameTouched(true);
           }}
           className="h-10 bg-card font-mono text-[14px]"
         />
-      </Field>
+        {nameTouched && nameError ? null : (
+          <p className="text-[12.5px] text-mute">
+            Prefilled from the workspace name. It will be{" "}
+            <span className="font-mono text-foreground">
+              github.com/{fullName}
+            </span>
+          </p>
+        )}
+      </div>
 
       <Field
         label="Owner"

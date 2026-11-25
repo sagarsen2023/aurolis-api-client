@@ -7,7 +7,7 @@
 //
 // Docs: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow
 
-import { app, net, safeStorage, shell } from "electron";
+import { app, net, safeStorage } from "electron";
 import path from "node:path";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import type {
@@ -279,7 +279,7 @@ async function fetchUser(token: string): Promise<UserFetch> {
 // ---------------------------------------------------------------------------
 // Device flow
 
-/** Step 1: ask GitHub for a user code and open the verification page. */
+/** Step 1: ask GitHub for a user code. The renderer copies it and opens GitHub. */
 export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
   if (!CLIENT_ID) return { ok: false, error: "not_configured" };
 
@@ -320,8 +320,6 @@ export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
     expiresAt: Date.now() + start.expires_in * 1000,
     abort: new AbortController(),
   };
-
-  await shell.openExternal(start.verification_uri);
 
   return {
     ok: true,
