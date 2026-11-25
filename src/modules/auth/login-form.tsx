@@ -14,7 +14,6 @@ import {
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { authService, GithubSignInFailure } from "@/services/auth.service";
-import { githubService } from "@/services/github.service";
 import { usePromise } from "@/hooks/usePromise";
 import type { GithubDeviceCodePrompt } from "@/types/auth/auth-response.type";
 import { Button } from "@/components/ui/button";
@@ -67,12 +66,6 @@ export function LoginForm({
     },
     onSuccessAsync: async (signedIn) => {
       if (!signedIn) return;
-      void githubService
-        .isInstalled()
-        .then((installed) => {
-          if (!installed) void githubService.openInstallPage();
-        })
-        .catch(() => {});
       await navigate({ to: "/", replace: true });
     },
     onFinally: () => setPrompt(null),

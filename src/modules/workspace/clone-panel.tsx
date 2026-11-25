@@ -144,11 +144,7 @@ function ClonePanel({ onDone }: Readonly<{ onDone?: () => void }>) {
 
   const { loading: cloning, runPromise: runClone } = usePromise({
     showErrorToast: false,
-    promise: async () => {
-      if (!registry?.storageFolder)
-        await workspaceService.setStorage("default");
-      return workspaceService.clone(pendingUrl.current);
-    },
+    promise: () => workspaceService.clone(pendingUrl.current),
     onSuccessAsync: async (result) => {
       toast.success(
         result.alreadyAdded

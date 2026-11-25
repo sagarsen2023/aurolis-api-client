@@ -46,6 +46,9 @@ function describeGithubFailure(
   request: PublishRequest,
 ): FailureHelp {
   const fullName = `${request.owner}/${request.name}`;
+  const githubSaid = error.info.message
+    ? ` GitHub said: "${error.info.message}"`
+    : "";
   switch (error.code) {
     case "already_exists":
       return {
@@ -57,7 +60,7 @@ function describeGithubFailure(
       return request.mode === "create"
         ? {
             title: `Aurolis can't create repositories for ${request.owner}`,
-            body: "The Aurolis GitHub App isn't allowed to create repositories here. Create an empty repository on GitHub with this name, then publish to it.",
+            body: `The Aurolis GitHub App isn't allowed to create repositories here. Give it the Administration (read and write) repository permission and accept it on the installation, or create an empty repository on GitHub with this name, then publish to it.${githubSaid}`,
             actions: ["create-on-github", "use-existing", "back"],
           }
         : {

@@ -8,22 +8,11 @@ import { registryAtom } from "@/context/workspace-context";
 import { usePromise } from "@/hooks/usePromise";
 import { workspaceService } from "@/services/workspace.service";
 import type { StorageWarning } from "@/types/workspace/workspace-store.type";
-
-function formatBytes(bytes: number | null) {
-  if (bytes === null) return null;
-  const gb = bytes / 1024 ** 3;
-  return gb >= 1
-    ? `${gb.toFixed(gb >= 100 ? 0 : 1)} GB free`
-    : `${Math.round(bytes / 1024 ** 2)} MB free`;
-}
+import { formatFreeSpace } from "@/utils/format-bytes";
 
 function StorageFolderLine() {
   const [registry, setRegistry] = useAtom(registryAtom);
-  const [warnings, setWarnings] = useState<StorageWarning[]>(
-    registry?.storageFolder
-      ? []
-      : (registry?.defaultStorageFolder.warnings ?? []),
-  );
+  const [warnings, setWarnings] = useState<StorageWarning[]>([]);
 
   const { loading, runPromise: changeFolder } = usePromise({
     promise: async () => {
@@ -48,7 +37,7 @@ function StorageFolderLine() {
     registry.storageFolderDisplay ?? registry.defaultStorageFolder.displayPath;
   const free = registry.storageFolder
     ? null
-    : formatBytes(registry.defaultStorageFolder.freeBytes);
+    : formatFreeSpace(registry.defaultStorageFolder.freeBytes);
 
   return (
     <div className="flex flex-col gap-2">
