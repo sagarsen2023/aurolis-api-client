@@ -7,6 +7,7 @@ import type {
   EngineErrorInfo,
   EngineResult,
 } from "@/types/engine/engine.type";
+import { desktopBridge } from "./desktop-bridge";
 
 export class EngineFailure extends Error {
   readonly code: EngineErrorCode;
@@ -24,13 +25,11 @@ export class EngineFailure extends Error {
   }
 }
 
-export function engineBridge() {
-  const engine = window.aurolis?.engine;
-  if (!engine) {
-    throw new Error("Sending requests is only available in the desktop app.");
-  }
-  return engine;
-}
+export const engineBridge = () =>
+  desktopBridge(
+    "engine",
+    "Sending requests is only available in the desktop app.",
+  );
 
 export async function unwrapEngine<T>(
   result: Promise<EngineResult<T>>,

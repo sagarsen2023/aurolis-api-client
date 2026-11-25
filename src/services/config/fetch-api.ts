@@ -12,8 +12,6 @@ export async function request<T>(
   endpoint: string,
   options: APIOptions = {},
 ): Promise<T> {
-  // Configure your token from here
-  // const token = getAuthToken();
   const url = isNextApi ? endpoint : `${BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {
@@ -21,14 +19,12 @@ export async function request<T>(
     method,
     headers: {
       "Content-Type": "application/json",
-      // Authorization: token ? `Bearer ${token}` : "", // Uncomment this line based on your requirements
       "X-Project-Id": "6888b34c12456c8bab0377ac",
       ...options.headers,
     },
   });
   if (response.status === 401) {
     deleteAllCookies();
-    // ? Add you redirection logic and other required logics here
   }
   return response.json();
 }

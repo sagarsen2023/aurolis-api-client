@@ -83,7 +83,6 @@ function SideBar() {
     };
   }, []);
 
-  // Keep the header breadcrumb in step with the current route.
   useEffect(() => {
     const current = ALL_ITEMS.find((item) => isActivePath(item.link, pathname));
     if (current?.breadCrumb) setBreadCrumb(current.breadCrumb);
@@ -94,7 +93,6 @@ function SideBar() {
       aria-label="Main"
       className="flex h-full w-17 shrink-0 flex-col items-center border-r border-line bg-background px-2.75 py-3.5"
     >
-      {/* Logo tile */}
       <Link
         to="/"
         aria-label="Aurolis home"
@@ -114,7 +112,6 @@ function SideBar() {
         />
       </Link>
 
-      {/* Main destinations */}
       <div className="flex flex-col items-center gap-1.5">
         {sideMenuItems.map((item) => (
           <RailItem
@@ -125,7 +122,6 @@ function SideBar() {
         ))}
       </div>
 
-      {/* Bottom: settings + account */}
       <div className="mt-auto flex flex-col items-center gap-3">
         {bottomMenuItems.map((item) => (
           <RailItem

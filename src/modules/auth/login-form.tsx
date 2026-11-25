@@ -107,7 +107,6 @@ export function LoginForm({
         className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-orb-a/25 blur-3xl dark:bg-orb-c/10"
       />
 
-      {/* Left: brand + sign-in */}
       <section className="relative flex min-w-0 flex-1 flex-col px-4 py-2 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -219,7 +218,6 @@ export function LoginForm({
         </div>
       </section>
 
-      {/* Right: product hero */}
       <aside className="relative hidden w-1/2 max-w-5xl shrink-0 overflow-hidden rounded-2xl bg-[#0f0d10] lg:block">
         <img
           src="/aurolis-logo/png/aurolis-hero.png"

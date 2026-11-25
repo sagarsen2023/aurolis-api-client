@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { nameError } from "@/utils/name";
 import type { CollectionOp } from "@/types/workspace/collection-ops.type";
 import type { RequestProtocol } from "@/types/workspace/request.type";
+import { statusCodeError } from "@/utils/status-code";
 
 type DialogOf<K extends TreeDialog["kind"]> = Extract<TreeDialog, { kind: K }>;
 
@@ -217,14 +218,6 @@ function NewRequestDialog({
   );
 }
 
-function statusError(status: string) {
-  const code = Number(status);
-  if (!Number.isInteger(code) || code < 100 || code > 599) {
-    return "Use a status between 100 and 599.";
-  }
-  return undefined;
-}
-
 function NewExampleDialog({
   dialog,
   onClose,
@@ -244,7 +237,7 @@ function NewExampleDialog({
       description={`A saved response for ${dialog.requestName}, kept in the repository next to the request.`}
       submitLabel="Create example"
       busy={loading}
-      canSubmit={!nameError(name) && !statusError(status)}
+      canSubmit={!nameError(name) && !statusCodeError(status)}
       onClose={onClose}
       onSubmit={() =>
         create({
@@ -272,7 +265,7 @@ function NewExampleDialog({
           label="Status"
           inputMode="numeric"
           value={status}
-          error={statusError(status)}
+          error={statusCodeError(status)}
           onChange={(event) => setStatus(event.target.value)}
         />
       </div>

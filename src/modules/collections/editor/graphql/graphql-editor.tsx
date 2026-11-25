@@ -8,7 +8,7 @@ import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
 import { useVariableNames } from "@/hooks/use-variable-names";
 import type { TypescriptSourceId } from "@/context/collections-context";
 import { payloadSource, responseSource } from "@/lib/typescript-sources";
-import type { SavedRequest } from "@/types/workspace/collection-ops.type";
+import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
 import type { GraphqlOperation } from "@/types/workspace/request.type";
 import { toTypeName } from "@/utils/generate-typescript-interface";
 import { tryParseJson } from "@/utils/json";
@@ -22,8 +22,7 @@ import SplitLayout from "../split-layout";
 import UnresolvedNotice from "../unresolved-notice";
 import UrlBar from "../url-bar";
 import SchemaPanel from "./schema-panel";
-
-type GraphqlDraft = Extract<SavedRequest, { protocol: "graphql" }>;
+import { countEnabled } from "@/utils/count-enabled";
 
 function variablesError(variables: string) {
   if (!variables.trim()) return undefined;
@@ -72,8 +71,8 @@ function GraphqlEditor({
   request,
   onChange,
 }: Readonly<{
-  request: GraphqlDraft;
-  onChange: (request: GraphqlDraft) => void;
+  request: SavedRequestOf<"graphql">;
+  onChange: (request: SavedRequestOf<"graphql">) => void;
 }>) {
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
@@ -182,8 +181,7 @@ function GraphqlEditor({
           {
             value: "headers",
             label: "Headers",
-            count: request.headers.filter((row) => row.enabled && row.key)
-              .length,
+            count: countEnabled(request.headers),
             content: (
               <KeyValueEditor
                 label="Headers"

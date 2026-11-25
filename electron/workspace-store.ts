@@ -14,6 +14,7 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { z } from "zod";
 import {
   createManifest,
   fromFiles,
@@ -89,6 +90,14 @@ export class WorkspaceError extends Error {
     this.name = "WorkspaceError";
     this.code = code;
   }
+}
+
+export function parseWorkspaceInput<T>(schema: z.ZodType<T>, input: unknown) {
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) {
+    throw new WorkspaceError("invalid_input", z.prettifyError(parsed.error));
+  }
+  return parsed.data;
 }
 
 const registryFile = () => path.join(userData(), "workspaces.json");

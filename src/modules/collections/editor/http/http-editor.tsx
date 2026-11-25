@@ -7,7 +7,7 @@ import { useVariableNames } from "@/hooks/use-variable-names";
 import type { TypescriptSourceId } from "@/context/collections-context";
 import { payloadSource, responseSource } from "@/lib/typescript-sources";
 import { cn } from "@/lib/utils";
-import type { SavedRequest } from "@/types/workspace/collection-ops.type";
+import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
 import type { HttpMethod } from "@/types/workspace/request.type";
 import { toTypeName } from "@/utils/generate-typescript-interface";
 import ResponsePanel from "../../response/response-panel";
@@ -20,22 +20,20 @@ import SplitLayout from "../split-layout";
 import UnresolvedNotice from "../unresolved-notice";
 import UrlBar from "../url-bar";
 import BodyEditor from "./body-editor";
-
-type HttpDraft = Extract<SavedRequest, { protocol: "http" }>;
+import { countEnabled } from "@/utils/count-enabled";
 
 const METHOD_OPTIONS = HTTP_METHODS.map((method) => ({
   value: method,
   label: method,
 }));
 
-function enabledCount(rows: { enabled: boolean; key: string }[]) {
-  return rows.filter((row) => row.enabled && row.key).length;
-}
-
 function HttpEditor({
   request,
   onChange,
-}: Readonly<{ request: HttpDraft; onChange: (request: HttpDraft) => void }>) {
+}: Readonly<{
+  request: SavedRequestOf<"http">;
+  onChange: (request: SavedRequestOf<"http">) => void;
+}>) {
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
   const variableNames = useVariableNames(request.id);
@@ -93,7 +91,7 @@ function HttpEditor({
           {
             value: "params",
             label: "Params",
-            count: enabledCount(request.params),
+            count: countEnabled(request.params),
             content: (
               <KeyValueEditor
                 label="Query parameters"
@@ -106,7 +104,7 @@ function HttpEditor({
           {
             value: "headers",
             label: "Headers",
-            count: enabledCount(request.headers),
+            count: countEnabled(request.headers),
             content: (
               <KeyValueEditor
                 label="Headers"

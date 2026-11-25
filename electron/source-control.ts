@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { z } from "zod";
 import {
   describeChanges,
   type ChangedFileContent,
@@ -37,6 +36,7 @@ import { secretValues } from "./secret-store.ts";
 import {
   findEntry,
   readWorkspaceFiles,
+  parseWorkspaceInput,
   WorkspaceError,
 } from "./workspace-store.ts";
 
@@ -221,11 +221,10 @@ function syncFailure(error: unknown, committed: boolean) {
 }
 
 export async function commitAndSync(params: unknown): Promise<CommitResult> {
-  const parsed = commitParamsSchema.safeParse(params);
-  if (!parsed.success) {
-    throw new WorkspaceError("invalid_input", z.prettifyError(parsed.error));
-  }
-  const { workspaceId, message, sync } = parsed.data;
+  const { workspaceId, message, sync } = parseWorkspaceInput(
+    commitParamsSchema,
+    params,
+  );
   const entry = await findEntry(workspaceId);
   const dir = requireFolder(entry);
   const branch = await currentBranch(dir);

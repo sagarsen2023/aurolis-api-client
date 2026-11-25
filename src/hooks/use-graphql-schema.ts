@@ -4,13 +4,11 @@ import { requestTimeoutAtom } from "@/context/settings-atoms";
 import { schemaFromIntrospection } from "@/lib/graphql-schema";
 import { prepareGraphql } from "@/lib/prepare-request";
 import { graphqlEngineService } from "@/services/graphql-engine.service";
-import type { SavedRequest } from "@/types/workspace/collection-ops.type";
+import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
 import { useRequestContext } from "./use-request-context";
 import { usePromise } from "./usePromise";
 
-type GraphqlDraft = Extract<SavedRequest, { protocol: "graphql" }>;
-
-export function useGraphqlSchema(request: GraphqlDraft) {
+export function useGraphqlSchema(request: SavedRequestOf<"graphql">) {
   const [schemas, setSchemas] = useAtom(graphqlSchemasAtom);
   const timeoutSeconds = useAtomValue(requestTimeoutAtom);
   const getContext = useRequestContext(request.id);

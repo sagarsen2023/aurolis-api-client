@@ -10,6 +10,7 @@ import type {
   RepositoryNameParams,
 } from "@/types/github/github-params.type";
 import type { GithubResult } from "@/types/github/github-response.type";
+import { desktopBridge } from "./config/desktop-bridge";
 
 export class GithubApiFailure extends Error {
   readonly code: GithubApiErrorCode;
@@ -23,13 +24,8 @@ export class GithubApiFailure extends Error {
   }
 }
 
-function bridge() {
-  const github = window.aurolis?.github;
-  if (!github) {
-    throw new Error("GitHub sync is only available in the desktop app.");
-  }
-  return github;
-}
+const bridge = () =>
+  desktopBridge("github", "GitHub sync is only available in the desktop app.");
 
 async function unwrap<T>(result: Promise<GithubResult<T>>): Promise<T> {
   const response = await result;

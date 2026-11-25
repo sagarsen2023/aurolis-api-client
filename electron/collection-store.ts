@@ -44,6 +44,7 @@ import {
   isInside,
   openWorkspace,
   readWorkspaceFiles,
+  parseWorkspaceInput,
   WorkspaceError,
 } from "./workspace-store.ts";
 
@@ -88,10 +89,6 @@ function enqueue<T>(workspaceId: string, task: () => Promise<T>): Promise<T> {
     if (queues.get(workspaceId) === settled) queues.delete(workspaceId);
   });
   return next;
-}
-
-function invalidInput(error: z.ZodError) {
-  return new WorkspaceError("invalid_input", z.prettifyError(error));
 }
 
 function workspaceRoot(entry: WorkspaceEntry) {
@@ -272,9 +269,10 @@ async function runOperation(
 export async function applyOperation(
   params: unknown,
 ): Promise<CollectionOpResult> {
-  const parsed = applyCollectionOpSchema.safeParse(params);
-  if (!parsed.success) throw invalidInput(parsed.error);
-  const { workspaceId, op } = parsed.data;
+  const { workspaceId, op } = parseWorkspaceInput(
+    applyCollectionOpSchema,
+    params,
+  );
   const entry = await findEntry(workspaceId);
   return enqueue(entry.id, () => runOperation(entry, op as CollectionOp));
 }
@@ -323,15 +321,13 @@ export async function loadEditorState(
 }
 
 export async function saveDrafts(params: unknown) {
-  const parsed = saveDraftsSchema.safeParse(params);
-  if (!parsed.success) throw invalidInput(parsed.error);
-  const entry = await findEntry(parsed.data.workspaceId);
-  await writeState(stateFile(entry.id, DRAFTS_FILE), parsed.data.drafts);
+  const { workspaceId, drafts } = parseWorkspaceInput(saveDraftsSchema, params);
+  const entry = await findEntry(workspaceId);
+  await writeState(stateFile(entry.id, DRAFTS_FILE), drafts);
 }
 
 export async function saveUiState(params: unknown) {
-  const parsed = saveUiStateSchema.safeParse(params);
-  if (!parsed.success) throw invalidInput(parsed.error);
-  const entry = await findEntry(parsed.data.workspaceId);
-  await writeState(stateFile(entry.id, UI_FILE), parsed.data.ui);
+  const { workspaceId, ui } = parseWorkspaceInput(saveUiStateSchema, params);
+  const entry = await findEntry(workspaceId);
+  await writeState(stateFile(entry.id, UI_FILE), ui);
 }

@@ -46,7 +46,6 @@ function item(
   };
 }
 
-/** Main destinations, top of the rail. */
 export const sideMenuItems: SideMenuItem[] = [
   item("overview", "Overview", "/", House),
   item("collections", "Collections", "/collections", Layers),
@@ -55,7 +54,6 @@ export const sideMenuItems: SideMenuItem[] = [
   item("import-export", "Import & export", "/import-export", ArrowUpDown),
 ];
 
-/** Pinned to the bottom of the rail, above the avatar. */
 export const bottomMenuItems: SideMenuItem[] = [
   item("settings", "Settings", "/settings", Settings),
 ];

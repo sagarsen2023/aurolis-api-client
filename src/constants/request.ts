@@ -92,6 +92,4 @@ export const AUTH_OPTIONS: ReadonlyArray<{
   { value: "apikey", label: "API key" },
 ];
 
-export const DEFAULT_SOCKETIO_PATH = "/socket.io";
-
 export const NEW_EXAMPLE_STATUS = 200;

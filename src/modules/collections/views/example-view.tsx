@@ -20,6 +20,8 @@ import CodeEditor from "../shared/code-editor";
 import KeyValueEditor from "../shared/key-value-editor";
 import { toTypeName } from "@/utils/generate-typescript-interface";
 import ItemFormHeader from "./item-form-header";
+import { statusCodeError } from "@/utils/status-code";
+import { countEnabled } from "@/utils/count-enabled";
 
 type ExampleForm = Omit<ExampleInput, "status"> & { status: string };
 
@@ -32,13 +34,6 @@ function formOf(example: RequestExample): ExampleForm {
   };
 }
 
-function statusError(status: string) {
-  const code = Number(status);
-  return Number.isInteger(code) && code >= 100 && code <= 599
-    ? undefined
-    : "Use a status between 100 and 599.";
-}
-
 function ExampleEditor({
   example,
   request,
@@ -46,7 +41,7 @@ function ExampleEditor({
   const { form, setForm, isDirty, reset } = useItemForm(formOf(example));
   const { apply } = useCollectionActions();
   const setDialog = useSetAtom(treeDialogAtom);
-  const invalidStatus = statusError(form.status);
+  const invalidStatus = statusCodeError(form.status);
   const showTypescript = useTypescriptSheet(`the ${example.name} example`);
   const { loading, runPromise: save } = usePromise({
     promise: () =>
@@ -137,7 +132,7 @@ function ExampleEditor({
           {
             value: "headers",
             label: "Headers",
-            count: form.headers.filter((row) => row.enabled && row.key).length,
+            count: countEnabled(form.headers),
             content: (
               <KeyValueEditor
                 label="Example headers"

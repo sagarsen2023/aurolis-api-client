@@ -25,7 +25,7 @@ const headerValueSchema = z
   .max(65_536)
   .refine((value) => !/[\r\n\0]/.test(value), "Invalid header value");
 
-export const headerPairsSchema = z
+const headerPairsSchema = z
   .array(z.tuple([headerNameSchema, headerValueSchema]))
   .max(MAX_HEADERS);
 
@@ -49,13 +49,13 @@ const urlSchema = (protocols: readonly string[]) =>
           return false;
         }
       },
-      `Enter a URL that starts with ${protocols.map((p) => `${p}//`).join(", ")}.`,
+      `Enter a URL that starts with ${new Intl.ListFormat("en", { type: "disjunction" }).format(protocols.map((protocol) => `${protocol}//`))}.`,
     );
 
-export const httpUrlSchema = urlSchema(["http:", "https:"]);
-export const realtimeUrlSchema = urlSchema(["ws:", "wss:", "http:", "https:"]);
+const httpUrlSchema = urlSchema(["http:", "https:"]);
+const realtimeUrlSchema = urlSchema(["ws:", "wss:", "http:", "https:"]);
 
-export const preparedBodySchema = z.discriminatedUnion("kind", [
+const preparedBodySchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("none") }),
   z.object({ kind: z.literal("text"), text: z.string().max(MAX_TEXT_BODY) }),
   z.object({ kind: z.literal("urlencoded"), fields: fieldPairsSchema }),
