@@ -9,6 +9,9 @@ type Row = KeyValue & { secret?: boolean };
 const CELL =
   "h-8 w-full min-w-0 rounded-lg border border-transparent bg-transparent px-2 font-mono text-[12.5px] text-foreground outline-none placeholder:text-dim hover:border-line focus-visible:border-ring focus-visible:bg-input/30";
 
+const BOXED_CELL =
+  "h-9 w-full min-w-0 rounded-[10px] border border-line-strong bg-surface-2 px-3 font-mono text-[12.5px] text-foreground outline-none placeholder:text-dim focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30";
+
 const EMPTY_ROW: Row = { key: "", value: "", enabled: true };
 
 function isBlank(row: Row) {
@@ -27,6 +30,7 @@ function KeyValueEditor({
   valuePlaceholder = "Value",
   label,
   secrets = false,
+  boxed = false,
 }: Readonly<{
   rows: Row[];
   onChange: (rows: Row[]) => void;
@@ -34,11 +38,13 @@ function KeyValueEditor({
   valuePlaceholder?: string;
   label: string;
   secrets?: boolean;
+  boxed?: boolean;
 }>) {
   const visible = withTrailingRow(rows);
   const columns = secrets
     ? "grid-cols-[28px_1fr_1.4fr_32px_32px]"
     : "grid-cols-[28px_1fr_1.4fr_32px]";
+  const cell = boxed ? BOXED_CELL : CELL;
 
   const commit = (next: Row[]) => onChange(next.filter((row) => !isBlank(row)));
 
@@ -57,17 +63,18 @@ function KeyValueEditor({
       <div
         role="row"
         className={cn(
-          "grid items-center gap-1 border-b border-line px-1 pb-1.5 text-[11.5px] font-medium text-dim",
+          "grid items-center gap-1 px-1 pb-1.5 text-[11.5px] font-medium text-dim",
+          boxed ? "gap-2 text-[12.5px]" : "border-b border-line",
           columns,
         )}
       >
         <span role="columnheader">
           <span className="sr-only">Enabled</span>
         </span>
-        <span role="columnheader" className="px-2">
+        <span role="columnheader" className={boxed ? "px-3" : "px-2"}>
           {keyPlaceholder}
         </span>
-        <span role="columnheader" className="px-2">
+        <span role="columnheader" className={boxed ? "px-3" : "px-2"}>
           {valuePlaceholder}
         </span>
         {secrets ? (
@@ -86,7 +93,8 @@ function KeyValueEditor({
             role="row"
             key={index}
             className={cn(
-              "grid items-center gap-1 border-b border-line/60 px-1 py-0.5",
+              "grid items-center gap-1 px-1 py-0.5",
+              boxed ? "gap-2" : "border-b border-line/60",
               columns,
               !row.enabled && "opacity-55",
             )}
@@ -105,7 +113,7 @@ function KeyValueEditor({
             <input
               role="cell"
               aria-label={`${keyPlaceholder} ${index + 1}`}
-              className={CELL}
+              className={cell}
               placeholder={keyPlaceholder}
               value={row.key}
               spellCheck={false}
@@ -116,7 +124,7 @@ function KeyValueEditor({
             <input
               role="cell"
               aria-label={`${valuePlaceholder} ${index + 1}`}
-              className={CELL}
+              className={cell}
               placeholder={valuePlaceholder}
               value={row.value}
               type={row.secret ? "password" : "text"}

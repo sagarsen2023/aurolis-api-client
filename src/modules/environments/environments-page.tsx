@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { useAtomValue } from "jotai";
+import { useState, type ReactNode } from "react";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { Plus } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+  environmentDraftsAtom,
+  selectedEnvironmentIdAtom,
+} from "@/context/environments-context";
 import { currentEnvironmentAtom } from "@/context/workspace-context";
-import { formKey } from "@/hooks/use-item-form";
+import { FormatIssues } from "@/modules/workspace/workspace-states";
 import WorkspaceGate from "@/modules/workspace/workspace-gate";
 import type { Environment } from "@/types/workspace/environment.type";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
@@ -15,7 +17,7 @@ import {
   DeleteEnvironmentDialog,
   NewEnvironmentDialog,
 } from "./environment-dialogs";
-import EnvironmentForm, { type EnvironmentTarget } from "./environment-form";
+import EnvironmentForm from "./environment-form";
 import EnvironmentList from "./environment-list";
 
 const EMPTY_GLOBALS: Environment = {
@@ -25,21 +27,53 @@ const EMPTY_GLOBALS: Environment = {
   variables: [],
 };
 
-type Dialog = { kind: "new" } | { kind: "delete"; environment: Environment };
+const LAYOUT = "grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]";
 
-function PageSkeleton() {
+function EnvironmentsShell({
+  actions,
+  children,
+}: Readonly<{ actions?: ReactNode; children: ReactNode }>) {
   return (
-    <div aria-busy className="flex h-full">
-      <div className="flex w-72 flex-col gap-2 border-r border-line p-4">
-        {Array.from({ length: 5 }, (_, index) => (
-          <Skeleton key={index} className="h-10" />
-        ))}
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <Skeleton className="h-10" />
-        <Skeleton className="h-64" />
-      </div>
+    <div className="mx-auto flex w-full max-w-310 flex-col gap-6 px-8 pt-8 pb-12">
+      <PageHeader
+        eyebrow="Variables"
+        size="display"
+        title={
+          <>
+            Environment{" "}
+            <span className="font-serif font-normal tracking-normal italic">
+              sets
+            </span>
+          </>
+        }
+        description={
+          <>
+            Values resolve as{" "}
+            <b className="font-medium text-foreground">
+              environment › collection › globals
+            </b>
+            . Secret values stay on this device and are never committed.
+          </>
+        }
+        actions={actions}
+      />
+      {children}
     </div>
+  );
+}
+
+function EnvironmentsSkeleton() {
+  return (
+    <EnvironmentsShell>
+      <div aria-busy className={LAYOUT}>
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }, (_, index) => (
+            <Skeleton key={index} className="h-16 rounded-2xl" />
+          ))}
+        </div>
+        <Skeleton className="h-80 rounded-xl" />
+      </div>
+    </EnvironmentsShell>
   );
 }
 
@@ -49,67 +83,76 @@ function EnvironmentsWorkbench({
   const environments = workspace.data?.environments ?? [];
   const globals = workspace.data?.globals ?? EMPTY_GLOBALS;
   const defaultId = workspace.data?.manifest.defaultEnvironment ?? null;
-  const inUseId = useAtomValue(currentEnvironmentAtom)?.id ?? null;
-  const [selectedId, setSelectedId] = useState<string | null>(inUseId ?? null);
-  const [dialog, setDialog] = useState<Dialog | null>(null);
-  const selected = environments.find((e) => e.id === selectedId);
-
-  const target: EnvironmentTarget = selected
-    ? {
-        kind: "environment",
-        environment: selected,
-        inUse: selected.id === inUseId,
-        isDefault: selected.id === defaultId,
-      }
-    : { kind: "globals", environment: globals };
+  const activeId = useAtomValue(currentEnvironmentAtom)?.id ?? null;
+  const [selectedId, setSelectedId] = useAtom(selectedEnvironmentIdAtom);
+  const setDrafts = useSetAtom(environmentDraftsAtom);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Environment | null>(null);
+  const all = [...environments, globals];
+  const selected =
+    all.find((e) => e.id === selectedId) ??
+    all.find((e) => e.id === activeId) ??
+    globals;
+  const isGlobals = selected === globals;
 
   return (
-    <>
-      <ResizablePanelGroup orientation="horizontal" className="h-full">
-        <ResizablePanel defaultSize="24" minSize={220} maxSize="40">
-          <EnvironmentList
-            environments={environments}
-            globals={globals}
-            selectedId={selected?.id ?? null}
-            inUseId={inUseId}
-            defaultId={defaultId}
-            onSelect={setSelectedId}
-            onCreate={() => setDialog({ kind: "new" })}
-          />
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel minSize="40">
-          <EnvironmentForm
-            key={formKey(target.environment.id, target.environment)}
-            target={target}
-            secretsPersisted={workspace.secretsPersisted}
-            onDuplicated={setSelectedId}
-            onDelete={() =>
-              selected && setDialog({ kind: "delete", environment: selected })
-            }
-          />
-        </ResizablePanel>
-      </ResizablePanelGroup>
-      {dialog?.kind === "new" ? (
+    <EnvironmentsShell
+      actions={
+        <Button
+          size="lg"
+          className="hover:bg-lav-hover"
+          onClick={() => setCreating(true)}
+        >
+          <Plus />
+          New environment
+        </Button>
+      }
+    >
+      {workspace.issues.length > 0 ? (
+        <FormatIssues workspace={workspace} />
+      ) : null}
+      <div className={LAYOUT}>
+        <EnvironmentList
+          environments={environments}
+          globals={globals}
+          selectedId={selected.id}
+          activeId={activeId}
+          defaultId={defaultId}
+          onSelect={setSelectedId}
+        />
+        <EnvironmentForm
+          key={selected.id}
+          environment={selected}
+          isGlobals={isGlobals}
+          active={selected.id === activeId}
+          isDefault={selected.id === defaultId}
+          secretsPersisted={workspace.secretsPersisted}
+          onDuplicated={setSelectedId}
+          onDelete={() => setDeleting(selected)}
+        />
+      </div>
+      {creating ? (
         <NewEnvironmentDialog
           onCreated={setSelectedId}
-          onClose={() => setDialog(null)}
+          onClose={() => setCreating(false)}
         />
       ) : null}
-      {dialog?.kind === "delete" ? (
+      {deleting ? (
         <DeleteEnvironmentDialog
-          environment={dialog.environment}
-          onDeleted={() => setSelectedId(null)}
-          onClose={() => setDialog(null)}
+          environment={deleting}
+          onDeleted={() =>
+            setDrafts(({ [deleting.id]: _dropped, ...rest }) => rest)
+          }
+          onClose={() => setDeleting(null)}
         />
       ) : null}
-    </>
+    </EnvironmentsShell>
   );
 }
 
 function EnvironmentsPage() {
   return (
-    <WorkspaceGate loading={<PageSkeleton />}>
+    <WorkspaceGate loading={<EnvironmentsSkeleton />}>
       {(workspace) => <EnvironmentsWorkbench workspace={workspace} />}
     </WorkspaceGate>
   );

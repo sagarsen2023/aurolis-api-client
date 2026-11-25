@@ -1,66 +1,68 @@
-import { Globe, Plus, SlidersHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { useAtomValue } from "jotai";
+import { Globe, Layers, Star } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Pill } from "@/components/ui/pill";
+import { environmentDraftsAtom } from "@/context/environments-context";
 import type { Environment } from "@/types/workspace/environment.type";
 import { variableSummary } from "./variable-summary";
 
-function EnvironmentRow({
-  label,
-  icon,
-  detail,
+function EnvironmentItem({
+  environment,
+  isGlobals,
   selected,
-  inUse,
+  dirty,
+  active,
   isDefault,
   onSelect,
 }: Readonly<{
-  label: string;
-  icon: typeof Globe;
-  detail: string;
+  environment: Environment;
+  isGlobals: boolean;
   selected: boolean;
-  inUse?: boolean;
-  isDefault?: boolean;
+  dirty: boolean;
+  active: boolean;
+  isDefault: boolean;
   onSelect: () => void;
 }>) {
-  const Icon = icon;
+  const Icon = isGlobals ? Globe : Layers;
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-current={selected ? "true" : undefined}
-      className={cn(
-        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        selected
-          ? "bg-surface-selected text-ink"
-          : "text-foreground hover:bg-surface-hover",
-      )}
+    <Card
+      displayGradient={selected}
+      className="gap-0 rounded-2xl py-0 transition-colors hover:border-line-strong"
     >
-      <Icon className="size-3.5 shrink-0 text-dim" aria-hidden />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="flex items-center gap-1.5 text-[13px]">
-          <span className="truncate">{label}</span>
-          {inUse ? (
-            <span
-              className="size-1.5 shrink-0 rounded-full bg-success"
-              title="In use"
-            >
-              <span className="sr-only">In use</span>
-            </span>
-          ) : null}
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={selected ? "true" : undefined}
+        className="flex w-full items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="grid size-9.5 shrink-0 place-items-center rounded-full bg-surface-icon text-ink">
+          <Icon className="size-4.5" strokeWidth={1.8} aria-hidden />
         </span>
-        <span className="truncate text-[11.5px] text-dim">{detail}</span>
-      </span>
-      {isDefault ? (
-        <span className="shrink-0 rounded-full border border-line px-1.5 text-[10.5px] text-mute">
-          Default
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex items-center gap-1.5 text-[13.5px] font-semibold text-foreground">
+            <span className="truncate">{environment.name}</span>
+            {isDefault ? (
+              <span title="Default environment" className="text-warning">
+                <Star className="size-3 fill-current" aria-hidden />
+                <span className="sr-only">Default</span>
+              </span>
+            ) : null}
+            {dirty ? (
+              <span
+                title="Unsaved changes"
+                className="size-1.5 shrink-0 rounded-full bg-coral"
+              >
+                <span className="sr-only">Unsaved changes</span>
+              </span>
+            ) : null}
+          </span>
+          <span className="truncate text-[12.5px] text-dim">
+            {variableSummary(environment.variables)}
+          </span>
         </span>
-      ) : null}
-    </button>
+        {active ? <Pill variant="ok">Active</Pill> : null}
+      </button>
+    </Card>
   );
 }
 
@@ -68,84 +70,48 @@ function EnvironmentList({
   environments,
   globals,
   selectedId,
-  inUseId,
+  activeId,
   defaultId,
   onSelect,
-  onCreate,
 }: Readonly<{
   environments: Environment[];
   globals: Environment;
-  selectedId: string | null;
-  inUseId: string | null;
+  selectedId: string;
+  activeId: string | null;
   defaultId: string | null;
-  onSelect: (id: string | null) => void;
-  onCreate: () => void;
+  onSelect: (id: string) => void;
 }>) {
+  const drafts = useAtomValue(environmentDraftsAtom);
   return (
-    <aside
-      aria-label="Environments"
-      className="flex h-full min-h-0 flex-col bg-background"
-    >
-      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
-        <h2 className="text-[15px] font-medium text-foreground">
-          Environments
-        </h2>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="New environment"
-                onClick={onCreate}
-              />
-            }
-          >
-            <Plus />
-          </TooltipTrigger>
-          <TooltipContent side="bottom">New environment</TooltipContent>
-        </Tooltip>
-      </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <nav
-          aria-label="Environment list"
-          className="flex flex-col gap-0.5 px-2 pb-4"
-        >
-          <EnvironmentRow
-            label="Globals"
-            icon={Globe}
-            detail={variableSummary(globals.variables)}
-            selected={selectedId === null}
-            onSelect={() => onSelect(null)}
-          />
-          <div className="mx-2.5 my-2 border-t border-line" />
-          {environments.map((environment) => (
-            <EnvironmentRow
-              key={environment.id}
-              label={environment.name}
-              icon={SlidersHorizontal}
-              detail={variableSummary(environment.variables)}
-              selected={selectedId === environment.id}
-              inUse={inUseId === environment.id}
-              isDefault={defaultId === environment.id}
-              onSelect={() => onSelect(environment.id)}
-            />
-          ))}
-          {environments.length === 0 ? (
-            <div className="flex flex-col items-start gap-3 px-2.5 py-2">
-              <p className="text-[13px] text-mute">
-                No environments yet. Add one for each place you send requests
-                to, like local, staging and production.
-              </p>
-              <Button variant="outline" size="sm" onClick={onCreate}>
-                <Plus />
-                New environment
-              </Button>
-            </div>
-          ) : null}
-        </nav>
-      </ScrollArea>
-    </aside>
+    <nav aria-label="Environments" className="flex flex-col gap-2">
+      {environments.map((environment) => (
+        <EnvironmentItem
+          key={environment.id}
+          environment={environment}
+          isGlobals={false}
+          selected={selectedId === environment.id}
+          dirty={environment.id in drafts}
+          active={activeId === environment.id}
+          isDefault={defaultId === environment.id}
+          onSelect={() => onSelect(environment.id)}
+        />
+      ))}
+      {environments.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-line-strong px-4 py-3.5 text-[13px] text-mute">
+          No environments yet. Add one for each place you send requests to, like
+          local, staging and production.
+        </p>
+      ) : null}
+      <EnvironmentItem
+        environment={globals}
+        isGlobals
+        selected={selectedId === globals.id}
+        dirty={globals.id in drafts}
+        active={false}
+        isDefault={false}
+        onSelect={() => onSelect(globals.id)}
+      />
+    </nav>
   );
 }
 
