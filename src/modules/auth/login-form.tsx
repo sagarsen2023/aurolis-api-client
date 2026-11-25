@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { FaGithub } from "react-icons/fa6";
+import type { IconType } from "react-icons";
 import {
   LuCheck,
   LuChevronRight,
   LuCodeXml,
   LuCopy,
-  LuExternalLink,
   LuGitBranch,
   LuLoaderCircle,
   LuLock,
@@ -25,8 +25,11 @@ interface LoginFormProps {
   onContinueLocal?: () => void;
 }
 
-type GithubSignInState =
-  { step: "idle" } | { step: "waiting"; prompt: GithubDeviceCodePrompt };
+const TRUST: ReadonlyArray<{ icon: IconType; label: string }> = [
+  { icon: LuLock, label: "Local-first storage" },
+  { icon: LuGitBranch, label: "Your repo, your access rules" },
+  { icon: LuCodeXml, label: "MIT licensed" },
+];
 
 export function LoginForm({
   className,
@@ -34,10 +37,9 @@ export function LoginForm({
   ...props
 }: LoginFormProps) {
   const navigate = useNavigate();
-  const [signIn, setSignIn] = useState<GithubSignInState>({ step: "idle" });
+  const [prompt, setPrompt] = useState<GithubDeviceCodePrompt | null>(null);
   const inProgress = useRef(false);
 
-  // Leaving the page mid-flow stops the polling in the main process.
   useEffect(
     () => () => {
       if (inProgress.current) void authService.cancelGithubLogin();
@@ -49,24 +51,22 @@ export function LoginForm({
     promise: async () => {
       inProgress.current = true;
       try {
-        await authService.loginViaGithub((prompt) =>
-          setSignIn({ step: "waiting", prompt }),
-        );
-        return "signed-in" as const;
+        await authService.loginViaGithub(setPrompt);
+        return true;
       } catch (error) {
         if (
           error instanceof GithubSignInFailure &&
           error.code === "cancelled"
         ) {
-          return "cancelled" as const;
+          return false;
         }
         throw error;
       } finally {
         inProgress.current = false;
       }
     },
-    onSuccessAsync: async (result) => {
-      if (result === "cancelled") return;
+    onSuccessAsync: async (signedIn) => {
+      if (!signedIn) return;
       void githubService
         .isInstalled()
         .then((installed) => {
@@ -75,10 +75,10 @@ export function LoginForm({
         .catch(() => {});
       await navigate({ to: "/", replace: true });
     },
-    onFinally: () => setSignIn({ step: "idle" }),
+    onFinally: () => setPrompt(null),
   });
 
-  const starting = signingIn && signIn.step === "idle";
+  const starting = signingIn && prompt === null;
 
   return (
     <div
@@ -138,9 +138,9 @@ export function LoginForm({
               tests, versioned in a GitHub repository you own.
             </p>
 
-            {signIn.step === "waiting" ? (
+            {prompt ? (
               <DeviceCodePanel
-                prompt={signIn.prompt}
+                prompt={prompt}
                 onCancel={() => void authService.cancelGithubLogin()}
               />
             ) : (
@@ -189,11 +189,15 @@ export function LoginForm({
             )}
 
             <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              <TrustItem icon={<LuLock />}>Local-first storage</TrustItem>
-              <TrustItem icon={<LuGitBranch />}>
-                Your repo, your access rules
-              </TrustItem>
-              <TrustItem icon={<LuCodeXml />}>MIT licensed</TrustItem>
+              {TRUST.map(({ icon: Icon, label }) => (
+                <li
+                  key={label}
+                  className="flex items-center gap-1.5 [&_svg]:size-3.5 [&_svg]:text-vio"
+                >
+                  <Icon />
+                  {label}
+                </li>
+              ))}
             </ul>
           </div>
         </div>
@@ -211,21 +215,6 @@ export function LoginForm({
   );
 }
 
-function TrustItem({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <li className="flex items-center gap-1.5 [&_svg]:size-3.5 [&_svg]:text-vio">
-      {icon}
-      {children}
-    </li>
-  );
-}
-
 function DeviceCodePanel({
   prompt,
   onCancel,
@@ -233,12 +222,12 @@ function DeviceCodePanel({
   prompt: GithubDeviceCodePrompt;
   onCancel: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [opened, setOpened] = useState(false);
 
-  const copyCode = async () => {
+  const copyAndOpen = async () => {
     await navigator.clipboard.writeText(prompt.userCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setOpened(true);
+    window.open(prompt.verificationUri, "_blank");
   };
 
   return (
@@ -252,8 +241,8 @@ function DeviceCodePanel({
             Enter this code on GitHub
           </p>
           <p className="text-xs text-muted-foreground">
-            We opened {prompt.verificationUri.replace(/^https?:\/\//, "")} in
-            your browser.
+            Copy the code, then approve it in your browser. Sign-in finishes
+            here on its own.
           </p>
         </div>
       </div>
@@ -265,31 +254,25 @@ function DeviceCodePanel({
         >
           {prompt.userCode}
         </span>
-        <Button type="button" variant="ghost" size="sm" onClick={copyCode}>
-          {copied ? <LuCheck /> : <LuCopy />}
-          {copied ? "Copied" : "Copy"}
-        </Button>
       </div>
+
+      <Button
+        type="button"
+        className="w-full"
+        onClick={() => void copyAndOpen()}
+      >
+        {opened ? <LuCheck /> : <LuCopy />}
+        {opened ? "Copied — GitHub opened" : "Copy and open GitHub"}
+      </Button>
 
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <LuLoaderCircle className="size-3.5 animate-spin text-vio" />
           Waiting for you to approve…
         </p>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => window.open(prompt.verificationUri, "_blank")}
-          >
-            <LuExternalLink />
-            Open GitHub
-          </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
     </div>
   );
