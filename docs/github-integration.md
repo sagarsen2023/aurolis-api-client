@@ -300,7 +300,7 @@ Variables marked `secret` are always written with an empty value. Globals live i
 - **Team workspace:** a repo in your GitHub organization.
 - **Branches work like normal git.** Switch branches in the app, commit, and open pull requests.
 - **Monorepos:** a workspace can live under a subpath (`repo + branch + path`).
-- **Never committed:** per-user state such as open tabs, theme, selected environment, history and load-test runs. It stays in `.aurolis/` or local storage.
+- **Never committed:** per-user state such as open tabs, unsaved drafts, theme, selected environment, secret values and load-test runs. It stays in Aurolis's own data folder on your computer.
 
 ## 2. Collections
 
