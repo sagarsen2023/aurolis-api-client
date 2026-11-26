@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import IconWell from "./icon-well";
 
 function ListRow({
@@ -32,13 +33,14 @@ function ListRow({
   }
   return (
     <li>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onOpen}
-        className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-xl px-2 py-2.5 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
+        className="-mx-2 h-auto w-[calc(100%+1rem)] justify-start gap-3 rounded-xl px-2 py-2.5 text-left font-normal whitespace-normal hover:bg-surface-hover"
       >
         {body}
-      </button>
+      </Button>
     </li>
   );
 }

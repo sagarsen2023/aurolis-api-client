@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ChoiceCard } from "@/components/choice-card";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -84,8 +85,9 @@ function DropZone({
   };
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => input.current?.click()}
         onDragOver={(event) => {
           event.preventDefault();
@@ -94,7 +96,7 @@ function DropZone({
         onDragLeave={() => setOver(false)}
         onDrop={drop}
         className={cn(
-          "flex min-h-38 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-dashed border-line-strong bg-surface-2 px-6 py-6 text-center text-mute transition-colors outline-none hover:border-vio hover:bg-vio/5 focus-visible:ring-[3px] focus-visible:ring-ring/40",
+          "h-auto min-h-38 w-full flex-col gap-1.5 rounded-2xl border-[1.5px] border-dashed border-line-strong bg-surface-2 px-6 py-6 text-center font-normal whitespace-normal text-mute hover:border-vio hover:bg-vio/5",
           over && "border-vio bg-vio/5",
         )}
       >
@@ -107,8 +109,8 @@ function DropZone({
           Drop files here or click to browse
         </span>
         <span className="text-[13px]">{IMPORT_HINTS[format].files}</span>
-      </button>
-      <input
+      </Button>
+      <Input
         ref={input}
         type="file"
         multiple

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -158,12 +159,12 @@ function EnvironmentForm({
             Globals
           </h2>
         ) : (
-          <input
+          <Input
             aria-label="Environment name"
             value={form.name}
             maxLength={200}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
-            className="h-11 min-w-45 flex-1 rounded-xl border border-line-strong bg-surface-2 px-3 text-[18px] font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
+            className="h-11 min-w-45 flex-1 rounded-xl border-line-strong bg-surface-2 px-3 text-[18px] font-semibold"
           />
         )}
         {isDirty ? (

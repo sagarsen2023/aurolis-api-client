@@ -9,6 +9,7 @@ import {
   findFolderById,
   findRequestById,
 } from "@/lib/collection-ops";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
   EditorTab,
@@ -97,24 +98,27 @@ function EditorTabs() {
                 className="absolute inset-x-0 top-0 h-0.5 bg-vio"
               />
             ) : null}
-            <button
+            <Button
               type="button"
+              variant="ghost"
               role="tab"
               aria-selected={active}
               onClick={() => setActiveTabId(tab.id)}
               onAuxClick={(event) => {
                 if (event.button === 1) closeTab(tab.id);
               }}
-              className="flex h-full min-w-0 items-center gap-1.5 pr-1 pl-3 text-[12.5px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              className="h-full min-w-0 flex-1 justify-start gap-1.5 rounded-none pr-1 pl-3 text-[12.5px] hover:bg-transparent focus-visible:ring-inset"
             >
               {label.icon}
               <span className="truncate">{label.title}</span>
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               aria-label={`Close ${label.title}${dirty ? " (unsaved changes are kept)" : ""}`}
               onClick={() => closeTab(tab.id)}
-              className="relative mr-1.5 grid size-5 shrink-0 place-items-center rounded text-dim outline-none hover:bg-surface-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative mr-1.5 size-5 text-dim hover:bg-surface-hover hover:text-ink"
             >
               {dirty ? (
                 <span
@@ -129,7 +133,7 @@ function EditorTabs() {
                   dirty && "hidden group-hover/tab:block",
                 )}
               />
-            </button>
+            </Button>
           </div>
         );
       })}

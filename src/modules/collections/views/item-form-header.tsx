@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RotateCcw, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function ItemFormHeader({
   icon,
@@ -32,12 +33,12 @@ function ItemFormHeader({
           {icon}
           {eyebrow}
         </p>
-        <input
+        <Input
           aria-label="Name"
           value={name}
           maxLength={200}
           onChange={(event) => onNameChange(event.target.value)}
-          className="h-8 min-w-0 rounded-lg border border-transparent bg-transparent px-1.5 text-[17px] font-medium tracking-[-0.01em] text-foreground outline-none hover:border-line focus-visible:border-ring"
+          className="h-8 min-w-0 rounded-lg border-transparent bg-transparent px-1.5 text-[17px] font-medium tracking-[-0.01em] hover:border-line"
         />
       </div>
       <div className="flex shrink-0 items-center gap-2">

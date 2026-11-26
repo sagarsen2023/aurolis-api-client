@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
@@ -404,16 +405,19 @@ function CollectionTree({
         </Tooltip>
       </div>
       <div className="px-3 pb-2">
-        <label className="flex h-8 items-center gap-2 rounded-full border border-input bg-input/30 px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/40">
-          <Search className="size-3.5 text-dim" aria-hidden />
-          <input
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-dim"
+            aria-hidden
+          />
+          <Input
             aria-label="Search requests"
             placeholder="Search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-dim"
+            className="h-8 pl-9 text-[13px]"
           />
-        </label>
+        </div>
       </div>
       <ScrollArea className="min-h-0 flex-1">
         <nav aria-label="Collection tree" className="flex flex-col px-2 pb-4">

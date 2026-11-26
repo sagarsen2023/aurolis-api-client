@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { Cloud } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -51,13 +52,11 @@ function UnsavedPill({ count }: Readonly<{ count: number }>) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <button
+          <Button
             type="button"
+            variant="ghost"
             disabled={loading}
-            className={cn(
-              PILL,
-              "transition-colors outline-none hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40",
-            )}
+            className={cn(PILL, "h-auto hover:bg-surface-hover")}
             onClick={() => void runPromise()}
           />
         }
@@ -86,12 +85,10 @@ function SavePill() {
       <Tooltip>
         <TooltipTrigger
           render={
-            <button
+            <Button
               type="button"
-              className={cn(
-                PILL,
-                "transition-colors outline-none hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40",
-              )}
+              variant="ghost"
+              className={cn(PILL, "h-auto hover:bg-surface-hover")}
               onClick={() => setPublishOpen(true)}
             />
           }
@@ -114,12 +111,10 @@ function SavePill() {
       <TooltipTrigger
         render={
           detail ? (
-            <button
+            <Button
               type="button"
-              className={cn(
-                PILL,
-                "transition-colors outline-none hover:bg-surface-hover focus-visible:ring-[3px] focus-visible:ring-ring/40",
-              )}
+              variant="ghost"
+              className={cn(PILL, "h-auto hover:bg-surface-hover")}
               onClick={() => setCommitOpen(true)}
             />
           ) : (

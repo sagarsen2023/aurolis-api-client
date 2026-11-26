@@ -6,6 +6,7 @@ import {
   SunMoon,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SettingsSectionId } from "@/constants/settings";
 
@@ -34,22 +35,22 @@ export function SettingsNav({
         const Icon = item.icon;
         const selected = item.id === active;
         return (
-          <button
+          <Button
             key={item.id}
             type="button"
+            variant="ghost"
             aria-current={selected ? "true" : undefined}
             onClick={() => onSelect(item.id)}
             className={cn(
-              "flex h-9 items-center gap-2.5 rounded-full px-3 text-left text-sm transition-colors outline-none",
-              "focus-visible:ring-2 focus-visible:ring-ring",
+              "h-9 w-full justify-start gap-2.5 rounded-full px-3 text-sm font-normal",
               selected
-                ? "bg-surface-selected font-medium text-foreground"
+                ? "bg-surface-selected font-medium text-foreground hover:bg-surface-selected"
                 : "text-mute hover:bg-surface-hover hover:text-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" strokeWidth={1.8} aria-hidden />
             {item.label}
-          </button>
+          </Button>
         );
       })}
     </nav>

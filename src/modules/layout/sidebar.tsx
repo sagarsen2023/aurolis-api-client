@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useSetAtom } from "jotai";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -133,13 +134,14 @@ function SideBar() {
 
         {accountName ? (
           <RailTooltip label={accountName}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               aria-label={`Account: ${accountName}`}
-              className="grid size-10 place-items-center rounded-full bg-linear-to-br from-orb-a to-orb-c text-[13px] font-medium text-lav-ink outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="size-10 rounded-full bg-linear-to-br from-orb-a to-orb-c p-0 text-[13px] font-medium text-lav-ink hover:bg-transparent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               {getInitials({ name: accountName })}
-            </button>
+            </Button>
           </RailTooltip>
         ) : null}
       </div>

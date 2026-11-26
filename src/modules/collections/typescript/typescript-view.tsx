@@ -3,6 +3,7 @@ import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { CodeField } from "@/components/code-field";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   generateTypescriptInterface,
   toTypeName,
@@ -43,17 +44,14 @@ function TypescriptView({
   return (
     <div className={className ?? "flex min-h-0 flex-col gap-2"}>
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-[12px] text-mute">
-          Root type
-          <input
-            aria-label="Root type name"
-            value={name}
-            spellCheck={false}
-            maxLength={100}
-            onChange={(event) => setName(event.target.value)}
-            className="h-7 w-56 rounded-full border border-input bg-input/30 px-3 font-mono text-[12px] text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
-          />
-        </label>
+        <Input
+          label="Root type"
+          value={name}
+          spellCheck={false}
+          maxLength={100}
+          onChange={(event) => setName(event.target.value)}
+          className="h-7 w-56 font-mono text-[12px]"
+        />
         <Button
           size="xs"
           variant="outline"

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import NodeActions, { type NodeAction } from "./node-actions";
 
@@ -38,12 +39,14 @@ function TreeRow({
       style={{ paddingLeft: depth * INDENT_PX + 4 }}
     >
       {hasToggle ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
           aria-expanded={expanded}
           onClick={onToggle}
-          className="grid size-5 shrink-0 place-items-center rounded text-dim outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-ring"
+          className="size-5 text-dim hover:bg-transparent hover:text-ink"
         >
           <ChevronRight
             className={cn(
@@ -52,16 +55,17 @@ function TreeRow({
             )}
             aria-hidden
           />
-        </button>
+        </Button>
       ) : (
         <span className="size-5 shrink-0" aria-hidden />
       )}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onOpen}
         onDoubleClick={onToggle}
         aria-current={active ? "true" : undefined}
-        className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-full min-w-0 flex-1 justify-start gap-1.5 rounded px-0 hover:bg-transparent"
       >
         {leading}
         <span className="truncate">{label}</span>
@@ -71,7 +75,7 @@ function TreeRow({
             aria-label="Unsaved changes"
           />
         ) : null}
-      </button>
+      </Button>
       <NodeActions name={label} actions={actions} />
     </div>
   );

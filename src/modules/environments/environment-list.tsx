@@ -1,5 +1,6 @@
 import { useAtomValue } from "jotai";
 import { Globe, Layers, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { environmentDraftsAtom } from "@/context/environments-context";
@@ -29,11 +30,12 @@ function EnvironmentItem({
       displayGradient={selected}
       className="gap-0 rounded-2xl py-0 transition-colors hover:border-line-strong"
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onSelect}
         aria-current={selected ? "true" : undefined}
-        className="flex w-full items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-auto w-full justify-start gap-2.5 rounded-2xl px-3.5 py-3 text-left font-normal whitespace-normal hover:bg-transparent"
       >
         <span className="grid size-9.5 shrink-0 place-items-center rounded-full bg-surface-icon text-ink">
           <Icon className="size-4.5" strokeWidth={1.8} aria-hidden />
@@ -61,7 +63,7 @@ function EnvironmentItem({
           </span>
         </span>
         {active ? <Pill variant="ok">Active</Pill> : null}
-      </button>
+      </Button>
     </Card>
   );
 }

@@ -9,6 +9,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Empty,
   EmptyDescription,
@@ -133,16 +134,19 @@ function MessageLog({
             </Button>
           ))}
         </div>
-        <label className="ml-auto flex h-7 items-center gap-1.5 rounded-full border border-input bg-input/30 px-2.5 focus-within:border-ring">
-          <Search className="size-3.5 text-dim" aria-hidden />
-          <input
+        <div className="relative ml-auto">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-dim"
+            aria-hidden
+          />
+          <Input
             aria-label="Filter messages"
             placeholder="Filter"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            className="w-36 bg-transparent text-[12.5px] outline-none placeholder:text-dim"
+            className="h-7 w-40 pl-8 text-[12.5px]"
           />
-        </label>
+        </div>
         <Button
           size="xs"
           variant="ghost"
