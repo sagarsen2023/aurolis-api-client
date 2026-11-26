@@ -7,10 +7,10 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "node scripts/name-dev-app.mjs && vite",
+    "dev": "vite",
     "build": "tsc -b && vite build",
     "error-check": "tsc -b",
-    "start": "node scripts/name-dev-app.mjs && electron .",
+    "start": "electron .",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win",
