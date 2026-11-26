@@ -9,8 +9,8 @@ import { useRealtimeEventsListener } from "@/hooks/use-realtime";
 export const Route = createFileRoute("/(authenticated)")({
   component: DashboardLayout,
   beforeLoad: async () => {
-    const isSignedIn = await authService.isSignedIn();
-    if (!isSignedIn) {
+    const canEnter = await authService.canEnterApp();
+    if (!canEnter) {
       throw redirect({ to: "/sign-in", replace: true });
     }
   },

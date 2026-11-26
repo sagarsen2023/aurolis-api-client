@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import { Download, LogOut, Trash2 } from "lucide-react";
+import { Download, LogIn, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { githubUserAtom } from "@/context/auth-context";
@@ -150,6 +150,11 @@ export function DataSection() {
     await navigate({ to: "/sign-in", replace: true });
   };
 
+  const signIn = async () => {
+    authService.leaveLocalMode();
+    await navigate({ to: "/sign-in" });
+  };
+
   return (
     <SettingsSection id="data" title="Data">
       <SettingsGroup>
@@ -168,17 +173,27 @@ export function DataSection() {
           </Button>
         </SettingRow>
         <RemoveWorkspaceRow />
-        <SettingRow
-          title="Sign out"
-          description={
-            user ? `Signed in as @${user.login}` : "Signed in with GitHub"
-          }
-        >
-          <Button variant="outline" size="sm" onClick={() => void signOut()}>
-            <LogOut strokeWidth={1.8} />
-            Sign out
-          </Button>
-        </SettingRow>
+        {user ? (
+          <SettingRow
+            title="Sign out"
+            description={`Signed in as @${user.login}`}
+          >
+            <Button variant="outline" size="sm" onClick={() => void signOut()}>
+              <LogOut strokeWidth={1.8} />
+              Sign out
+            </Button>
+          </SettingRow>
+        ) : (
+          <SettingRow
+            title="Sign in with GitHub"
+            description="You're using Aurolis on this device only. Sign in to sync workspaces with GitHub."
+          >
+            <Button variant="outline" size="sm" onClick={() => void signIn()}>
+              <LogIn strokeWidth={1.8} />
+              Sign in
+            </Button>
+          </SettingRow>
+        )}
       </SettingsGroup>
     </SettingsSection>
   );

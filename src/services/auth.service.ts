@@ -16,6 +16,8 @@ export class GithubSignInFailure extends Error {
   }
 }
 
+const LOCAL_MODE_KEY = "aurolis:local-mode";
+
 const bridge = () =>
   desktopBridge(
     "github",
@@ -51,7 +53,23 @@ export const authService = {
     return status.signedIn;
   },
 
+  continueLocally: () => {
+    localStorage.setItem(LOCAL_MODE_KEY, "true");
+  },
+
+  isLocalMode: () => localStorage.getItem(LOCAL_MODE_KEY) === "true",
+
+  leaveLocalMode: () => {
+    localStorage.removeItem(LOCAL_MODE_KEY);
+  },
+
+  canEnterApp: async () => {
+    if (authService.isLocalMode()) return true;
+    return authService.isSignedIn();
+  },
+
   logout: async () => {
+    authService.leaveLocalMode();
     await window.aurolis?.github.signOut();
   },
 };
