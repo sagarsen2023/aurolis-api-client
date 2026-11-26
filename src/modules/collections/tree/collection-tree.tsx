@@ -97,7 +97,26 @@ function useTreeState(searching: boolean) {
       ...current,
       [id]: !(current[id] ?? fallback),
     }));
-  return { isExpanded, toggle };
+  const setBranch = (ids: string[], open: boolean) =>
+    setExpanded((current) => {
+      const next = { ...current };
+      for (const id of ids) next[id] = open;
+      return next;
+    });
+  return { isExpanded, toggle, setBranch };
+}
+
+function branchIds(id: string, items: CollectionItem[]) {
+  const ids = [id];
+  const walk = (nodes: CollectionItem[]) => {
+    for (const node of nodes) {
+      if (node.type !== "folder") continue;
+      ids.push(node.id);
+      walk(node.items);
+    }
+  };
+  walk(items);
+  return ids;
 }
 
 type TreeState = ReturnType<typeof useTreeState>;
@@ -313,6 +332,9 @@ function FolderNode({
         expanded={expanded}
         onToggle={() => tree.toggle(folder.id, false)}
         onOpen={() => tree.toggle(folder.id, false)}
+        onToggleBranch={() =>
+          tree.setBranch(branchIds(folder.id, folder.items), !expanded)
+        }
         actions={containerActions(
           folder,
           "folder",
@@ -351,6 +373,9 @@ function CollectionNode({
         expanded={expanded}
         onToggle={() => tree.toggle(collection.id, true)}
         onOpen={openSettings}
+        onToggleBranch={() =>
+          tree.setBranch(branchIds(collection.id, collection.items), !expanded)
+        }
         actions={containerActions(
           collection,
           "collection",
