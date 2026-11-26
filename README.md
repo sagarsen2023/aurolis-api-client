@@ -4,6 +4,8 @@ Desktop API client built with React, Vite, Tailwind v4 and shadcn/ui, packaged w
 
 Collections hold HTTP (REST), GraphQL, WebSocket and Socket.IO requests, each saved as a `*.req.json` file in the workspace's git repository, with saved examples next to them. Requests run in the main process through three engines, so there is no CORS and any header can be set.
 
+Collections and environments can be imported from and exported to Postman (Collection v2.1) and Hoppscotch (including its workspace export .zip).
+
 ## Scripts
 
 | Command | What it does |

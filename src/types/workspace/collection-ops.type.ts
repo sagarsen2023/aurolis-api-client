@@ -5,6 +5,7 @@ import type {
   RequestExample,
   RequestProtocol,
 } from "./request.type.ts";
+import type { Collection } from "./collection.type.ts";
 import type { EnvironmentVariable } from "./environment.type.ts";
 import type { OpenedWorkspace } from "./workspace-store.type.ts";
 
@@ -64,7 +65,9 @@ export type CollectionOp =
   | { op: "delete-request"; id: string }
   | { op: "create-example"; requestId: string; example: ExampleInput }
   | { op: "update-example"; id: string; example: ExampleInput }
-  | { op: "delete-example"; id: string };
+  | { op: "delete-example"; id: string }
+  | { op: "import-collection"; collection: Collection }
+  | { op: "import-environment"; environment: EnvironmentSettings };
 
 export type CollectionOpName = CollectionOp["op"];
 

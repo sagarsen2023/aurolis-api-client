@@ -319,6 +319,23 @@ The Environments screen lists the workspace's environments, then **Globals**. Cr
 
 Field-level merging, pushing to a branch with a pull request when the branch is protected, and committing selected items are still to come in #13, #14 and #15.
 
+### Import and export
+The Import & export screen reads and writes Postman and Hoppscotch files. The converters are pure functions in `src/utils/postman.ts` and `src/utils/hoppscotch.ts`, with the shared pieces (variable syntax, names, credentials) in `src/lib/transfer.ts`.
+
+- **Import from Postman:** Collection v2.1 and v2.0 files, environment and globals files, or a .zip of them.
+  - Folders, auth (bearer, basic, API key; inherited when absent), query params, headers, raw / URL-encoded / form-data / GraphQL bodies, saved responses as examples, and collection variables are kept.
+- **Import from Hoppscotch:** the workspace export .zip (`manifest.json` with each workspace's `collections.json` and `environments.json`), or collection and environment .json files in the personal format or the team format (properties in a `data` string).
+  - `<<variable>>` becomes `{{variable}}`. Collection and folder headers are copied onto the requests under them, since Aurolis keeps headers per request.
+- **What isn't imported:** scripts, request variables, folder variables, file fields and unsupported auth types are left out, and the preview says how many.
+- **Credentials:** files exported from these tools often hold real tokens. Before importing, the preview counts them: literal auth values, credential headers like `x-api-key`, credential collection variables, and any JWT in URLs, bodies or saved responses.
+  - **Replace with variables** (the default) swaps them for `{{token}}`, `{{apiKey}}` and similar, and adds those names to Globals as empty secrets.
+  - **Keep** writes them into the request files as they are.
+- **Applying an import:** the renderer converts the files and sends one `import-collection` operation per collection and one `import-environment` per environment. The main process validates the whole tree (ids, names, at most 20,000 items, at most 32 folders deep), gives every item a fresh id and writes the files like any other operation. Secret environment values go to `secrets.bin`.
+- **Export to Postman:** a Collection v2.1 file per collection and an environment file per environment, zipped when there's more than one.
+- **Export to Hoppscotch:** a zip laid out like Hoppscotch's workspace export. Each collection carries both the team `data` string and the v12 fields, and each environment has `v: 2`, so Hoppscotch's own importers read them.
+- **Left out of exports:** WebSocket and Socket.IO requests (neither format holds them), and secret values, which are always empty.
+- **Saving:** the file is saved with the native save dialog in the main process (`aurolis:transfer:save-file`, a `.json` or `.zip` name only).
+
 ### See changes (#10)
 `git status -- <root>/aurolis.json <root>/collections <root>/environments` lists changed workspace files; other files in the repository are left out. The format module maps them to API items (request, folder, collection, environment), so a renamed request shows as one moved request. The request-level diff compares `git show HEAD:<file>` with the working file, both parsed by the format module.
 
@@ -422,6 +439,7 @@ The REST layer from #1 stays for what git can't do: listing repositories and per
 - Every resolved path must stay inside the workspace root.
 - Secret values never reach the working tree; a pre-commit check blocks them anyway.
 - Clone URLs are limited to `https://` (and `ssh://` / `git@` when the user's own SSH setup is used). `file://` and other transports are refused.
+- Imports are validated in the main process like any other operation, and exports are saved only through the native save dialog.
 - Requests run in the main process (`electron/engines/`). The engines only accept `http(s)://` and `ws(s)://` URLs, validate headers and sizes, and never attach the GitHub token. Response bodies are shown as text, JSON or images, never rendered as HTML.
 
 ## Limits

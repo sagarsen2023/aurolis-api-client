@@ -76,6 +76,10 @@ const aurolis = {
     commit: (params: unknown) =>
       ipcRenderer.invoke("aurolis:source-control:commit", params),
   },
+  transfer: {
+    saveFile: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:transfer:save-file", params),
+  },
   engine: {
     sendHttp: (params: unknown) => engineCall("http-send", params),
     sendGraphql: (params: unknown) => engineCall("graphql-send", params),

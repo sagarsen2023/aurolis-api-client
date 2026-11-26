@@ -37,6 +37,7 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
   - `secret-store.ts`: secret environment values in `state/secrets.bin`, encrypted with `safeStorage` (memory only without an OS keychain, see `keychain.ts`). Merged into a workspace when it opens; never written to the repository.
   - `source-control.ts`: lists changes as items (requests by collection, environments, settings), checks for secret values, then commits, merges the upstream and pushes.
   - `user-data.ts`: paths in the user-data folder and atomic writes.
+  - `export-file.ts`: saves an export through the native save dialog (`aurolis:transfer:save-file`).
   - `engines/`: the three request engines. `http-engine.ts` (REST, with cancel and timeout), `graphql-engine.ts` (queries and introspection over the HTTP engine), `realtime-engine.ts` (WebSocket through `ws`, Socket.IO through `socket.io-client`, events pushed on `aurolis:engine:realtime-event`). Errors are typed and returned as values.
   - Workspaces are local git repositories (see the architecture doc). Sync is plain git: status, diff, commit, fetch, merge, push.
 - **`src/`: renderer (React).** UI only. It never sees a token, never calls GitHub directly and never sends requests itself.
@@ -55,6 +56,7 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
 - The renderer prepares a request, then calls an engine service (`http-engine.service.ts`, `graphql-engine.service.ts`, `realtime-engine.service.ts`).
 - `src/modules/collections/`: `tree/`, `dialogs/`, `editor/` (one editor per protocol), `response/` and `views/` (collection, folder and example tabs).
 - `src/modules/environments/`: globals and environments, with secret variables. `src/modules/source-control/`: the commit dialog.
+- Import and export: `src/utils/postman.ts` and `src/utils/hoppscotch.ts` convert between those formats and Aurolis collections and environments; `src/lib/transfer.ts` holds the shared pieces (variable syntax, credential replacement). `src/modules/import-export/` is the screen; imports go through the `import-collection` and `import-environment` operations.
 - Editor state is in `src/context/collections-context.ts`. `use-editor-state-sync.ts` loads and persists drafts, tabs and the selected environment, and `use-request-drafts.ts` handles drafts and saving.
 - Long descriptions (workspace, collection, folder and request docs) are markdown, edited with `src/components/ui/markdown-editor` (Write and Preview, preview by default when there is content).
 - Code (JSON, XML, GraphQL, message bodies, response bodies) uses CodeMirror 6 through `src/components/code-field.tsx` (lazy-loaded) and `code-editor.tsx`. Theme, `{{variable}}` highlighting and completion, and the language setup live in `src/lib/codemirror/`. Pass stable props: react-codemirror reconfigures the editor whenever `extensions`, `basicSetup` or `onChange` change identity, which resets autocompletion.

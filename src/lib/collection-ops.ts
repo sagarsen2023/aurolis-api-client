@@ -366,7 +366,50 @@ const setDefaultEnvironment: OpHandler<"set-default-environment"> = (
   return null;
 };
 
+function withFreshIds(
+  items: CollectionItem[],
+  newId: () => string,
+): CollectionItem[] {
+  return items.map((item) =>
+    item.type === "folder"
+      ? { ...item, id: newId(), items: withFreshIds(item.items, newId) }
+      : cloneRequest(item, newId),
+  );
+}
+
+const importCollection: OpHandler<"import-collection"> = (
+  workspace,
+  op,
+  newId,
+) => {
+  const collection: Collection = {
+    ...structuredClone(op.collection),
+    id: newId(),
+    seq: nextSeq(workspace.collections),
+    items: withFreshIds(op.collection.items, newId),
+  };
+  workspace.collections.push(collection);
+  return collection.id;
+};
+
+const importEnvironment: OpHandler<"import-environment"> = (
+  workspace,
+  op,
+  newId,
+) => {
+  const environment: Environment = {
+    id: newId(),
+    name: op.environment.name,
+    seq: nextSeq(workspace.environments),
+    variables: structuredClone(op.environment.variables),
+  };
+  workspace.environments.push(environment);
+  return environment.id;
+};
+
 const HANDLERS: { [K in CollectionOpName]: OpHandler<K> } = {
+  "import-collection": importCollection,
+  "import-environment": importEnvironment,
   "create-environment": createEnvironment,
   "update-environment": updateEnvironment,
   "duplicate-environment": duplicateEnvironment,
@@ -420,19 +463,23 @@ export function findExampleById(
 export function countItems(items: CollectionItem[]): {
   folders: number;
   requests: number;
+  examples: number;
 } {
   let folders = 0;
   let requests = 0;
+  let examples = 0;
   for (const item of items) {
     if (item.type === "request") {
       requests += 1;
+      examples += item.examples.length;
       continue;
     }
     const nested = countItems(item.items);
     folders += 1 + nested.folders;
     requests += nested.requests;
+    examples += nested.examples;
   }
-  return { folders, requests };
+  return { folders, requests, examples };
 }
 
 export interface RequestLocation {

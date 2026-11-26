@@ -61,6 +61,7 @@ import type {
   RealtimeEvent,
   RealtimeSendParams,
 } from "@/types/engine/realtime-engine.type";
+import type { SavedExportFile } from "@/types/transfer/transfer.type";
 
 interface AurolisBridge {
   readonly isElectron: true;
@@ -131,6 +132,12 @@ interface AurolisBridge {
   readonly sourceControl: {
     changes(id: string): Promise<WorkspaceResult<SourceControlChanges>>;
     commit(params: CommitParams): Promise<WorkspaceResult<CommitResult>>;
+  };
+  readonly transfer: {
+    saveFile(params: {
+      name: string;
+      bytes: Uint8Array;
+    }): Promise<WorkspaceResult<SavedExportFile>>;
   };
   readonly engine: {
     sendHttp(params: HttpSendParams): Promise<EngineResult<HttpResponseData>>;

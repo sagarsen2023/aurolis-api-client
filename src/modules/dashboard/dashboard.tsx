@@ -20,7 +20,6 @@ import {
   publishWorkspaceOpenAtom,
 } from "@/context/workspace-context";
 import { workspaceService } from "@/services/workspace.service";
-import type { CollectionItem } from "@/types/workspace/collection.type";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
 import { FormatIssues } from "@/modules/workspace/workspace-states";
 import WorkspaceGate from "@/modules/workspace/workspace-gate";
@@ -28,28 +27,7 @@ import ResponseHealth from "./response-health";
 import StatCard from "./stat-card";
 import WorkspaceAbout from "./workspace-about";
 import WorkspaceRequests from "./workspace-requests";
-
-function countItems(items: CollectionItem[]): {
-  requests: number;
-  examples: number;
-} {
-  return items.reduce(
-    (total, item) => {
-      if (item.type === "folder") {
-        const nested = countItems(item.items);
-        return {
-          requests: total.requests + nested.requests,
-          examples: total.examples + nested.examples,
-        };
-      }
-      return {
-        requests: total.requests + 1,
-        examples: total.examples + item.examples.length,
-      };
-    },
-    { requests: 0, examples: 0 },
-  );
-}
+import { countItems } from "@/lib/collection-ops";
 
 function remoteLabel(workspace: OpenedWorkspace) {
   const github = workspace.entry.remote?.github;

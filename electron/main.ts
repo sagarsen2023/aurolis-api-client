@@ -35,6 +35,7 @@ import {
   saveUiState,
 } from "./collection-store.ts";
 import { commitAndSync, listChanges } from "./source-control.ts";
+import { saveExportFile } from "./export-file.ts";
 import { toEngineResult } from "./engines/engine-error.ts";
 import { introspectGraphql, sendGraphql } from "./engines/graphql-engine.ts";
 import { cancelRun, sendHttp } from "./engines/http-engine.ts";
@@ -342,6 +343,13 @@ if (!app.requestSingleInstanceLock()) {
     {
       changes: (_event, id) => listChanges(id),
       commit: (_event, params) => commitAndSync(params),
+    },
+    toWorkspaceResult,
+  );
+  registerHandlers(
+    "transfer",
+    {
+      "save-file": (event, params) => saveExportFile(windowOf(event), params),
     },
     toWorkspaceResult,
   );
