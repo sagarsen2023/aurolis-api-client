@@ -13,6 +13,7 @@ export const SETTINGS_SECTION_IDS = [
   "general",
   "shortcuts",
   "data",
+  "updates",
 ] as const;
 
 export type SettingsSectionId = (typeof SETTINGS_SECTION_IDS)[number];
