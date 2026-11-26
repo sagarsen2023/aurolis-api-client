@@ -5,6 +5,7 @@ import { authService } from "@/services/auth.service";
 import { useWorkspaceBootstrap } from "@/hooks/use-workspaces";
 import { useEditorStateSync } from "@/hooks/use-editor-state-sync";
 import { useRealtimeEventsListener } from "@/hooks/use-realtime";
+import { useUpdateCheck } from "@/hooks/use-update-check";
 
 export const Route = createFileRoute("/(authenticated)")({
   component: DashboardLayout,
@@ -20,6 +21,7 @@ function DashboardLayout() {
   useWorkspaceBootstrap();
   useEditorStateSync();
   useRealtimeEventsListener();
+  useUpdateCheck();
   return (
     <div className="relative flex h-full w-full">
       <SideBar />

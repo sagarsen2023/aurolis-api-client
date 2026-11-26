@@ -4,9 +4,7 @@ import type {
   GithubApiErrorInfo,
 } from "@/types/github/github-error.type";
 import type {
-  CommitFilesParams,
   CreateRepositoryParams,
-  PullFilesParams,
   RepositoryNameParams,
 } from "@/types/github/github-params.type";
 import type { GithubResult } from "@/types/github/github-response.type";
@@ -39,10 +37,6 @@ export const githubService = {
   openInstallPage: () => bridge().openInstallPage(),
 
   getRepositories: () => unwrap(bridge().repositories()),
-
-  pullFiles: (params: PullFilesParams) => unwrap(bridge().pull(params)),
-
-  commitFiles: (params: CommitFilesParams) => unwrap(bridge().commit(params)),
 
   createRepository: (params: CreateRepositoryParams) =>
     unwrap(bridge().createRepository(params)),

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +14,7 @@ import {
   type SideMenuItem,
 } from "@/constants/menu-items";
 import { breadCrumbAtom } from "@/context/breadcrumb-context";
+import { availableUpdateAtom } from "@/context/update-context";
 import { authService } from "@/services/auth.service";
 import { getInitials } from "@/utils/extract-initials";
 
@@ -44,13 +45,15 @@ function RailTooltip({
 function RailItem({
   item,
   active,
-}: Readonly<{ item: SideMenuItem; active: boolean }>) {
+  note,
+}: Readonly<{ item: SideMenuItem; active: boolean; note?: string }>) {
   const Icon = item.icon;
+  const label = note ? `${item.title} · ${note}` : item.title;
   return (
-    <RailTooltip label={item.title}>
+    <RailTooltip label={label}>
       <Link
         to={item.link}
-        aria-label={item.title}
+        aria-label={label}
         aria-current={active ? "page" : undefined}
         className={cn(
           "grid size-11.5 shrink-0 place-items-center rounded-full transition-colors duration-150 outline-none",
@@ -60,7 +63,15 @@ function RailItem({
             : "text-dim hover:bg-surface-hover hover:text-ink",
         )}
       >
-        <Icon className="size-5" strokeWidth={1.8} aria-hidden />
+        <span className="relative">
+          <Icon className="size-5" strokeWidth={1.8} aria-hidden />
+          {note ? (
+            <span
+              className="absolute -top-0.5 -right-0.5 size-2.25 rounded-full bg-vio ring-2 ring-background"
+              aria-hidden
+            />
+          ) : null}
+        </span>
       </Link>
     </RailTooltip>
   );
@@ -69,6 +80,7 @@ function RailItem({
 function SideBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const setBreadCrumb = useSetAtom(breadCrumbAtom);
+  const update = useAtomValue(availableUpdateAtom);
   const [accountName, setAccountName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -129,6 +141,9 @@ function SideBar() {
             key={item.key}
             item={item}
             active={isActivePath(item.link, pathname)}
+            note={
+              item.key === "settings" && update ? "Update available" : undefined
+            }
           />
         ))}
 

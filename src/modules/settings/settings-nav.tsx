@@ -1,4 +1,5 @@
 import {
+  CircleArrowUp,
   Database,
   Keyboard,
   SlidersHorizontal,
@@ -20,6 +21,7 @@ const ITEMS: ReadonlyArray<{
   { id: "general", label: "General", icon: SlidersHorizontal },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "data", label: "Data", icon: Database },
+  { id: "updates", label: "Updates", icon: CircleArrowUp },
 ];
 
 export function SettingsNav({
