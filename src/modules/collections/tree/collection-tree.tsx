@@ -5,6 +5,7 @@ import {
   FilePlus2,
   FileText,
   Folder as FolderIcon,
+  FolderInput,
   FolderPlus,
   Layers,
   Plus,
@@ -154,6 +155,20 @@ function containerActions(
       icon: Settings2,
       onSelect: openSettings,
     },
+    ...(kind === "collection"
+      ? [
+          {
+            label: "Move to workspace…",
+            icon: FolderInput,
+            onSelect: () =>
+              setDialog({
+                kind: "move-collection",
+                id: node.id,
+                name: node.name,
+              }),
+          },
+        ]
+      : []),
     {
       label: "Delete",
       icon: Trash2,

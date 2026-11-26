@@ -34,6 +34,8 @@ import type {
 import type {
   ApplyCollectionOpParams,
   CollectionOpResult,
+  MoveCollectionParams,
+  MoveCollectionResult,
 } from "@/types/workspace/collection-ops.type";
 import type {
   EditorState,
@@ -44,6 +46,7 @@ import type { EngineResult } from "@/types/engine/engine.type";
 import type {
   CommitParams,
   CommitResult,
+  PullResult,
   SourceControlChanges,
 } from "@/types/workspace/source-control.type";
 import type {
@@ -114,6 +117,7 @@ interface AurolisBridge {
     publish(
       params: PublishWorkspaceParams,
     ): Promise<WorkspaceResult<PublishResult>>;
+    stopSync(id: string): Promise<WorkspaceResult<OpenedWorkspace>>;
     removeCheck(id: string): Promise<WorkspaceResult<RemoveCheck>>;
     reveal(id: string): Promise<WorkspaceResult<void>>;
     remove(
@@ -125,6 +129,9 @@ interface AurolisBridge {
     apply(
       params: ApplyCollectionOpParams,
     ): Promise<WorkspaceResult<CollectionOpResult>>;
+    move(
+      params: MoveCollectionParams,
+    ): Promise<WorkspaceResult<MoveCollectionResult>>;
     loadEditorState(id: string): Promise<WorkspaceResult<EditorState>>;
     saveDrafts(params: SaveDraftsParams): Promise<WorkspaceResult<void>>;
     saveUiState(params: SaveUiStateParams): Promise<WorkspaceResult<void>>;
@@ -132,6 +139,7 @@ interface AurolisBridge {
   readonly sourceControl: {
     changes(id: string): Promise<WorkspaceResult<SourceControlChanges>>;
     commit(params: CommitParams): Promise<WorkspaceResult<CommitResult>>;
+    pull(id: string): Promise<WorkspaceResult<PullResult>>;
   };
   readonly transfer: {
     saveFile(params: {

@@ -1,3 +1,11 @@
+import type { IconType } from "react-icons";
+import {
+  SiCurl,
+  SiHoppscotch,
+  SiInsomnia,
+  SiOpenapiinitiative,
+  SiPostman,
+} from "react-icons/si";
 import type {
   ImportNote,
   TransferFormat,
@@ -6,9 +14,16 @@ import type {
 export const TRANSFER_FORMATS: ReadonlyArray<{
   value: TransferFormat;
   label: string;
+  icon: IconType;
+  iconColor: string;
 }> = [
-  { value: "postman", label: "Postman" },
-  { value: "hoppscotch", label: "Hoppscotch" },
+  { value: "postman", label: "Postman", icon: SiPostman, iconColor: "#FF6C37" },
+  {
+    value: "hoppscotch",
+    label: "Hoppscotch",
+    icon: SiHoppscotch,
+    iconColor: "#31C48D",
+  },
 ];
 
 export const IMPORT_HINTS: Record<
@@ -56,4 +71,11 @@ export const IMPORT_NOTE_MESSAGES: Record<
     `${count} ${count === 1 ? "header" : "headers"} set on collections or folders ${count === 1 ? "is" : "are"} copied to every request under ${count === 1 ? "it" : "them"}.`,
 };
 
-export const UPCOMING_FORMATS = ["Insomnia", "OpenAPI", "cURL"];
+export const UPCOMING_FORMATS: ReadonlyArray<{
+  label: string;
+  icon: IconType;
+}> = [
+  { label: "Insomnia", icon: SiInsomnia },
+  { label: "OpenAPI", icon: SiOpenapiinitiative },
+  { label: "cURL", icon: SiCurl },
+];

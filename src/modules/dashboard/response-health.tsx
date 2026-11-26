@@ -1,6 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
 import { GitBranch, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -101,7 +99,6 @@ function gitBadge(git: WorkspaceGitState) {
 }
 
 function ResponseHealth({ git }: Readonly<{ git: WorkspaceGitState }>) {
-  const navigate = useNavigate();
   const sent = Object.values(RESPONSE_HEALTH).reduce((a, b) => a + b, 0);
 
   return (
@@ -124,17 +121,9 @@ function ResponseHealth({ git }: Readonly<{ git: WorkspaceGitState }>) {
           />
           <ListRow
             icon={Zap}
-            title="No load tests yet"
-            description="Stress any request with virtual users"
-            action={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void navigate({ to: "/load-testing" })}
-              >
-                Run
-              </Button>
-            }
+            title="Load testing"
+            description="Run a request many times and watch how it holds up"
+            action={<Pill variant="outline">Coming soon</Pill>}
           />
         </ul>
       </CardContent>

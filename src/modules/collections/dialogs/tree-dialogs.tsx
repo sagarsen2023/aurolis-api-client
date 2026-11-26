@@ -15,6 +15,7 @@ import {
 } from "@/context/collections-context";
 import { useCollectionActions } from "@/hooks/use-collection-actions";
 import { useEditorTabs } from "@/hooks/use-editor-tabs";
+import MoveCollectionDialog from "./move-collection-dialog";
 import { usePromise } from "@/hooks/usePromise";
 import { cn } from "@/lib/utils";
 import { nameError } from "@/utils/name";
@@ -322,6 +323,14 @@ function TreeDialogs() {
       return <NewExampleDialog dialog={dialog} onClose={close} />;
     case "delete":
       return <DeleteDialog dialog={dialog} onClose={close} />;
+    case "move-collection":
+      return (
+        <MoveCollectionDialog
+          collectionId={dialog.id}
+          collectionName={dialog.name}
+          onClose={close}
+        />
+      );
   }
 }
 

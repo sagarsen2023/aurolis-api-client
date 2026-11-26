@@ -52,6 +52,7 @@ const aurolis = {
     initialize: (id: string) => workspaceCall("initialize", id),
     rename: (params: unknown) => workspaceCall("rename", params),
     publish: (params: unknown) => workspaceCall("publish", params),
+    stopSync: (id: string) => workspaceCall("stop-sync", id),
     removeCheck: (id: string) => workspaceCall("remove-check", id),
     reveal: (id: string) => workspaceCall("reveal", id),
     remove: (params: unknown) => workspaceCall("remove", params),
@@ -65,6 +66,7 @@ const aurolis = {
   },
   collection: {
     apply: (params: unknown) => collectionCall("apply", params),
+    move: (params: unknown) => collectionCall("move", params),
     loadEditorState: (id: string) => collectionCall("editor-load", id),
     saveDrafts: (params: unknown) =>
       collectionCall("editor-save-drafts", params),
@@ -75,6 +77,7 @@ const aurolis = {
       ipcRenderer.invoke("aurolis:source-control:changes", id),
     commit: (params: unknown) =>
       ipcRenderer.invoke("aurolis:source-control:commit", params),
+    pull: (id: string) => ipcRenderer.invoke("aurolis:source-control:pull", id),
   },
   transfer: {
     saveFile: (params: unknown) =>

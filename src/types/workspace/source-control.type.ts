@@ -53,3 +53,9 @@ export interface CommitResult {
   pushed: boolean;
   branch: string | null;
 }
+
+export interface PullResult {
+  status: "local" | "up-to-date" | "pulled";
+  commits: number;
+  branch: string | null;
+}

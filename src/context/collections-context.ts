@@ -38,6 +38,7 @@ export type TreeDialog =
       protocol?: RequestProtocol;
     }
   | { kind: "new-example"; requestId: string; requestName: string }
+  | { kind: "move-collection"; id: string; name: string }
   | {
       kind: "delete";
       target: "collection" | "folder" | "request" | "example";

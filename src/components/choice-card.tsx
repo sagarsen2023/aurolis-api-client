@@ -7,12 +7,14 @@ export function ChoiceCard({
   selected,
   onSelect,
   icon: Icon,
+  leading,
   title,
   description,
 }: Readonly<{
   selected: boolean;
   onSelect: () => void;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  leading?: ReactNode;
   title: string;
   description: ReactNode;
 }>) {
@@ -30,9 +32,12 @@ export function ChoiceCard({
           : "border-line bg-card hover:bg-surface-hover",
       )}
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-icon text-ink">
-        <Icon className="size-4" strokeWidth={1.8} aria-hidden />
-      </span>
+      {leading ??
+        (Icon ? (
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-icon text-ink">
+            <Icon className="size-4" strokeWidth={1.8} aria-hidden />
+          </span>
+        ) : null)}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] text-foreground">
           {title}

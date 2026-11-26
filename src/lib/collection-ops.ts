@@ -563,3 +563,9 @@ export function locateFolder(
   }
   return null;
 }
+
+export function collectRequestIds(items: CollectionItem[]): string[] {
+  return items.flatMap((item) =>
+    item.type === "folder" ? collectRequestIds(item.items) : [item.id],
+  );
+}

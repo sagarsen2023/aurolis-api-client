@@ -1,4 +1,7 @@
-import type { CollectionOp } from "@/types/workspace/collection-ops.type";
+import type {
+  CollectionOp,
+  MoveCollectionParams,
+} from "@/types/workspace/collection-ops.type";
 import type {
   EditorUiState,
   RequestDrafts,
@@ -15,6 +18,8 @@ const bridge = () =>
 export const collectionService = {
   apply: (workspaceId: string, op: CollectionOp) =>
     unwrapWorkspace(bridge().apply({ workspaceId, op })),
+  move: (params: MoveCollectionParams) =>
+    unwrapWorkspace(bridge().move(params)),
   loadEditorState: (workspaceId: string) =>
     unwrapWorkspace(bridge().loadEditorState(workspaceId)),
   saveDrafts: (workspaceId: string, drafts: RequestDrafts) =>

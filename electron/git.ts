@@ -202,11 +202,19 @@ function isMergeConflict(text: string) {
   return text.includes("automatic merge failed") || text.includes("conflict (");
 }
 
+function isBlockedByLocalChanges(text: string) {
+  return (
+    text.includes("would be overwritten by merge") ||
+    text.includes("commit your changes or stash them")
+  );
+}
+
 export function classifyGitError(stderr: string): WorkspaceErrorCode {
   const text = stderr.toLowerCase();
   if (text.includes("not a git repository")) return "not_a_repository";
   if (isProtectedBranch(text)) return "protected_branch";
   if (isPushRejection(text)) return "push_rejected";
+  if (isBlockedByLocalChanges(text)) return "local_changes";
   if (isMergeConflict(text)) return "merge_conflict";
   if (
     text.includes("repository not found") ||
