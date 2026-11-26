@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function ChoiceCard({
@@ -16,15 +17,16 @@ export function ChoiceCard({
   description: ReactNode;
 }>) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+        "h-auto w-full items-start justify-start gap-3 rounded-2xl border px-4 py-3.5 text-left font-normal whitespace-normal",
         selected
-          ? "border-vio bg-surface-selected"
+          ? "border-vio bg-surface-selected hover:bg-surface-selected"
           : "border-line bg-card hover:bg-surface-hover",
       )}
     >
@@ -44,6 +46,6 @@ export function ChoiceCard({
           selected ? "border-[5px] border-vio" : "border-line-strong",
         )}
       />
-    </button>
+    </Button>
   );
 }

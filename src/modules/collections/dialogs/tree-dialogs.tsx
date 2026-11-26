@@ -3,6 +3,7 @@ import { useAtom, useSetAtom } from "jotai";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/form-dialog";
 import { NameField } from "@/components/name-field";
 import { Input } from "@/components/ui/input";
@@ -121,14 +122,15 @@ function ProtocolOption({
   onSelect: () => void;
 }>) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "flex items-start gap-3 rounded-2xl border bg-card p-3 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-        selected ? "border-vio" : "border-line hover:bg-surface-raise",
+        "h-auto w-full items-start justify-start gap-3 rounded-2xl border bg-card p-3 text-left font-normal whitespace-normal hover:bg-surface-raise",
+        selected ? "border-vio" : "border-line",
       )}
     >
       <span
@@ -154,7 +156,7 @@ function ProtocolOption({
       >
         {selected ? <Check className="size-3" strokeWidth={3} /> : null}
       </span>
-    </button>
+    </Button>
   );
 }
 

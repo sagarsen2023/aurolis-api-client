@@ -1,4 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/theme-context";
 import { SettingsSection } from "./section";
@@ -78,14 +79,14 @@ export function AppearanceSection() {
           const Icon = option.icon;
           const selected = theme === option.id;
           return (
-            <button
+            <Button
               key={option.id}
               type="button"
+              variant="ghost"
               aria-pressed={selected}
               onClick={() => setTheme(option.id)}
               className={cn(
-                "rounded-2xl border bg-card p-3 text-left transition-colors outline-none",
-                "hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring",
+                "h-auto flex-col items-stretch gap-0 rounded-2xl border bg-card p-3 text-left font-normal whitespace-normal hover:bg-surface-hover",
                 selected ? "border-lav ring-1 ring-lav" : "border-line",
               )}
             >
@@ -101,7 +102,7 @@ export function AppearanceSection() {
                   </span>
                 ) : null}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

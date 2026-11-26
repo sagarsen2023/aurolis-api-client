@@ -1,5 +1,6 @@
 import { Lock, LockOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { KeyValue } from "@/types/workspace/request.type";
@@ -110,7 +111,7 @@ function KeyValueEditor({
                 />
               )}
             </span>
-            <input
+            <Input
               role="cell"
               aria-label={`${keyPlaceholder} ${index + 1}`}
               className={cell}
@@ -121,7 +122,7 @@ function KeyValueEditor({
                 updateRow(index, { key: event.target.value })
               }
             />
-            <input
+            <Input
               role="cell"
               aria-label={`${valuePlaceholder} ${index + 1}`}
               className={cell}

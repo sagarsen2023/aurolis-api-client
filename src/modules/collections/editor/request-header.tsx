@@ -1,6 +1,7 @@
 import { useAtomValue } from "jotai";
 import { ChevronRight, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { activeWorkspaceAtom } from "@/context/workspace-context";
 import { useSaveRequests } from "@/hooks/use-request-drafts";
@@ -58,14 +59,14 @@ function RequestHeader({
         </nav>
         <div className="flex min-w-0 items-center gap-2">
           <RequestBadge request={draft} className="w-auto" />
-          <input
+          <Input
             aria-label="Request name"
             value={draft.name}
             maxLength={200}
             onChange={(event) =>
               onChange({ ...draft, name: event.target.value })
             }
-            className="h-8 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-1.5 text-[17px] font-medium tracking-[-0.01em] text-foreground outline-none hover:border-line focus-visible:border-ring"
+            className="h-8 min-w-0 flex-1 rounded-lg border-transparent bg-transparent px-1.5 text-[17px] font-medium tracking-[-0.01em] hover:border-line"
           />
         </div>
       </div>

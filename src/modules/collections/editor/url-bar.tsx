@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 function UrlBar({
@@ -31,14 +32,16 @@ function UrlBar({
         )}
       >
         {leading}
-        <input
-          aria-label="URL"
-          value={url}
-          placeholder={placeholder}
-          spellCheck={false}
-          onChange={(event) => onUrlChange(event.target.value)}
-          className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono text-[13px] text-foreground outline-none placeholder:text-dim"
-        />
+        <div className="min-w-0 flex-1">
+          <Input
+            aria-label="URL"
+            value={url}
+            placeholder={placeholder}
+            spellCheck={false}
+            onChange={(event) => onUrlChange(event.target.value)}
+            className="h-8 border-0 bg-transparent px-3 font-mono text-[13px] shadow-none focus-visible:ring-0"
+          />
+        </div>
       </div>
       {action}
     </form>

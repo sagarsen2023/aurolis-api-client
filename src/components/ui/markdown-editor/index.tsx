@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import MDEditor, { commands, type ICommand } from "@uiw/react-md-editor";
 import rehypeSanitize from "rehype-sanitize";
 import {
@@ -75,21 +76,22 @@ function ModeSwitch({
       className="inline-flex h-8 items-center rounded-4xl bg-muted p-0.5 text-muted-foreground"
     >
       {MODES.map((item) => (
-        <button
+        <Button
           key={item.value}
           type="button"
+          variant="ghost"
           role="tab"
           aria-selected={mode === item.value}
           onClick={() => onChange(item.value)}
           className={cn(
-            "inline-flex h-7 items-center rounded-4xl px-3 text-xs font-medium transition-all",
+            "h-7 rounded-4xl px-3 text-xs",
             mode === item.value
-              ? "bg-background text-foreground shadow-sm"
-              : "hover:text-foreground",
+              ? "bg-background text-foreground shadow-sm hover:bg-background"
+              : "hover:bg-transparent hover:text-foreground",
           )}
         >
           {item.label}
-        </button>
+        </Button>
       ))}
     </div>
   );
