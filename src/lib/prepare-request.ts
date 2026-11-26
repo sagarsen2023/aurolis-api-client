@@ -12,6 +12,7 @@ import type {
   RequestAuth,
   RequestBody,
 } from "../types/workspace/request.type.ts";
+import { stripJsonComments } from "./jsonc.ts";
 import { buildScope, resolveText, type VariableScope } from "./variables.ts";
 
 const BODY_CONTENT_TYPES: Record<string, string> = {
@@ -168,7 +169,12 @@ function prepareBody(
       if (!hasHeader(headers, "content-type")) {
         headers.push(["Content-Type", BODY_CONTENT_TYPES[body.mode]]);
       }
-      return { kind: "text", text: resolve(body.raw) };
+      return {
+        kind: "text",
+        text: resolve(
+          body.mode === "json" ? stripJsonComments(body.raw) : body.raw,
+        ),
+      };
     case "urlencoded":
       return { kind: "urlencoded", fields: enabledPairs(body.fields, resolve) };
     case "form-data":
@@ -202,7 +208,7 @@ export function prepareGraphql(
   );
   const operation: GraphqlOperation = {
     query: request.graphql.query,
-    variables: resolve(request.graphql.variables),
+    variables: resolve(stripJsonComments(request.graphql.variables)),
     operationName: request.graphql.operationName,
   };
   return { ...target, operation, unresolved: [...unresolved] };

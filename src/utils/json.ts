@@ -1,3 +1,9 @@
+import {
+  formatJsonc,
+  jsonCommentEnd,
+  stripJsonComments,
+} from "../lib/jsonc.ts";
+
 export function tryParseJson(
   text: string,
 ): { ok: true; value: unknown } | { ok: false } {
@@ -35,6 +41,12 @@ function maskVariables(text: string) {
   let index = 0;
   while (index < text.length) {
     const char = text[index];
+    const commentEnd = inString ? null : jsonCommentEnd(text, index);
+    if (commentEnd !== null) {
+      masked += text.slice(index, commentEnd);
+      index = commentEnd;
+      continue;
+    }
     if (inString && char === "\\") {
       masked += text.slice(index, index + 2);
       index += 2;
@@ -60,8 +72,8 @@ function maskVariables(text: string) {
 
 export function formatJson(text: string): string | null {
   const { masked, placeholders } = maskVariables(text);
-  const formatted = prettyJson(masked);
-  if (formatted === null) return null;
+  if (!tryParseJson(stripJsonComments(masked)).ok) return null;
+  const formatted = formatJsonc(masked);
   return placeholders.reduce(
     (result, { token, original, quoted }) =>
       result.replace(quoted ? `"${token}"` : token, original),
@@ -74,7 +86,7 @@ const VARIABLE_VALUE = Symbol("variable");
 export function parseJsonWithVariables(
   text: string,
 ): { ok: true; value: unknown } | { ok: false } {
-  const { masked, placeholders } = maskVariables(text);
+  const { masked, placeholders } = maskVariables(stripJsonComments(text));
   const unquoted = new Set(
     placeholders.filter((entry) => entry.quoted).map((entry) => entry.token),
   );
