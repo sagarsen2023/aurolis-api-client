@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useSetAtom } from "jotai";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -83,7 +84,6 @@ function SideBar() {
     };
   }, []);
 
-  // Keep the header breadcrumb in step with the current route.
   useEffect(() => {
     const current = ALL_ITEMS.find((item) => isActivePath(item.link, pathname));
     if (current?.breadCrumb) setBreadCrumb(current.breadCrumb);
@@ -94,7 +94,6 @@ function SideBar() {
       aria-label="Main"
       className="flex h-full w-17 shrink-0 flex-col items-center border-r border-line bg-background px-2.75 py-3.5"
     >
-      {/* Logo tile */}
       <Link
         to="/"
         aria-label="Aurolis home"
@@ -114,7 +113,6 @@ function SideBar() {
         />
       </Link>
 
-      {/* Main destinations */}
       <div className="flex flex-col items-center gap-1.5">
         {sideMenuItems.map((item) => (
           <RailItem
@@ -125,7 +123,6 @@ function SideBar() {
         ))}
       </div>
 
-      {/* Bottom: settings + account */}
       <div className="mt-auto flex flex-col items-center gap-3">
         {bottomMenuItems.map((item) => (
           <RailItem
@@ -137,13 +134,14 @@ function SideBar() {
 
         {accountName ? (
           <RailTooltip label={accountName}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               aria-label={`Account: ${accountName}`}
-              className="grid size-10 place-items-center rounded-full bg-linear-to-br from-orb-a to-orb-c text-[13px] font-medium text-lav-ink outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="size-10 rounded-full bg-linear-to-br from-orb-a to-orb-c p-0 text-[13px] font-medium text-lav-ink hover:bg-transparent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               {getInitials({ name: accountName })}
-            </button>
+            </Button>
           </RailTooltip>
         ) : null}
       </div>

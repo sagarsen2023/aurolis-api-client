@@ -29,6 +29,24 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
   git_unavailable:
     "Aurolis needs Git 2.31 or newer. Install it from git-scm.com, then try again.",
   git_failed: "Git reported an error.",
+  not_a_workspace:
+    "This repository isn't an Aurolis workspace yet. Initialize it first.",
+  newer_format:
+    "This workspace was saved by a newer version of Aurolis. Update Aurolis to edit it.",
+  push_rejected:
+    "GitHub has newer commits on this branch. Sync again to bring them in first.",
+  protected_branch:
+    "This branch is protected on GitHub, so it can't be pushed to directly. Your commit is saved on this computer.",
+  merge_conflict:
+    "Your commit and the commits on GitHub change the same lines. Your commit is saved on this computer; the merge was stopped and nothing else changed. Resolve it in a terminal or editor, then sync again.",
+  local_changes:
+    "Some files you changed but haven't committed were also changed on the remote. Commit your changes, then sync again.",
+  nothing_to_commit: "There's nothing to commit.",
+  secret_leak: "Nothing was committed.",
+  sync_failed:
+    "Committed on this computer, but syncing with the remote failed.",
+  item_not_found:
+    "That item no longer exists. It may have been changed outside Aurolis.",
   unknown: "Something went wrong. Try again.",
 };
 
@@ -42,3 +60,18 @@ export const STORAGE_WARNING_MESSAGES: Record<StorageWarning, string> = {
 };
 
 export const GITHUB_SUGGESTION_LIMIT = 6;
+
+export const PULL_FAILURE_MESSAGES: Partial<
+  Record<WorkspaceErrorCode, string>
+> = {
+  network:
+    "Couldn't reach the remote, so you're seeing the copy on this computer.",
+  auth_failed: "Sign in with GitHub to bring in the latest changes.",
+  repository_not_found:
+    "The remote repository wasn't found, or you don't have access to it.",
+  local_changes:
+    "Some changes you haven't committed touch files that changed on the remote. Commit them, then sync.",
+  merge_conflict:
+    "Your commits and the remote change the same lines, so nothing was pulled. Resolve it in your editor, then sync.",
+  detached_head: "Check out a branch to pull the latest changes.",
+};

@@ -3,8 +3,12 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 const workspaceCall = (action: string, params?: unknown) =>
   ipcRenderer.invoke(`aurolis:workspace:${action}`, params);
 
-// Minimal bridge. Add IPC calls here as the app needs them;
-// never expose ipcRenderer or Node APIs directly.
+const collectionCall = (action: string, params?: unknown) =>
+  ipcRenderer.invoke(`aurolis:collection:${action}`, params);
+
+const engineCall = (action: string, params?: unknown) =>
+  ipcRenderer.invoke(`aurolis:engine:${action}`, params);
+
 const aurolis = {
   isElectron: true,
   platform: process.platform,
@@ -13,10 +17,8 @@ const aurolis = {
     chrome: process.versions.chrome,
     node: process.versions.node,
   },
-  /** Sync the native window chrome (title bar, menus, dialogs) with the app theme. */
   setTheme: (theme: "light" | "dark" | "system") =>
     ipcRenderer.send("aurolis:set-theme", theme),
-  /** GitHub sign-in. The access token never leaves the main process. */
   github: {
     startSignIn: () => ipcRenderer.invoke("aurolis:github:start"),
     waitForSignIn: () => ipcRenderer.invoke("aurolis:github:wait"),
@@ -50,6 +52,7 @@ const aurolis = {
     initialize: (id: string) => workspaceCall("initialize", id),
     rename: (params: unknown) => workspaceCall("rename", params),
     publish: (params: unknown) => workspaceCall("publish", params),
+    stopSync: (id: string) => workspaceCall("stop-sync", id),
     removeCheck: (id: string) => workspaceCall("remove-check", id),
     reveal: (id: string) => workspaceCall("reveal", id),
     remove: (params: unknown) => workspaceCall("remove", params),
@@ -58,6 +61,44 @@ const aurolis = {
       ipcRenderer.on("aurolis:workspace:changed", listener);
       return () => {
         ipcRenderer.removeListener("aurolis:workspace:changed", listener);
+      };
+    },
+  },
+  collection: {
+    apply: (params: unknown) => collectionCall("apply", params),
+    move: (params: unknown) => collectionCall("move", params),
+    loadEditorState: (id: string) => collectionCall("editor-load", id),
+    saveDrafts: (params: unknown) =>
+      collectionCall("editor-save-drafts", params),
+    saveUiState: (params: unknown) => collectionCall("editor-save-ui", params),
+  },
+  sourceControl: {
+    changes: (id: string) =>
+      ipcRenderer.invoke("aurolis:source-control:changes", id),
+    commit: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:source-control:commit", params),
+    pull: (id: string) => ipcRenderer.invoke("aurolis:source-control:pull", id),
+  },
+  transfer: {
+    saveFile: (params: unknown) =>
+      ipcRenderer.invoke("aurolis:transfer:save-file", params),
+  },
+  engine: {
+    sendHttp: (params: unknown) => engineCall("http-send", params),
+    sendGraphql: (params: unknown) => engineCall("graphql-send", params),
+    introspectGraphql: (params: unknown) =>
+      engineCall("graphql-introspect", params),
+    cancel: (runId: string) => engineCall("cancel", runId),
+    connectRealtime: (params: unknown) =>
+      engineCall("realtime-connect", params),
+    sendRealtime: (params: unknown) => engineCall("realtime-send", params),
+    disconnectRealtime: (id: string) => engineCall("realtime-disconnect", id),
+    onRealtimeEvent: (callback: (event: unknown) => void) => {
+      const listener = (_event: IpcRendererEvent, payload: unknown) =>
+        callback(payload);
+      ipcRenderer.on("aurolis:engine:realtime-event", listener);
+      return () => {
+        ipcRenderer.removeListener("aurolis:engine:realtime-event", listener);
       };
     },
   },

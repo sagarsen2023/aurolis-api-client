@@ -6,6 +6,7 @@ export type { Environment } from "./environment.type.ts";
 export interface WorkspaceManifest {
   format: number;
   workspace: { id: string; name: string };
+  description: string;
   defaultEnvironment: string | null;
 }
 

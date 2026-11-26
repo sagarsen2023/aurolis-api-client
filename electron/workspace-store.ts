@@ -11,16 +11,17 @@ import {
   rename,
   rm,
   statfs,
-  writeFile,
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { z } from "zod";
 import {
   createManifest,
   fromFiles,
   MANIFEST_PATH,
   slugify,
   stableStringify,
+  WORKSPACE_PATHS,
 } from "../src/lib/workspace-format.ts";
 import {
   workspaceNameSchema,
@@ -44,7 +45,9 @@ import {
   addRemote,
   changedFileCount,
   cloneRepository,
-  commitAll,
+  changedPaths,
+  commitPaths,
+  statusEntries,
   configureManagedRepository,
   currentBranch,
   GitCommandError,
@@ -61,6 +64,12 @@ import {
   unpushedCommitCount,
 } from "./git.ts";
 import { isGithubOwner, isGithubRepoName } from "./github-sync.ts";
+import {
+  forgetWorkspaceSecrets,
+  mergeSecrets,
+  secretsPersisted,
+} from "./secret-store.ts";
+import { stateDir, userData, writeAtomic } from "./user-data.ts";
 
 const WORKSPACE_DIRS = ["collections", "environments"];
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -86,13 +95,34 @@ export class WorkspaceError extends Error {
   }
 }
 
-const userData = () => app.getPath("userData");
+export function workspacePathspecs(root: string) {
+  return WORKSPACE_PATHS.map((file) => path.posix.join(root, file));
+}
+
+async function commitWorkspaceChanges(
+  dir: string,
+  root: string,
+  message: string,
+) {
+  const entries = await statusEntries(dir, workspacePathspecs(root));
+  if (entries.length === 0) return false;
+  await commitPaths(dir, message, changedPaths(entries));
+  return true;
+}
+
+export function parseWorkspaceInput<T>(schema: z.ZodType<T>, input: unknown) {
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) {
+    throw new WorkspaceError("invalid_input", z.prettifyError(parsed.error));
+  }
+  return parsed.data;
+}
+
 const registryFile = () => path.join(userData(), "workspaces.json");
-const stateDir = (id: string) => path.join(userData(), "workspaces", id);
 const defaultStorageFolder = () => path.join(app.getPath("home"), "Aurolis");
 const toPosix = (value: string) => value.split(path.sep).join("/");
 
-const isInside = (child: string, parent: string) => {
+export const isInside = (child: string, parent: string) => {
   const relative = path.relative(parent, child);
   return (
     relative === "" ||
@@ -106,13 +136,6 @@ export function displayPath(target: string) {
   return isInside(target, home)
     ? `~${target.slice(home.length) || ""}`
     : target;
-}
-
-async function writeAtomic(file: string, content: string) {
-  await mkdir(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.tmp`;
-  await writeFile(temp, content, "utf8");
-  await rename(temp, file);
 }
 
 let registry: WorkspaceRegistry | null = null;
@@ -309,7 +332,7 @@ function validName(name: unknown) {
   return parsed.data;
 }
 
-async function findEntry(id: unknown) {
+export async function findEntry(id: unknown) {
   const current = await loadRegistry();
   const entry = current.workspaces.find((w) => w.id === id);
   if (!entry) throw new WorkspaceError("not_found");
@@ -348,10 +371,10 @@ async function findWorkspaceRoot(repoDir: string) {
   return "";
 }
 
-async function addEntry(entry: WorkspaceEntry) {
+async function addEntry(entry: WorkspaceEntry, activate = true) {
   const current = await loadRegistry();
   current.workspaces.push(entry);
-  current.activeWorkspaceId = entry.id;
+  if (activate) current.activeWorkspaceId = entry.id;
   await mkdir(stateDir(entry.id), { recursive: true });
   await saveRegistry();
 }
@@ -360,6 +383,7 @@ const now = () => new Date().toISOString();
 
 export async function createLocalWorkspace(
   params: unknown,
+  { activate = true }: { activate?: boolean } = {},
 ): Promise<{ workspaceId: string }> {
   const name = validName((params as { name?: unknown })?.name);
   const storage = await requireStorageFolder();
@@ -372,22 +396,25 @@ export async function createLocalWorkspace(
       path.join(repoDir, MANIFEST_PATH),
       stableStringify(createManifest(randomUUID(), name)),
     );
-    await commitAll(repoDir, "Create workspace");
+    await commitWorkspaceChanges(repoDir, "", "Create workspace");
   } catch (error) {
     await rm(repoDir, { recursive: true, force: true });
     throw error;
   }
   const id = randomUUID();
-  await addEntry({
-    id,
-    name,
-    repoDir,
-    root: "",
-    managed: true,
-    remote: null,
-    createdAt: now(),
-    lastOpenedAt: now(),
-  });
+  await addEntry(
+    {
+      id,
+      name,
+      repoDir,
+      root: "",
+      managed: true,
+      remote: null,
+      createdAt: now(),
+      lastOpenedAt: now(),
+    },
+    activate,
+  );
   return { workspaceId: id };
 }
 
@@ -496,7 +523,7 @@ export async function openExistingFolder(
   return { workspaceId: id, alreadyAdded: false };
 }
 
-async function readWorkspaceFiles(rootDir: string) {
+export async function readWorkspaceFiles(rootDir: string) {
   const files: Record<string, string> = {};
   const oversized: string[] = [];
 
@@ -598,7 +625,7 @@ export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
 
   const [branch, changedFiles, url] = await Promise.all([
     currentBranch(entry.repoDir),
-    changedFileCount(entry.repoDir, entry.root),
+    changedFileCount(entry.repoDir, workspacePathspecs(entry.root)),
     remoteUrl(entry.repoDir),
   ]);
   const unpushedCommits = url ? await unpushedCommitCount(entry.repoDir) : 0;
@@ -608,14 +635,18 @@ export async function openWorkspace(id: unknown): Promise<OpenedWorkspace> {
   current.activeWorkspaceId = entry.id;
   await saveRegistry();
   watchWorkspace(entry);
+  const data = isWorkspace
+    ? await mergeSecrets(entry.id, parsed.workspace)
+    : null;
 
   return {
     entry,
     displayPath: displayPath(rootDir),
     isWorkspace,
-    data: isWorkspace ? parsed.workspace : null,
+    data,
     issues,
     git: { branch, changedFiles, unpushedCommits, remoteUrl: url },
+    secretsPersisted: secretsPersisted(),
   };
 }
 
@@ -645,12 +676,9 @@ async function commitIfRequested(
   requested: boolean,
 ) {
   if (!requested) return false;
-  const changed = await changedFileCount(dir, root);
-  if (changed === 0) return false;
   const hasHistory = await hasCommits(dir);
   const message = hasHistory ? "Update workspace" : "Create workspace";
-  await commitAll(dir, message, root);
-  return true;
+  return commitWorkspaceChanges(dir, root, message);
 }
 
 export async function publishWorkspace(
@@ -703,6 +731,20 @@ export async function publishWorkspace(
   return { webUrl: `https://github.com/${owner}/${repo}`, branch, committed };
 }
 
+export async function stopSyncing(id: unknown) {
+  const entry = await findEntry(id);
+  if (!existsSync(entry.repoDir)) {
+    throw new WorkspaceError(
+      "missing_folder",
+      `The folder ${displayPath(entry.repoDir)} was moved or deleted.`,
+    );
+  }
+  await removeRemote(entry.repoDir);
+  entry.remote = null;
+  await saveRegistry();
+  return openWorkspace(entry.id);
+}
+
 export async function revealWorkspace(id: unknown) {
   const entry = await findEntry(id);
   if (!existsSync(entry.repoDir)) throw new WorkspaceError("missing_folder");
@@ -721,7 +763,7 @@ export async function removeCheck(id: unknown): Promise<RemoveCheck> {
     };
   }
   const [changedFiles, unpushedCommits, url] = await Promise.all([
-    changedFileCount(entry.repoDir, ""),
+    changedFileCount(entry.repoDir, ["."]),
     unpushedCommitCount(entry.repoDir),
     remoteUrl(entry.repoDir),
   ]);
@@ -750,6 +792,7 @@ export async function removeWorkspace(params: unknown) {
   }
   await saveRegistry();
   await rm(stateDir(entry.id), { recursive: true, force: true });
+  forgetWorkspaceSecrets(entry.id);
 
   const canDelete =
     deleteFolder === true &&

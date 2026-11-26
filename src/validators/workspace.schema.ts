@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-const idSchema = z
+export const idSchema = z
   .string()
   .min(1)
   .max(100)
   .regex(/^[A-Za-z0-9_-]+$/, "Use only letters, numbers, - and _");
 
-const nameSchema = z.string().trim().min(1).max(200);
+export const nameSchema = z.string().trim().min(1).max(200);
 
 const seqSchema = z.number().finite();
 
@@ -55,6 +55,7 @@ export const requestAuthSchema = z.discriminatedUnion("type", [
 export const manifestFileSchema = z.object({
   format: z.number().int().positive(),
   workspace: z.object({ id: idSchema, name: nameSchema }),
+  description: z.string().default(""),
   defaultEnvironment: idSchema.nullable().default(null),
 });
 
@@ -71,20 +72,90 @@ export const folderFileSchema = z.object({
   id: idSchema,
   name: nameSchema,
   seq: seqSchema,
+  description: z.string().default(""),
   auth: requestAuthSchema.default({ type: "inherit" }),
 });
 
-export const requestFileSchema = z.object({
+export const requestProtocolSchema = z.enum([
+  "http",
+  "graphql",
+  "websocket",
+  "socketio",
+]);
+
+export const savedMessageSchema = z.object({
+  id: idSchema,
+  name: z.string().max(200).default(""),
+  event: z.string().max(200).default(""),
+  body: z.string().default(""),
+  format: z.enum(["json", "text"]).default("text"),
+});
+
+const requestBaseShape = {
   id: idSchema,
   name: nameSchema,
   seq: seqSchema,
-  method: httpMethodSchema,
+  description: z.string().default(""),
   url: z.string().default(""),
   params: z.array(keyValueSchema).default([]),
   headers: z.array(keyValueSchema).default([]),
-  body: requestBodySchema.default({ mode: "none" }),
   auth: requestAuthSchema.default({ type: "inherit" }),
+};
+
+const httpRequestFileSchema = z.object({
+  ...requestBaseShape,
+  protocol: z.literal("http"),
+  method: httpMethodSchema,
+  body: requestBodySchema.default({ mode: "none" }),
 });
+
+const graphqlRequestFileSchema = z.object({
+  ...requestBaseShape,
+  protocol: z.literal("graphql"),
+  graphql: z
+    .object({
+      query: z.string().default(""),
+      variables: z.string().default(""),
+      operationName: z.string().default(""),
+    })
+    .default({ query: "", variables: "", operationName: "" }),
+});
+
+const websocketRequestFileSchema = z.object({
+  ...requestBaseShape,
+  protocol: z.literal("websocket"),
+  messages: z.array(savedMessageSchema).default([]),
+});
+
+const socketioRequestFileSchema = z.object({
+  ...requestBaseShape,
+  protocol: z.literal("socketio"),
+  messages: z.array(savedMessageSchema).default([]),
+  socketio: z
+    .object({
+      path: z.string().default("/socket.io"),
+      events: z.array(z.string().max(200)).default([]),
+    })
+    .default({ path: "/socket.io", events: [] }),
+});
+
+const withDefaultProtocol = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  if ("protocol" in value) return value;
+  return { ...value, protocol: "http" };
+};
+
+export const requestFileSchema = z.preprocess(
+  withDefaultProtocol,
+  z.discriminatedUnion("protocol", [
+    httpRequestFileSchema,
+    graphqlRequestFileSchema,
+    websocketRequestFileSchema,
+    socketioRequestFileSchema,
+  ]),
+);
 
 export const exampleFileSchema = z.object({
   id: idSchema,

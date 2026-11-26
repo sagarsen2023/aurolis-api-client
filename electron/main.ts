@@ -29,6 +29,23 @@ import {
 } from "./github-sync.ts";
 import { gitInfo } from "./git.ts";
 import {
+  applyOperation,
+  loadEditorState,
+  moveCollection,
+  saveDrafts,
+  saveUiState,
+} from "./collection-store.ts";
+import { commitAndSync, listChanges, pullWorkspace } from "./source-control.ts";
+import { saveExportFile } from "./export-file.ts";
+import { toEngineResult } from "./engines/engine-error.ts";
+import { introspectGraphql, sendGraphql } from "./engines/graphql-engine.ts";
+import { cancelRun, sendHttp } from "./engines/http-engine.ts";
+import {
+  connectRealtime,
+  disconnectRealtime,
+  sendRealtime,
+} from "./engines/realtime-engine.ts";
+import {
   cancelClones,
   checkStorageFolder,
   chooseStorageFolder,
@@ -44,6 +61,7 @@ import {
   revealWorkspace,
   renameWorkspace,
   setStorageFolder,
+  stopSyncing,
   toWorkspaceResult,
 } from "./workspace-store.ts";
 
@@ -54,16 +72,14 @@ const ROOT = path.join(import.meta.dirname, "..");
 const RENDERER_DIST = path.join(ROOT, "dist");
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
-// Brand grounds from the design system, so the window doesn't flash white
-// before the first paint.
 const BG_DARK = "#0c0b0c";
 const BG_LIGHT = "#f6f3f8";
 const INK_DARK = "#ffffff";
 const INK_LIGHT = "#151017";
 
-// Must match the height of the renderer's <TitleBar /> strip.
 const TITLEBAR_HEIGHT = 36;
 const IS_MAC = process.platform === "darwin";
+const APP_ICON = path.join(ROOT, "build", "icon.png");
 
 type ThemeSource = "light" | "dark" | "system";
 const THEME_SOURCES: readonly ThemeSource[] = ["light", "dark", "system"];
@@ -76,8 +92,6 @@ function themeColors() {
   };
 }
 
-// Repaint the native parts of a window (background, and the caption buttons
-// drawn over the app on Windows/Linux) in the current theme.
 function applyThemeToWindow(win: BrowserWindow) {
   const { background, symbol } = themeColors();
   win.setBackgroundColor(background);
@@ -90,8 +104,6 @@ function applyThemeToWindow(win: BrowserWindow) {
   }
 }
 
-// In production the renderer is served from app://aurolis/ instead of file://
-// so absolute asset paths and history-based routing work exactly like in dev.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
@@ -129,12 +141,10 @@ function registerAppProtocol() {
       path.join(RENDERER_DIST, decodeURIComponent(pathname)),
     );
 
-    // Block path traversal outside the renderer bundle.
     if (!requested.startsWith(RENDERER_DIST)) {
       return new Response("Not found", { status: 404 });
     }
 
-    // Unknown paths fall back to index.html (SPA routing).
     const isKnownFile = await isFile(requested);
     const filePath = isKnownFile
       ? requested
@@ -174,7 +184,7 @@ function createWindow() {
             height: TITLEBAR_HEIGHT,
           },
         }),
-    icon: path.join(ROOT, "build", "icon.png"),
+    icon: APP_ICON,
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.mjs"),
       contextIsolation: true,
@@ -185,14 +195,11 @@ function createWindow() {
 
   win.once("ready-to-show", () => {
     win.show();
-    // Packaged builds stay closed. `electron .` and `npm run dev` are unpackaged,
-    // so the console opens in its own window instead of docking under the hidden title bar.
     if (!app.isPackaged) {
       win.webContents.openDevTools({ mode: "detach" });
     }
   });
 
-  // Open external links in the user's browser, never inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
     return { action: "deny" };
@@ -219,7 +226,6 @@ function createWindow() {
 
 app.setName("Aurolis");
 
-// Single instance: focus the existing window instead of opening a second app.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -231,14 +237,12 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 
-  // The renderer reports the theme picked in the app ("system" follows the OS).
   ipcMain.on("aurolis:set-theme", (event, theme: unknown) => {
     if (!BrowserWindow.fromWebContents(event.sender)) return;
     if (!THEME_SOURCES.includes(theme as ThemeSource)) return;
     nativeTheme.themeSource = theme as ThemeSource;
   });
 
-  // GitHub sign-in (device flow). The token stays in this process.
   const fromAppWindow = (event: Electron.IpcMainInvokeEvent) =>
     BrowserWindow.fromWebContents(event.sender) !== null;
 
@@ -304,24 +308,78 @@ if (!app.requestSingleInstanceLock()) {
     initialize: (_event, id) => initializeWorkspace(id),
     rename: (_event, params) => renameWorkspace(params),
     publish: (_event, params) => publishWorkspace(params),
+    "stop-sync": (_event, id) => stopSyncing(id),
     "remove-check": (_event, id) => removeCheck(id),
     reveal: (_event, id) => revealWorkspace(id),
     remove: (_event, params) => removeWorkspace(params),
   };
-  for (const [action, handler] of Object.entries(workspaceHandlers)) {
-    ipcMain.handle(`aurolis:workspace:${action}`, (event, params: unknown) =>
-      fromAppWindow(event)
-        ? toWorkspaceResult(() => handler(event, params))
-        : null,
-    );
-  }
+  type Handler = (
+    event: Electron.IpcMainInvokeEvent,
+    params: unknown,
+  ) => Promise<unknown>;
+  type ResultWrapper = (operation: () => Promise<unknown>) => Promise<unknown>;
 
-  // Fires for in-app theme changes and for OS changes while on "system".
+  const registerHandlers = (
+    area: string,
+    handlers: Record<string, Handler>,
+    wrap: ResultWrapper,
+  ) => {
+    for (const [action, handler] of Object.entries(handlers)) {
+      ipcMain.handle(`aurolis:${area}:${action}`, (event, params: unknown) =>
+        fromAppWindow(event) ? wrap(() => handler(event, params)) : null,
+      );
+    }
+  };
+
+  registerHandlers("workspace", workspaceHandlers, toWorkspaceResult);
+  registerHandlers(
+    "collection",
+    {
+      apply: (_event, params) => applyOperation(params),
+      move: (_event, params) => moveCollection(params),
+      "editor-load": (_event, id) => loadEditorState(id),
+      "editor-save-drafts": (_event, params) => saveDrafts(params),
+      "editor-save-ui": (_event, params) => saveUiState(params),
+    },
+    toWorkspaceResult,
+  );
+  registerHandlers(
+    "source-control",
+    {
+      changes: (_event, id) => listChanges(id),
+      commit: (_event, params) => commitAndSync(params),
+      pull: (_event, id) => pullWorkspace(id),
+    },
+    toWorkspaceResult,
+  );
+  registerHandlers(
+    "transfer",
+    {
+      "save-file": (event, params) => saveExportFile(windowOf(event), params),
+    },
+    toWorkspaceResult,
+  );
+  registerHandlers(
+    "engine",
+    {
+      "http-send": (_event, params) => sendHttp(params),
+      "graphql-send": (_event, params) => sendGraphql(params),
+      "graphql-introspect": (_event, params) => introspectGraphql(params),
+      cancel: async (_event, runId) => cancelRun(runId),
+      "realtime-connect": (event, params) =>
+        connectRealtime(params, event.sender),
+      "realtime-send": (_event, params) => sendRealtime(params),
+      "realtime-disconnect": (_event, id) => disconnectRealtime(id),
+    },
+    toEngineResult,
+  );
+
   nativeTheme.on("updated", () => {
     for (const win of BrowserWindow.getAllWindows()) applyThemeToWindow(win);
   });
 
   app.whenReady().then(() => {
+    if (IS_MAC && !app.isPackaged) app.dock?.setIcon(APP_ICON);
     if (!DEV_SERVER_URL) registerAppProtocol();
     createWindow();
 

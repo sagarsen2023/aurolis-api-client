@@ -67,7 +67,5 @@ export default defineConfig(
       "react-refresh/only-export-components": "off",
     },
   },
-  // Runs Prettier as an ESLint rule (prettier/prettier → error) and disables
-  // conflicting style rules via eslint-config-prettier. Keep last.
   eslintPluginPrettierRecommended,
 );

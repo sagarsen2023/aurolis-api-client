@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as authenticatedRouteRouteImport } from './routes/(authenticated)/route'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as authenticatedIndexRouteImport } from './routes/(authenticated)/index'
+import { Route as authenticatedCollectionsIndexRouteImport } from './routes/(authenticated)/collections/index'
 import { Route as authenticatedEnvironmentsIndexRouteImport } from './routes/(authenticated)/environments/index'
-import { Route as authenticatedHistoryIndexRouteImport } from './routes/(authenticated)/history/index'
 import { Route as authenticatedImportExportIndexRouteImport } from './routes/(authenticated)/import-export/index'
 import { Route as authenticatedLoadTestingIndexRouteImport } from './routes/(authenticated)/load-testing/index'
 import { Route as authenticatedSettingsIndexRouteImport } from './routes/(authenticated)/settings/index'
@@ -32,16 +32,16 @@ const authenticatedIndexRoute = authenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => authenticatedRouteRoute,
 } as any)
+const authenticatedCollectionsIndexRoute =
+  authenticatedCollectionsIndexRouteImport.update({
+    id: '/collections/',
+    path: '/collections/',
+    getParentRoute: () => authenticatedRouteRoute,
+  } as any)
 const authenticatedEnvironmentsIndexRoute =
   authenticatedEnvironmentsIndexRouteImport.update({
     id: '/environments/',
     path: '/environments/',
-    getParentRoute: () => authenticatedRouteRoute,
-  } as any)
-const authenticatedHistoryIndexRoute =
-  authenticatedHistoryIndexRouteImport.update({
-    id: '/history/',
-    path: '/history/',
     getParentRoute: () => authenticatedRouteRoute,
   } as any)
 const authenticatedImportExportIndexRoute =
@@ -66,8 +66,8 @@ const authenticatedSettingsIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof authenticatedIndexRoute
   '/sign-in': typeof authSignInRoute
+  '/collections/': typeof authenticatedCollectionsIndexRoute
   '/environments/': typeof authenticatedEnvironmentsIndexRoute
-  '/history/': typeof authenticatedHistoryIndexRoute
   '/import-export/': typeof authenticatedImportExportIndexRoute
   '/load-testing/': typeof authenticatedLoadTestingIndexRoute
   '/settings/': typeof authenticatedSettingsIndexRoute
@@ -75,8 +75,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
   '/': typeof authenticatedIndexRoute
+  '/collections': typeof authenticatedCollectionsIndexRoute
   '/environments': typeof authenticatedEnvironmentsIndexRoute
-  '/history': typeof authenticatedHistoryIndexRoute
   '/import-export': typeof authenticatedImportExportIndexRoute
   '/load-testing': typeof authenticatedLoadTestingIndexRoute
   '/settings': typeof authenticatedSettingsIndexRoute
@@ -86,8 +86,8 @@ export interface FileRoutesById {
   '/(authenticated)': typeof authenticatedRouteRouteWithChildren
   '/(auth)/sign-in': typeof authSignInRoute
   '/(authenticated)/': typeof authenticatedIndexRoute
+  '/(authenticated)/collections/': typeof authenticatedCollectionsIndexRoute
   '/(authenticated)/environments/': typeof authenticatedEnvironmentsIndexRoute
-  '/(authenticated)/history/': typeof authenticatedHistoryIndexRoute
   '/(authenticated)/import-export/': typeof authenticatedImportExportIndexRoute
   '/(authenticated)/load-testing/': typeof authenticatedLoadTestingIndexRoute
   '/(authenticated)/settings/': typeof authenticatedSettingsIndexRoute
@@ -97,8 +97,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sign-in'
+    | '/collections/'
     | '/environments/'
-    | '/history/'
     | '/import-export/'
     | '/load-testing/'
     | '/settings/'
@@ -106,8 +106,8 @@ export interface FileRouteTypes {
   to:
     | '/sign-in'
     | '/'
+    | '/collections'
     | '/environments'
-    | '/history'
     | '/import-export'
     | '/load-testing'
     | '/settings'
@@ -116,8 +116,8 @@ export interface FileRouteTypes {
     | '/(authenticated)'
     | '/(auth)/sign-in'
     | '/(authenticated)/'
+    | '/(authenticated)/collections/'
     | '/(authenticated)/environments/'
-    | '/(authenticated)/history/'
     | '/(authenticated)/import-export/'
     | '/(authenticated)/load-testing/'
     | '/(authenticated)/settings/'
@@ -151,18 +151,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authenticatedIndexRouteImport
       parentRoute: typeof authenticatedRouteRoute
     }
+    '/(authenticated)/collections/': {
+      id: '/(authenticated)/collections/'
+      path: '/collections'
+      fullPath: '/collections/'
+      preLoaderRoute: typeof authenticatedCollectionsIndexRouteImport
+      parentRoute: typeof authenticatedRouteRoute
+    }
     '/(authenticated)/environments/': {
       id: '/(authenticated)/environments/'
       path: '/environments'
       fullPath: '/environments/'
       preLoaderRoute: typeof authenticatedEnvironmentsIndexRouteImport
-      parentRoute: typeof authenticatedRouteRoute
-    }
-    '/(authenticated)/history/': {
-      id: '/(authenticated)/history/'
-      path: '/history'
-      fullPath: '/history/'
-      preLoaderRoute: typeof authenticatedHistoryIndexRouteImport
       parentRoute: typeof authenticatedRouteRoute
     }
     '/(authenticated)/import-export/': {
@@ -191,8 +191,8 @@ declare module '@tanstack/react-router' {
 
 interface authenticatedRouteRouteChildren {
   authenticatedIndexRoute: typeof authenticatedIndexRoute
+  authenticatedCollectionsIndexRoute: typeof authenticatedCollectionsIndexRoute
   authenticatedEnvironmentsIndexRoute: typeof authenticatedEnvironmentsIndexRoute
-  authenticatedHistoryIndexRoute: typeof authenticatedHistoryIndexRoute
   authenticatedImportExportIndexRoute: typeof authenticatedImportExportIndexRoute
   authenticatedLoadTestingIndexRoute: typeof authenticatedLoadTestingIndexRoute
   authenticatedSettingsIndexRoute: typeof authenticatedSettingsIndexRoute
@@ -200,8 +200,8 @@ interface authenticatedRouteRouteChildren {
 
 const authenticatedRouteRouteChildren: authenticatedRouteRouteChildren = {
   authenticatedIndexRoute: authenticatedIndexRoute,
+  authenticatedCollectionsIndexRoute: authenticatedCollectionsIndexRoute,
   authenticatedEnvironmentsIndexRoute: authenticatedEnvironmentsIndexRoute,
-  authenticatedHistoryIndexRoute: authenticatedHistoryIndexRoute,
   authenticatedImportExportIndexRoute: authenticatedImportExportIndexRoute,
   authenticatedLoadTestingIndexRoute: authenticatedLoadTestingIndexRoute,
   authenticatedSettingsIndexRoute: authenticatedSettingsIndexRoute,

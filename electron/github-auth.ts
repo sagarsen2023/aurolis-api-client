@@ -1,13 +1,5 @@
-// GitHub sign-in via the OAuth device flow, run in the main process.
-//
-// The device-flow endpoints don't send CORS headers, so they can't be called
-// from the renderer. Keeping the flow here also means the access token never
-// reaches page code: it is encrypted with Electron's safeStorage (macOS
-// Keychain, Windows DPAPI, libsecret/kwallet on Linux) and only used here.
-//
-// Docs: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow
-
 import { app, net, safeStorage } from "electron";
+import { osKeychainAvailable } from "./keychain.ts";
 import path from "node:path";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import type {
@@ -17,8 +9,6 @@ import type {
   GithubUser,
 } from "../src/types/auth/auth-response.type.ts";
 
-// Public identifier of the GitHub App / OAuth App; safe to ship in the binary.
-// "Enable Device Flow" must be ticked in the app's settings on GitHub.
 const CLIENT_ID = import.meta.env.VITE_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
@@ -31,7 +21,6 @@ const DEAD_REFRESH_ERRORS = new Set([
   "incorrect_client_credentials",
   "unauthorized_client",
 ]);
-// Refresh a minute early so a request doesn't leave with a token that expires mid-flight.
 const EXPIRY_SKEW_MS = 60_000;
 
 const TOKEN_FILE = () => path.join(app.getPath("userData"), "github-token.bin");
@@ -62,7 +51,6 @@ type StoredGithubSession = {
 let pending: PendingFlow | null = null;
 let sessionCache: StoredGithubSession | null | undefined;
 let refreshInFlight: Promise<RefreshResult> | null = null;
-// Status checked against GitHub once per session; reset on sign-in/out.
 let cachedStatus: GithubAuthStatus | null = null;
 
 async function postForm<T>(url: string, body: Record<string, string>) {
@@ -91,10 +79,6 @@ function sleep(ms: number, signal: AbortSignal) {
     );
   });
 }
-
-// ---------------------------------------------------------------------------
-// Token storage. One encrypted blob holds both the user access token (ghu_)
-// and the refresh token (ghr_). GitHub rotates the refresh token on each use.
 
 function expiresAt(seconds: number | undefined) {
   return typeof seconds === "number" ? Date.now() + seconds * 1000 : null;
@@ -135,7 +119,6 @@ function parseStoredSession(raw: string): StoredGithubSession | null {
       };
     }
   } catch {
-    // Older builds stored the access token as a bare string.
     if (raw) {
       return {
         accessToken: raw,
@@ -146,14 +129,6 @@ function parseStoredSession(raw: string): StoredGithubSession | null {
     }
   }
   return null;
-}
-
-function osKeychainAvailable() {
-  if (!safeStorage.isEncryptionAvailable()) return false;
-  return !(
-    process.platform === "linux" &&
-    safeStorage.getSelectedStorageBackend() === "basic_text"
-  );
 }
 
 async function saveSession(session: StoredGithubSession) {
@@ -244,9 +219,6 @@ function refreshSessionOnce(session: StoredGithubSession) {
   return refreshInFlight;
 }
 
-// ---------------------------------------------------------------------------
-// GitHub API
-
 type UserFetch =
   | { kind: "ok"; user: GithubUser }
   | { kind: "unauthorized" }
@@ -279,10 +251,6 @@ async function fetchUser(token: string): Promise<UserFetch> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Device flow
-
-/** Step 1: ask GitHub for a user code. The renderer copies it and opens GitHub. */
 export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
   if (!CLIENT_ID) return { ok: false, error: "not_configured" };
 
@@ -334,7 +302,6 @@ export async function startDeviceFlow(): Promise<GithubDeviceFlowStart> {
   };
 }
 
-/** Step 2: poll until the user approves (or denies) in the browser. */
 export async function waitForAuthorization(): Promise<GithubSignInResult> {
   const flow = pending;
   if (!flow) return { ok: false, error: "cancelled" };
@@ -351,7 +318,6 @@ export async function waitForAuthorization(): Promise<GithubSignInResult> {
           grant_type: DEVICE_GRANT,
         });
       } catch {
-        // Transient network blip: keep polling until the code expires.
         continue;
       }
 
@@ -370,7 +336,6 @@ export async function waitForAuthorization(): Promise<GithubSignInResult> {
         case "authorization_pending":
           continue;
         case "slow_down":
-          // GitHub sends the new minimum interval; fall back to +5s.
           flow.interval = r.interval ?? flow.interval + 5;
           continue;
         case "expired_token":
@@ -398,9 +363,6 @@ export function cancelDeviceFlow() {
   pending?.abort.abort();
   pending = null;
 }
-
-// ---------------------------------------------------------------------------
-// Session
 
 async function sessionForApi(): Promise<
   | { kind: "ready"; session: StoredGithubSession }
@@ -455,8 +417,6 @@ export async function getAuthStatus(): Promise<GithubAuthStatus> {
     cachedStatus = null;
     return { signedIn: false, user: null };
   }
-  // Offline still counts as signed in: the app is local-first. Only a
-  // confirmed user is cached, so an offline start is re-checked later.
   cachedStatus = {
     signedIn: true,
     user: result.kind === "ok" ? result.user : null,

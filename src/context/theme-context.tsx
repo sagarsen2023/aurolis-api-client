@@ -35,10 +35,10 @@ export function ThemeProvider({
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const applyTheme = (theme: Theme) => {
-      root.classList.remove("light", "dark"); // Remove existing theme classes
+      root.classList.remove("light", "dark");
       const systemTheme = mediaQuery.matches ? "dark" : "light";
       const effectiveTheme = theme === "system" ? systemTheme : theme;
-      root.classList.add(effectiveTheme); // Add the new theme class
+      root.classList.add(effectiveTheme);
     };
 
     const handleChange = () => {
@@ -49,7 +49,6 @@ export function ThemeProvider({
 
     applyTheme(theme);
 
-    // In Electron, repaint the native window chrome (title bar, menus) too.
     window.aurolis?.setTheme(theme);
 
     mediaQuery.addEventListener("change", handleChange);

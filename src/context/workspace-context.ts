@@ -40,10 +40,18 @@ export const environmentsAtom = atom<Environment[]>(
 
 export const currentEnvironmentAtom = atom<Environment | null>((get) => {
   const environments = get(environmentsAtom);
-  const id = get(environmentIdAtom);
-  return environments.find((e) => e.id === id) ?? environments[0] ?? null;
+  const byId = (id: string | null | undefined) =>
+    environments.find((e) => e.id === id);
+  return (
+    byId(get(environmentIdAtom)) ??
+    byId(get(activeWorkspaceAtom)?.data?.manifest.defaultEnvironment) ??
+    environments[0] ??
+    null
+  );
 });
 
 export const addWorkspaceOpenAtom = atom(false);
 
 export const publishWorkspaceOpenAtom = atom(false);
+export const workspaceSettingsOpenAtom = atom(false);
+export const commitDialogOpenAtom = atom(false);
