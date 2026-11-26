@@ -1,9 +1,7 @@
-import { useAtom } from "jotai";
 import { Link2 } from "lucide-react";
 import type { IconType } from "react-icons";
 import { SiClaude, SiCursor } from "react-icons/si";
 import { Button } from "@/components/ui/button";
-import { connectedAssistantsAtom } from "@/context/settings-atoms";
 import { SettingsGroup, SettingsSection } from "./section";
 
 const ASSISTANTS: ReadonlyArray<{
@@ -32,18 +30,15 @@ const ASSISTANTS: ReadonlyArray<{
 ];
 
 export function AssistantsSection() {
-  const [connected, setConnected] = useAtom(connectedAssistantsAtom);
-
   return (
     <SettingsSection
       id="assistants"
       title="AI assistants"
-      description="Connect the assistants you already use. They can read collections and run requests through Aurolis; secret values never leave this device."
+      description="Soon you can connect the assistants you already use, so they can read collections and run requests through Aurolis. Secret values never leave this device."
     >
       <div className="flex flex-col gap-3">
         {ASSISTANTS.map((assistant) => {
           const Icon = assistant.icon;
-          const isConnected = connected[assistant.id] === true;
           return (
             <SettingsGroup key={assistant.id} className="px-5 py-4">
               <div className="flex items-start justify-between gap-4">
@@ -64,28 +59,19 @@ export function AssistantsSection() {
                   </div>
                 </div>
                 <Button
-                  variant={isConnected ? "outline" : "default"}
+                  variant="outline"
                   size="sm"
                   className="mt-0.5 shrink-0"
-                  onClick={() =>
-                    setConnected((current) => ({
-                      ...current,
-                      [assistant.id]: !current[assistant.id],
-                    }))
-                  }
+                  disabled
                 >
                   <Link2 strokeWidth={1.8} />
-                  {isConnected ? "Connected" : "Connect"}
+                  Coming soon
                 </Button>
               </div>
             </SettingsGroup>
           );
         })}
       </div>
-      <p className="mt-3 text-[12.5px] text-dim">
-        Prototype: connectors are simulated, and @aurolis/mcp is the pinned
-        package name for the Aurolis MCP server.
-      </p>
     </SettingsSection>
   );
 }

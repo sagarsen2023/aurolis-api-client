@@ -31,12 +31,14 @@ function ChoiceCard({
 }>) {
   const free = check ? formatFreeSpace(check.freeBytes) : null;
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
+        "h-auto w-full items-start justify-start font-normal whitespace-normal hover:bg-transparent",
         "flex w-full items-start gap-3 rounded-2xl border bg-card p-4 text-left transition-colors",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         selected ? "border-vio" : "border-line hover:bg-surface-raise",
@@ -61,7 +63,7 @@ function ChoiceCard({
       >
         {selected ? <Check className="size-3" strokeWidth={3} /> : null}
       </span>
-    </button>
+    </Button>
   );
 }
 

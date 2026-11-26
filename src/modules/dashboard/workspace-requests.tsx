@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { Send } from "lucide-react";
 import {
   Card,
@@ -13,6 +14,7 @@ import type {
   CollectionItem,
 } from "@/types/workspace/collection.type";
 import type { ApiRequest } from "@/types/workspace/request.type";
+import RequestBadge from "@/modules/collections/shared/request-badge";
 import ListRow from "./list-row";
 
 const VISIBLE_REQUESTS = 6;
@@ -35,6 +37,7 @@ function collectRequests(collections: Collection[]): LocatedRequest[] {
 function WorkspaceRequests({
   collections,
 }: Readonly<{ collections: Collection[] }>) {
+  const navigate = useNavigate();
   const requests = collectRequests(collections);
 
   return (
@@ -51,9 +54,10 @@ function WorkspaceRequests({
       <CardContent className="flex flex-col gap-3">
         {requests.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No requests in this workspace yet. Requests are saved as{" "}
-            <span className="font-mono text-xs">collections/**/*.req.json</span>{" "}
-            files in the repository.
+            No requests in this workspace yet. Create them under Collections;
+            each one is saved as a{" "}
+            <span className="font-mono text-xs">*.req.json</span> file in the
+            repository.
           </p>
         ) : (
           <ul className="divide-y divide-border">
@@ -62,15 +66,21 @@ function WorkspaceRequests({
               .map(({ request, location }) => (
                 <ListRow
                   key={request.id}
+                  onOpen={() =>
+                    void navigate({
+                      to: "/collections",
+                      search: { request: request.id },
+                    })
+                  }
                   icon={Send}
                   title={request.name}
                   description={
-                    <>
-                      <span className="font-mono font-medium text-foreground">
-                        {request.method}
-                      </span>{" "}
-                      {request.url || "No URL"}
-                    </>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <RequestBadge request={request} className="w-auto" />
+                      <span className="truncate">
+                        {request.url || "No URL"}
+                      </span>
+                    </span>
                   }
                   action={
                     <span className="text-xs text-muted-foreground">

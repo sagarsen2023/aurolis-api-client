@@ -38,10 +38,11 @@ function runFile(
     cwd?: string;
     env?: Record<string, string | undefined>;
     signal?: AbortSignal;
+    input?: string;
   } = {},
 ): Promise<GitRunResult> {
   return new Promise((resolve) => {
-    execFile(
+    const child = execFile(
       file,
       args,
       {
@@ -66,6 +67,7 @@ function runFile(
         });
       },
     );
+    if (options.input !== undefined) child.stdin?.end(options.input);
   });
 }
 
@@ -185,9 +187,35 @@ function queued<T>(key: string, task: () => Promise<T>): Promise<T> {
   return next;
 }
 
+function isPushRejection(text: string) {
+  return (
+    text.includes("[rejected]") &&
+    (text.includes("non-fast-forward") || text.includes("fetch first"))
+  );
+}
+
+function isProtectedBranch(text: string) {
+  return text.includes("protected branch") || text.includes("gh006");
+}
+
+function isMergeConflict(text: string) {
+  return text.includes("automatic merge failed") || text.includes("conflict (");
+}
+
+function isBlockedByLocalChanges(text: string) {
+  return (
+    text.includes("would be overwritten by merge") ||
+    text.includes("commit your changes or stash them")
+  );
+}
+
 export function classifyGitError(stderr: string): WorkspaceErrorCode {
   const text = stderr.toLowerCase();
   if (text.includes("not a git repository")) return "not_a_repository";
+  if (isProtectedBranch(text)) return "protected_branch";
+  if (isPushRejection(text)) return "push_rejected";
+  if (isBlockedByLocalChanges(text)) return "local_changes";
+  if (isMergeConflict(text)) return "merge_conflict";
   if (
     text.includes("repository not found") ||
     (text.includes("remote:") && text.includes("not found")) ||
@@ -228,6 +256,7 @@ export async function runGit(
     network?: boolean;
     signal?: AbortSignal;
     allowFailure?: boolean;
+    input?: string;
   } = {},
 ): Promise<GitRunResult> {
   const git = await getGit();
@@ -243,6 +272,7 @@ export async function runGit(
       cwd: repoDir,
       env,
       signal: options.signal,
+      input: options.input,
     });
     if (options.signal?.aborted) {
       throw new GitCommandError("cancelled", "Cancelled.");
@@ -352,7 +382,7 @@ export async function currentBranch(dir: string) {
   return result.exitCode === 0 ? result.stdout.trim() || null : null;
 }
 
-export async function changedFileCount(dir: string, root: string) {
+export async function changedFileCount(dir: string, pathspecs: string[]) {
   const result = await runGit(
     dir,
     [
@@ -361,7 +391,7 @@ export async function changedFileCount(dir: string, root: string) {
       "-z",
       "--untracked-files=all",
       "--",
-      root || ".",
+      ...pathspecs,
     ],
     { allowFailure: true },
   );
@@ -410,10 +440,129 @@ async function commitIdentity(dir: string) {
   ];
 }
 
-export async function commitAll(dir: string, message: string, root = "") {
-  await runGit(dir, ["add", "--all", "--", root || "."]);
+export function changedPaths(entries: StatusEntry[]) {
+  return entries.flatMap((entry) =>
+    entry.oldPath ? [entry.path, entry.oldPath] : [entry.path],
+  );
+}
+
+const PATHSPEC_FROM_STDIN = ["--pathspec-from-file=-", "--pathspec-file-nul"];
+
+export async function commitPaths(
+  dir: string,
+  message: string,
+  paths: string[],
+) {
+  const input = `${paths.join("\0")}\0`;
+  await runGit(
+    dir,
+    ["--literal-pathspecs", "add", "--all", ...PATHSPEC_FROM_STDIN],
+    { input },
+  );
   const identity = await commitIdentity(dir);
-  await runGit(dir, [...identity, "commit", "-m", message]);
+  await runGit(
+    dir,
+    [
+      ...identity,
+      "--literal-pathspecs",
+      "commit",
+      "-m",
+      message,
+      ...PATHSPEC_FROM_STDIN,
+    ],
+    { input },
+  );
+}
+
+export type StatusEntry = {
+  code: string;
+  path: string;
+  oldPath: string | null;
+};
+
+export async function statusEntries(dir: string, pathspecs: string[]) {
+  const result = await runGit(dir, [
+    "-c",
+    "core.quotePath=false",
+    "status",
+    "--porcelain=v1",
+    "-z",
+    "--untracked-files=all",
+    "--",
+    ...pathspecs,
+  ]);
+  const parts = result.stdout.split("\0");
+  const entries: StatusEntry[] = [];
+  for (let index = 0; index < parts.length; index++) {
+    const part = parts[index];
+    if (part.length < 4) continue;
+    const code = part.slice(0, 2);
+    const filePath = part.slice(3);
+    const renamed = code[0] === "R" || code[0] === "C";
+    const oldPath = renamed ? parts[++index] : null;
+    entries.push({ code, path: filePath, oldPath });
+  }
+  return entries;
+}
+
+export async function showHeadFile(dir: string, repoPath: string) {
+  const result = await runGit(dir, ["show", `HEAD:${repoPath}`], {
+    allowFailure: true,
+  });
+  return result.exitCode === 0 ? result.stdout : null;
+}
+
+export async function hasUpstream(dir: string) {
+  const result = await runGit(
+    dir,
+    ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+    { allowFailure: true },
+  );
+  return result.exitCode === 0;
+}
+
+export async function fetchOrigin(dir: string) {
+  await runGit(dir, ["fetch", "--prune", "origin"], { network: true });
+}
+
+export async function remoteBranchExists(dir: string, branch: string) {
+  const result = await runGit(
+    dir,
+    ["rev-parse", "--verify", "-q", `refs/remotes/origin/${branch}`],
+    { allowFailure: true },
+  );
+  return result.exitCode === 0;
+}
+
+export async function commitsBehind(dir: string, ref: string) {
+  const result = await runGit(dir, ["rev-list", "--count", `HEAD..${ref}`], {
+    allowFailure: true,
+  });
+  return result.exitCode === 0 ? Number(result.stdout.trim()) || 0 : 0;
+}
+
+export async function mergeRef(dir: string, ref: string) {
+  const identity = await commitIdentity(dir);
+  const result = await runGit(dir, [...identity, "merge", "--no-edit", ref], {
+    allowFailure: true,
+  });
+  if (result.exitCode === 0) return;
+  await runGit(dir, ["merge", "--abort"], { allowFailure: true });
+  const output = `${result.stdout}\n${result.stderr}`;
+  throw new GitCommandError(classifyGitError(output), output.trim());
+}
+
+export async function pushBranch(dir: string, branch: string) {
+  await runGit(
+    dir,
+    [
+      "push",
+      "--set-upstream",
+      "origin",
+      `refs/heads/${branch}:refs/heads/${branch}`,
+    ],
+    { network: true },
+  );
 }
 
 export async function hasCommits(dir: string) {

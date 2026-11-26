@@ -1,4 +1,3 @@
-/** Counts of sent requests by status class. */
 export const RESPONSE_HEALTH = {
   ok: 0,
   clientError: 0,

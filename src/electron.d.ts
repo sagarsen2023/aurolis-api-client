@@ -31,6 +31,40 @@ import type {
   WorkspaceRegistryView,
   WorkspaceResult,
 } from "@/types/workspace/workspace-store.type";
+import type {
+  ApplyCollectionOpParams,
+  CollectionOpResult,
+  MoveCollectionParams,
+  MoveCollectionResult,
+} from "@/types/workspace/collection-ops.type";
+import type {
+  EditorState,
+  SaveDraftsParams,
+  SaveUiStateParams,
+} from "@/types/workspace/editor-state.type";
+import type { EngineResult } from "@/types/engine/engine.type";
+import type {
+  CommitParams,
+  CommitResult,
+  PullResult,
+  SourceControlChanges,
+} from "@/types/workspace/source-control.type";
+import type {
+  HttpResponseData,
+  HttpSendParams,
+} from "@/types/engine/http-engine.type";
+import type {
+  GraphqlIntrospectParams,
+  GraphqlResponseData,
+  GraphqlSchemaResult,
+  GraphqlSendParams,
+} from "@/types/engine/graphql-engine.type";
+import type {
+  RealtimeConnectParams,
+  RealtimeEvent,
+  RealtimeSendParams,
+} from "@/types/engine/realtime-engine.type";
+import type { SavedExportFile } from "@/types/transfer/transfer.type";
 
 interface AurolisBridge {
   readonly isElectron: true;
@@ -40,12 +74,9 @@ interface AurolisBridge {
     readonly chrome: string;
     readonly node: string;
   };
-  /** Sync the native window chrome (title bar, menus, dialogs) with the app theme. */
   setTheme(theme: "light" | "dark" | "system"): void;
   readonly github: {
-    /** Gets a device code from GitHub and opens the verification page. */
     startSignIn(): Promise<GithubDeviceFlowStart>;
-    /** Resolves once the user approves, denies, cancels or the code expires. */
     waitForSignIn(): Promise<GithubSignInResult>;
     cancelSignIn(): Promise<void>;
     getStatus(): Promise<GithubAuthStatus>;
@@ -86,6 +117,7 @@ interface AurolisBridge {
     publish(
       params: PublishWorkspaceParams,
     ): Promise<WorkspaceResult<PublishResult>>;
+    stopSync(id: string): Promise<WorkspaceResult<OpenedWorkspace>>;
     removeCheck(id: string): Promise<WorkspaceResult<RemoveCheck>>;
     reveal(id: string): Promise<WorkspaceResult<void>>;
     remove(
@@ -93,11 +125,46 @@ interface AurolisBridge {
     ): Promise<WorkspaceResult<WorkspaceRegistryView>>;
     onChanged(callback: (id: string) => void): () => void;
   };
+  readonly collection: {
+    apply(
+      params: ApplyCollectionOpParams,
+    ): Promise<WorkspaceResult<CollectionOpResult>>;
+    move(
+      params: MoveCollectionParams,
+    ): Promise<WorkspaceResult<MoveCollectionResult>>;
+    loadEditorState(id: string): Promise<WorkspaceResult<EditorState>>;
+    saveDrafts(params: SaveDraftsParams): Promise<WorkspaceResult<void>>;
+    saveUiState(params: SaveUiStateParams): Promise<WorkspaceResult<void>>;
+  };
+  readonly sourceControl: {
+    changes(id: string): Promise<WorkspaceResult<SourceControlChanges>>;
+    commit(params: CommitParams): Promise<WorkspaceResult<CommitResult>>;
+    pull(id: string): Promise<WorkspaceResult<PullResult>>;
+  };
+  readonly transfer: {
+    saveFile(params: {
+      name: string;
+      bytes: Uint8Array;
+    }): Promise<WorkspaceResult<SavedExportFile>>;
+  };
+  readonly engine: {
+    sendHttp(params: HttpSendParams): Promise<EngineResult<HttpResponseData>>;
+    sendGraphql(
+      params: GraphqlSendParams,
+    ): Promise<EngineResult<GraphqlResponseData>>;
+    introspectGraphql(
+      params: GraphqlIntrospectParams,
+    ): Promise<EngineResult<GraphqlSchemaResult>>;
+    cancel(runId: string): Promise<EngineResult<void>>;
+    connectRealtime(params: RealtimeConnectParams): Promise<EngineResult<void>>;
+    sendRealtime(params: RealtimeSendParams): Promise<EngineResult<void>>;
+    disconnectRealtime(id: string): Promise<EngineResult<void>>;
+    onRealtimeEvent(callback: (event: RealtimeEvent) => void): () => void;
+  };
 }
 
 declare global {
   interface Window {
-    /** Present only when running inside the Electron shell. */
     aurolis?: AurolisBridge;
   }
 }

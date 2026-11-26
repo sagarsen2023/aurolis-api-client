@@ -55,6 +55,7 @@ export interface OpenedWorkspace {
   data: WorkspaceData | null;
   issues: FormatIssue[];
   git: WorkspaceGitState;
+  secretsPersisted: boolean;
 }
 
 export interface RemoveCheck {
@@ -88,6 +89,16 @@ export type WorkspaceErrorCode =
   | "detached_head"
   | "git_unavailable"
   | "git_failed"
+  | "not_a_workspace"
+  | "newer_format"
+  | "item_not_found"
+  | "push_rejected"
+  | "protected_branch"
+  | "merge_conflict"
+  | "local_changes"
+  | "nothing_to_commit"
+  | "sync_failed"
+  | "secret_leak"
   | "unknown";
 
 export interface WorkspaceErrorInfo {

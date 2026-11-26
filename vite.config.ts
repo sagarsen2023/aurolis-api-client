@@ -16,6 +16,13 @@ export default defineConfig({
     electron({
       main: {
         entry: "electron/main.ts",
+        vite: {
+          build: {
+            rolldownOptions: {
+              external: ["ws", "socket.io-client", "graphql"],
+            },
+          },
+        },
       },
       preload: {
         input: path.join(__dirname, "electron/preload.ts"),

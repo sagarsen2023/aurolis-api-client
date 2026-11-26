@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { FaGithub } from "react-icons/fa6";
-import type { IconType } from "react-icons";
 import {
   LuCheck,
   LuChevronRight,
-  LuCodeXml,
   LuCopy,
-  LuGitBranch,
   LuLoaderCircle,
-  LuLock,
   LuMonitor,
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
@@ -23,14 +19,7 @@ import { ThemeSwitch } from "@/components/ui/theme-switch";
 
 interface LoginFormProps {
   className?: string;
-  onContinueLocal?: () => void;
 }
-
-const TRUST: ReadonlyArray<{ icon: IconType; label: string }> = [
-  { icon: LuLock, label: "Local-first storage" },
-  { icon: LuGitBranch, label: "Your repo, your access rules" },
-  { icon: LuCodeXml, label: "MIT licensed" },
-];
 
 async function needsAppInstall() {
   try {
@@ -41,11 +30,7 @@ async function needsAppInstall() {
   }
 }
 
-export function LoginForm({
-  className,
-  onContinueLocal,
-  ...props
-}: LoginFormProps) {
+export function LoginForm({ className, ...props }: LoginFormProps) {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState<GithubDeviceCodePrompt | null>(null);
   const [needsInstall, setNeedsInstall] = useState(false);
@@ -94,6 +79,11 @@ export function LoginForm({
     await navigate({ to: "/", replace: true });
   }
 
+  async function continueOnThisDevice() {
+    authService.continueLocally();
+    await enterApp();
+  }
+
   return (
     <div
       className={cn(
@@ -107,7 +97,6 @@ export function LoginForm({
         className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-orb-a/25 blur-3xl dark:bg-orb-c/10"
       />
 
-      {/* Left: brand + sign-in */}
       <section className="relative flex min-w-0 flex-1 flex-col px-4 py-2 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -185,7 +174,7 @@ export function LoginForm({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={onContinueLocal}
+                  onClick={() => void continueOnThisDevice()}
                   className="group h-auto w-full justify-start gap-3 rounded-lg p-3 text-left font-normal whitespace-normal"
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-icon text-vio">
@@ -196,30 +185,17 @@ export function LoginForm({
                       Continue on this device
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      No account. Everything stays in your browser.
+                      No account. Everything stays on this computer.
                     </span>
                   </span>
                   <LuChevronRight className="text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                 </Button>
               </div>
             )}
-
-            <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              {TRUST.map(({ icon: Icon, label }) => (
-                <li
-                  key={label}
-                  className="flex items-center gap-1.5 [&_svg]:size-3.5 [&_svg]:text-vio"
-                >
-                  <Icon />
-                  {label}
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </section>
 
-      {/* Right: product hero */}
       <aside className="relative hidden w-1/2 max-w-5xl shrink-0 overflow-hidden rounded-2xl bg-[#0f0d10] lg:block">
         <img
           src="/aurolis-logo/png/aurolis-hero.png"

@@ -29,12 +29,18 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
   - `main.ts`: window, `app://aurolis/` protocol, CSP, IPC handlers.
   - `preload.ts`: the only bridge, exposed as `window.aurolis`. Typed in `src/electron.d.ts`.
   - `github-auth.ts`: GitHub App sign-in with the OAuth device flow. Tokens are encrypted with `safeStorage` and never leave the main process.
-  - `github-api.ts`: `githubApi`, the main-process counterpart of `src/services/config/fetch-api.ts` (token, refresh-on-401, typed errors, api.github.com only).
+  - `github-api.ts`: `githubApi`, the only HTTP client for GitHub (token, refresh-on-401, typed errors, api.github.com only).
   - `github-sync.ts`: GitHub REST operations the renderer may call: installations, repositories and permissions, creating or checking an empty repository to publish to, and (later) pull requests.
   - `git.ts`: runs the system git (2.31 or newer; Aurolis doesn't bundle git), one queue per repository, GitHub token through per-command environment config, typed errors.
-  - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / publish / remove, and file watching.
+  - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / publish / stop syncing / remove, and file watching.
+  - `collection-store.ts`: applies collection operations (collections, folders, requests, examples and environments) to the files in a workspace, one queue per workspace, writing only changed files. Moves a collection to another (or a new) workspace. Also keeps per-user drafts and open tabs in the workspace's state folder.
+  - `secret-store.ts`: secret environment values in `state/secrets.bin`, encrypted with `safeStorage` (memory only without an OS keychain, see `keychain.ts`). Merged into a workspace when it opens; never written to the repository.
+  - `source-control.ts`: lists changes as items (requests by collection, environments, settings), checks for secret values, then commits, merges the upstream and pushes. Also pulls (fetch and merge) when a workspace is opened.
+  - `user-data.ts`: paths in the user-data folder and atomic writes.
+  - `export-file.ts`: saves an export through the native save dialog (`aurolis:transfer:save-file`).
+  - `engines/`: the three request engines. `http-engine.ts` (REST, with cancel and timeout), `graphql-engine.ts` (queries and introspection over the HTTP engine), `realtime-engine.ts` (WebSocket through `ws`, Socket.IO through `socket.io-client`, events pushed on `aurolis:engine:realtime-event`). Errors are typed and returned as values.
   - Workspaces are local git repositories (see the architecture doc). Sync is plain git: status, diff, commit, fetch, merge, push.
-- **`src/`: renderer (React).** UI only. It never sees a token and never calls GitHub directly.
+- **`src/`: renderer (React).** UI only. It never sees a token, never calls GitHub directly and never sends requests itself.
 
 ### IPC rules
 
@@ -43,6 +49,17 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
 - Treat everything from the renderer as untrusted: validate it in the main process (names, ids, paths, sizes).
 - Return errors as values (`{ ok: true, data } | { ok: false, error }`) so typed codes survive IPC. Renderer services unwrap them and throw a typed failure (`GithubApiFailure`, `GithubSignInFailure`).
 - When adding a channel, update `electron/preload.ts`, `src/electron.d.ts` and the matching service in `src/services/`.
+
+### Collections and requests
+
+- Pure, shared logic lives in `src/lib/` and is imported by both processes: `collection-ops.ts` (operations on the parsed tree), `request-factory.ts`, `prepare-request.ts` (variables, inherited auth, query params, body) and `variables.ts` (`{{name}}`: environment, then collection variables, then globals).
+- The renderer prepares a request, then calls an engine service (`http-engine.service.ts`, `graphql-engine.service.ts`, `realtime-engine.service.ts`).
+- `src/modules/collections/`: `tree/`, `dialogs/`, `editor/` (one editor per protocol), `response/` and `views/` (collection, folder and example tabs).
+- `src/modules/environments/`: globals and environments, with secret variables. `src/modules/source-control/`: the commit dialog.
+- Import and export: `src/utils/postman.ts` and `src/utils/hoppscotch.ts` convert between those formats and Aurolis collections and environments; `src/lib/transfer.ts` holds the shared pieces (variable syntax, credential replacement). `src/modules/import-export/` is the screen; imports go through the `import-collection` and `import-environment` operations.
+- Editor state is in `src/context/collections-context.ts`. `use-editor-state-sync.ts` loads and persists drafts, tabs and the selected environment, and `use-request-drafts.ts` handles drafts and saving.
+- Long descriptions (workspace, collection, folder and request docs) are markdown, edited with `src/components/ui/markdown-editor` (Write and Preview, preview by default when there is content).
+- Code (JSON, XML, GraphQL, message bodies, response bodies) uses CodeMirror 6 through `src/components/code-field.tsx` (lazy-loaded) and `code-editor.tsx`. Theme, `{{variable}}` highlighting and completion, and the language setup live in `src/lib/codemirror/`. Pass stable props: react-codemirror reconfigures the editor whenever `extensions`, `basicSetup` or `onChange` change identity, which resets autocompletion.
 
 ### Routing
 
@@ -62,9 +79,9 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
 
 ### Folder conventions (calmui)
 
-- `src/components/ui/`: shadcn primitives (ESLint ignores this folder).
+- `src/components/ui/`: shadcn primitives (ESLint ignores this folder). Add them with `npx shadcn add <name>` (style `base-maia`, Base UI). `Input` and `Textarea` take `label` and `error`, like in the other calmui projects.
 - `src/modules/<feature>/`: feature components (`auth`, `dashboard`, `layout`).
-- `src/services/`: service objects; `src/services/config/` holds `fetch-api.ts` and `query-urls.ts`.
+- `src/services/`: service objects; `src/services/config/` holds `desktop-bridge.ts` (access to `window.aurolis`) and `engine-bridge.ts`.
 - `src/types/<feature>/*.type.ts`: types, also imported by `electron/` with relative `.ts` paths.
 - `src/constants/`: static data and user-facing messages (e.g. error messages per code).
 - `src/hooks/`, `src/context/`, `src/utils/`, `src/lib/`.
