@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { environmentDraftsAtom } from "@/context/environments-context";
 import type { Environment } from "@/types/workspace/environment.type";
-import { variableSummary } from "./variable-summary";
+import { variableSummary } from "../../utils/variable-summary";
 
 function EnvironmentItem({
   environment,

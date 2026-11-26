@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import NodeActions, { type NodeAction } from "./node-actions";
 
@@ -13,6 +18,7 @@ function TreeRow({
   expanded,
   onToggle,
   onOpen,
+  onToggleBranch,
   active,
   dirty,
   actions,
@@ -23,6 +29,7 @@ function TreeRow({
   expanded?: boolean;
   onToggle?: () => void;
   onOpen: () => void;
+  onToggleBranch?: () => void;
   active: boolean;
   dirty?: boolean;
   actions: NodeAction[];
@@ -76,6 +83,35 @@ function TreeRow({
           />
         ) : null}
       </Button>
+      {onToggleBranch ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={
+                  expanded
+                    ? `Collapse all in ${label}`
+                    : `Expand all in ${label}`
+                }
+                onClick={onToggleBranch}
+                className="size-5 shrink-0 text-dim hover:bg-transparent hover:text-ink"
+              />
+            }
+          >
+            {expanded ? (
+              <ChevronsDownUp aria-hidden />
+            ) : (
+              <ChevronsUpDown aria-hidden />
+            )}
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {expanded ? "Collapse all" : "Expand all"}
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
       <NodeActions name={label} actions={actions} />
     </div>
   );
