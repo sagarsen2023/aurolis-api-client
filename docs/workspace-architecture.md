@@ -279,6 +279,7 @@ sequenceDiagram
 - Switching doesn't cancel requests in flight, and their responses aren't shown in the other workspace.
 - Background fetching (#17) only runs for the active workspace.
 - On launch, Aurolis opens `activeWorkspaceId`. If the registry is empty, it creates a local "My workspace".
+- **Opening a workspace pulls it.** Whenever the user opens or switches to a workspace that has a remote, the renderer calls `aurolis:source-control:pull` in the background (`pullWorkspace` in `electron/source-control.ts`): `git fetch`, then `git merge --no-edit` of the upstream when the branch is behind. The file watcher reloads the workspace after the merge, and a toast says how many commits came in. Quiet reloads (file changes, saves) don't pull. A pull that can't finish leaves the working tree as it was and shows why: offline, not signed in, uncommitted changes in files the remote also changed (`local_changes`), or a conflict with local commits (`merge_conflict`, the merge is aborted).
 
 ## Lifecycle flows
 
@@ -411,6 +412,14 @@ Other files in the repo (not workspace files) use git's normal merge. If they co
 
 ### Switch branch (#15)
 `git switch <branch>` (or create one). With uncommitted changes, Aurolis asks to commit or discard first, like VS Code. Drafts are kept per workspace and stay on top of whatever branch is checked out.
+
+### Workspace settings
+"Workspace settings" in the workspace menu opens a dialog, not the app settings. It has the workspace's name (renaming changes the registry entry only, never the folder) and its sync status:
+- **Local only:** "Publish to GitHub" opens the [publish](#publish-a-local-workspace-12) sheet.
+- **Synced:** "Stop syncing" (`stopSyncing` in `electron/workspace-store.ts`, `aurolis:workspace:stop-sync`) runs `git remote remove origin` and clears `remote` in the registry. Files, history and the remote repository are untouched; unpushed commits are mentioned before confirming because they then stay only on this computer.
+
+### Move a collection to another workspace
+"Move to workspace…" on a collection (`moveCollection` in `electron/collection-store.ts`, `aurolis:collection:move`) takes the destination as another registered workspace or a new local one, which is created without becoming the active workspace. In the source workspace's queue it reads the collection, writes it into the destination with the `import-collection` operation (fresh ids, so nothing collides), then deletes it from the source with `delete-collection`. Writing comes before deleting, so a failure never loses the collection. The dialog refuses while requests in the collection have unsaved drafts, since drafts are kept per workspace. Both workspaces end up with uncommitted changes that the user commits like any other edit.
 
 ### Remove a workspace (#5)
 Remove the registry entry and `state/`. For a managed folder, the user picks "Remove from Aurolis" (keep the folder) or "Delete folder too" (after a warning about unpushed commits). A folder the user brought is never deleted. Nothing on the remote is touched.

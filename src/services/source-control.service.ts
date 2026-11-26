@@ -12,4 +12,5 @@ export const sourceControlService = {
   changes: (workspaceId: string) =>
     unwrapWorkspace(bridge().changes(workspaceId)),
   commit: (params: CommitParams) => unwrapWorkspace(bridge().commit(params)),
+  pull: (workspaceId: string) => unwrapWorkspace(bridge().pull(workspaceId)),
 };

@@ -32,10 +32,10 @@ The workspace, storage, switching and sync model is defined in [`docs/workspace-
   - `github-api.ts`: `githubApi`, the only HTTP client for GitHub (token, refresh-on-401, typed errors, api.github.com only).
   - `github-sync.ts`: GitHub REST operations the renderer may call: installations, repositories and permissions, creating or checking an empty repository to publish to, and (later) pull requests.
   - `git.ts`: runs the system git (2.31 or newer; Aurolis doesn't bundle git), one queue per repository, GitHub token through per-command environment config, typed errors.
-  - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / publish / remove, and file watching.
-  - `collection-store.ts`: applies collection operations (collections, folders, requests, examples and environments) to the files in a workspace, one queue per workspace, writing only changed files. Also keeps per-user drafts and open tabs in the workspace's state folder.
+  - `workspace-store.ts`: the workspace registry (`<userData>/workspaces.json`), storage folder and its checks, create / clone / open folder / open / initialize / rename / publish / stop syncing / remove, and file watching.
+  - `collection-store.ts`: applies collection operations (collections, folders, requests, examples and environments) to the files in a workspace, one queue per workspace, writing only changed files. Moves a collection to another (or a new) workspace. Also keeps per-user drafts and open tabs in the workspace's state folder.
   - `secret-store.ts`: secret environment values in `state/secrets.bin`, encrypted with `safeStorage` (memory only without an OS keychain, see `keychain.ts`). Merged into a workspace when it opens; never written to the repository.
-  - `source-control.ts`: lists changes as items (requests by collection, environments, settings), checks for secret values, then commits, merges the upstream and pushes.
+  - `source-control.ts`: lists changes as items (requests by collection, environments, settings), checks for secret values, then commits, merges the upstream and pushes. Also pulls (fetch and merge) when a workspace is opened.
   - `user-data.ts`: paths in the user-data folder and atomic writes.
   - `export-file.ts`: saves an export through the native save dialog (`aurolis:transfer:save-file`).
   - `engines/`: the three request engines. `http-engine.ts` (REST, with cancel and timeout), `graphql-engine.ts` (queries and introspection over the HTTP engine), `realtime-engine.ts` (WebSocket through `ws`, Socket.IO through `socket.io-client`, events pushed on `aurolis:engine:realtime-event`). Errors are typed and returned as values.

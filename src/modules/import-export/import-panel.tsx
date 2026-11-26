@@ -11,9 +11,9 @@ import {
   ShieldCheck,
   Upload,
 } from "lucide-react";
-import { toast } from "sonner";
 import { ChoiceCard } from "@/components/choice-card";
 import { SegmentedControl } from "@/components/segmented-control";
+import { SuccessDialog } from "@/components/success-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -23,8 +23,10 @@ import {
   IMPORT_NOTE_MESSAGES,
   TRANSFER_FORMATS,
 } from "@/constants/import-export";
+import { useEditorTabs } from "@/hooks/use-editor-tabs";
 import {
   type CredentialChoice,
+  type ImportOutcome,
   useTransferImport,
 } from "@/hooks/use-transfer-import";
 import { usePromise } from "@/hooks/usePromise";
@@ -198,11 +200,75 @@ function CredentialChoices({
   );
 }
 
+function importedSummary(outcome: ImportOutcome) {
+  return [
+    ...(outcome.collectionIds.length > 0
+      ? [plural(outcome.collectionIds.length, "collection")]
+      : []),
+    ...(outcome.environments > 0
+      ? [plural(outcome.environments, "environment")]
+      : []),
+  ].join(" and ");
+}
+
+function ImportedDialog({
+  outcome,
+  onClose,
+}: Readonly<{ outcome: ImportOutcome; onClose: () => void }>) {
+  const navigate = useNavigate();
+  const { openTab } = useEditorTabs();
+  const [firstCollection] = outcome.collectionIds;
+  const many = outcome.collectionIds.length > 1;
+  const single = outcome.collectionIds.length + outcome.environments === 1;
+
+  const open = () => {
+    onClose();
+    if (firstCollection) {
+      openTab({ kind: "collection", id: firstCollection });
+      void navigate({ to: "/collections" });
+    } else {
+      void navigate({ to: "/environments" });
+    }
+  };
+
+  return (
+    <SuccessDialog
+      title="Import complete"
+      description={`${importedSummary(outcome)} ${single ? "is" : "are"} now in this workspace. Do you want to open ${single ? "it" : "them"} now?`}
+      confirmLabel={
+        firstCollection
+          ? many
+            ? "Open collections"
+            : "Open collection"
+          : "Open environments"
+      }
+      onConfirm={open}
+      onClose={onClose}
+    >
+      {outcome.secretNames.length > 0 ? (
+        <p className="flex items-start gap-2.5 rounded-xl border border-line bg-surface-2 px-3.5 py-3 text-left text-[13px] text-mute">
+          <KeyRound className="mt-0.5 size-4 shrink-0 text-vio" aria-hidden />
+          <span>
+            Set{" "}
+            {outcome.secretNames.map((name, index) => (
+              <span key={name}>
+                {index > 0 ? ", " : null}
+                <code className="font-mono text-[12.5px] text-foreground">{`{{${name}}}`}</code>
+              </span>
+            ))}{" "}
+            in Environments › Globals before you send requests.
+          </span>
+        </p>
+      ) : null}
+    </SuccessDialog>
+  );
+}
+
 function ImportPanel() {
   const [format, setFormat] = useState<TransferFormat>("postman");
   const [state, setState] = useState<ReadState>({ status: "idle" });
   const [credentials, setCredentials] = useState<CredentialChoice>("replace");
-  const navigate = useNavigate();
+  const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const { runImport, progress } = useTransferImport();
   const { loading, runPromise } = usePromise({
     promise: () =>
@@ -212,16 +278,7 @@ function ImportPanel() {
     onSuccess: (result) => {
       if (!result) return;
       setState({ status: "idle" });
-      toast.success(`Imported ${plural(result.collections, "collection")}`, {
-        description:
-          result.secretNames.length > 0
-            ? `Set ${result.secretNames.map((name) => `{{${name}}}`).join(", ")} in Environments › Globals.`
-            : undefined,
-        action: {
-          label: "Open",
-          onClick: () => void navigate({ to: "/collections" }),
-        },
-      });
+      setOutcome(result);
     },
   });
 
@@ -382,6 +439,9 @@ function ImportPanel() {
             </ul>
           ) : null}
         </div>
+      ) : null}
+      {outcome ? (
+        <ImportedDialog outcome={outcome} onClose={() => setOutcome(null)} />
       ) : null}
     </Card>
   );

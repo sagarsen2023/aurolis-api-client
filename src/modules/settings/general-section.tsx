@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useAtom, useAtomValue } from "jotai";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
+import { useAtom } from "jotai";
 import {
   Select,
   SelectContent,
@@ -11,59 +8,13 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { REQUEST_TIMEOUTS } from "@/constants/settings";
-import {
-  currentWorkspaceAtom,
-  registryAtom,
-} from "@/context/workspace-context";
 import { confirmCloseAtom, requestTimeoutAtom } from "@/context/settings-atoms";
-import { usePromise } from "@/hooks/usePromise";
-import { workspaceService } from "@/services/workspace.service";
 import { SettingRow, SettingsGroup, SettingsSection } from "./section";
 
 const timeoutItems = REQUEST_TIMEOUTS.map((item) => ({
   value: item.value,
   label: item.label,
 }));
-
-function WorkspaceNameInput() {
-  const workspace = useAtomValue(currentWorkspaceAtom);
-  const [, setRegistry] = useAtom(registryAtom);
-  const [draft, setDraft] = useState<string | null>(null);
-  const value = draft ?? workspace?.name ?? "";
-
-  const { loading, runPromise: rename } = usePromise({
-    promise: () => workspaceService.rename(workspace?.id ?? "", value.trim()),
-    onSuccess: (registry) => {
-      setRegistry(registry);
-      toast.success("Workspace renamed");
-    },
-    onFinally: () => setDraft(null),
-  });
-
-  const commit = () => {
-    if (!workspace || draft === null || draft.trim() === workspace.name) {
-      setDraft(null);
-      return;
-    }
-    void rename();
-  };
-
-  return (
-    <Input
-      aria-label="Workspace name"
-      value={value}
-      disabled={!workspace || loading}
-      maxLength={100}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur();
-        if (event.key === "Escape") setDraft(null);
-      }}
-      className="h-9 w-52 bg-surface-raise"
-    />
-  );
-}
 
 export function GeneralSection() {
   const [timeout, setTimeoutValue] = useAtom(requestTimeoutAtom);
@@ -72,12 +23,6 @@ export function GeneralSection() {
   return (
     <SettingsSection id="general" title="General">
       <SettingsGroup>
-        <SettingRow
-          title="Workspace name"
-          description="Shown in the top bar. Renaming doesn't move the workspace folder."
-        >
-          <WorkspaceNameInput />
-        </SettingRow>
         <SettingRow
           title="Request timeout"
           description="Requests slower than this fail with a timeout."

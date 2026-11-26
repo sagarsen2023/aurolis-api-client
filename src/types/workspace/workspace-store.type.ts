@@ -95,6 +95,7 @@ export type WorkspaceErrorCode =
   | "push_rejected"
   | "protected_branch"
   | "merge_conflict"
+  | "local_changes"
   | "nothing_to_commit"
   | "sync_failed"
   | "secret_leak"

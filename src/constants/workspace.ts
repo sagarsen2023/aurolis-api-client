@@ -39,6 +39,8 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
     "This branch is protected on GitHub, so it can't be pushed to directly. Your commit is saved on this computer.",
   merge_conflict:
     "Your commit and the commits on GitHub change the same lines. Your commit is saved on this computer; the merge was stopped and nothing else changed. Resolve it in a terminal or editor, then sync again.",
+  local_changes:
+    "Some files you changed but haven't committed were also changed on the remote. Commit your changes, then sync again.",
   nothing_to_commit: "There's nothing to commit.",
   secret_leak: "Nothing was committed.",
   sync_failed:
@@ -58,3 +60,18 @@ export const STORAGE_WARNING_MESSAGES: Record<StorageWarning, string> = {
 };
 
 export const GITHUB_SUGGESTION_LIMIT = 6;
+
+export const PULL_FAILURE_MESSAGES: Partial<
+  Record<WorkspaceErrorCode, string>
+> = {
+  network:
+    "Couldn't reach the remote, so you're seeing the copy on this computer.",
+  auth_failed: "Sign in with GitHub to bring in the latest changes.",
+  repository_not_found:
+    "The remote repository wasn't found, or you don't have access to it.",
+  local_changes:
+    "Some changes you haven't committed touch files that changed on the remote. Commit them, then sync.",
+  merge_conflict:
+    "Your commits and the remote change the same lines, so nothing was pulled. Resolve it in your editor, then sync.",
+  detached_head: "Check out a branch to pull the latest changes.",
+};

@@ -371,10 +371,10 @@ async function findWorkspaceRoot(repoDir: string) {
   return "";
 }
 
-async function addEntry(entry: WorkspaceEntry) {
+async function addEntry(entry: WorkspaceEntry, activate = true) {
   const current = await loadRegistry();
   current.workspaces.push(entry);
-  current.activeWorkspaceId = entry.id;
+  if (activate) current.activeWorkspaceId = entry.id;
   await mkdir(stateDir(entry.id), { recursive: true });
   await saveRegistry();
 }
@@ -383,6 +383,7 @@ const now = () => new Date().toISOString();
 
 export async function createLocalWorkspace(
   params: unknown,
+  { activate = true }: { activate?: boolean } = {},
 ): Promise<{ workspaceId: string }> {
   const name = validName((params as { name?: unknown })?.name);
   const storage = await requireStorageFolder();
@@ -401,16 +402,19 @@ export async function createLocalWorkspace(
     throw error;
   }
   const id = randomUUID();
-  await addEntry({
-    id,
-    name,
-    repoDir,
-    root: "",
-    managed: true,
-    remote: null,
-    createdAt: now(),
-    lastOpenedAt: now(),
-  });
+  await addEntry(
+    {
+      id,
+      name,
+      repoDir,
+      root: "",
+      managed: true,
+      remote: null,
+      createdAt: now(),
+      lastOpenedAt: now(),
+    },
+    activate,
+  );
   return { workspaceId: id };
 }
 
@@ -725,6 +729,20 @@ export async function publishWorkspace(
   entry.remote = { url, github: { owner, repo } };
   await saveRegistry();
   return { webUrl: `https://github.com/${owner}/${repo}`, branch, committed };
+}
+
+export async function stopSyncing(id: unknown) {
+  const entry = await findEntry(id);
+  if (!existsSync(entry.repoDir)) {
+    throw new WorkspaceError(
+      "missing_folder",
+      `The folder ${displayPath(entry.repoDir)} was moved or deleted.`,
+    );
+  }
+  await removeRemote(entry.repoDir);
+  entry.remote = null;
+  await saveRegistry();
+  return openWorkspace(entry.id);
 }
 
 export async function revealWorkspace(id: unknown) {

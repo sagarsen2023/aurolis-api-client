@@ -43,8 +43,9 @@ function ImportExportPage() {
       <p className="flex flex-wrap items-center gap-2 text-[13px] text-mute">
         Coming next:
         {UPCOMING_FORMATS.map((format) => (
-          <Pill key={format} variant="outline">
-            {format}
+          <Pill key={format.label} variant="outline">
+            <format.icon aria-hidden />
+            {format.label}
           </Pill>
         ))}
       </p>

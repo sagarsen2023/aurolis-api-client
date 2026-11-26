@@ -11,6 +11,7 @@ import type { CollectionItem } from "../src/types/workspace/collection.type.ts";
 import type {
   ChangeStatus,
   CommitResult,
+  PullResult,
   SourceControlChanges,
 } from "../src/types/workspace/source-control.type.ts";
 import type { WorkspaceEntry } from "../src/types/workspace/workspace-store.type.ts";
@@ -203,12 +204,12 @@ async function bringInRemoteChanges(dir: string, branch: string) {
   const tracking = await hasUpstream(dir);
   const remoteRef = `refs/remotes/origin/${branch}`;
   const exists = tracking || (await remoteBranchExists(dir, branch));
-  if (!exists) return false;
+  if (!exists) return 0;
   const ref = tracking ? "@{upstream}" : remoteRef;
   const behind = await commitsBehind(dir, ref);
-  if (behind === 0) return false;
+  if (behind === 0) return 0;
   await mergeRef(dir, ref);
-  return true;
+  return behind;
 }
 
 function syncFailure(error: unknown, committed: boolean) {
@@ -244,10 +245,22 @@ export async function commitAndSync(params: unknown): Promise<CommitResult> {
   }
 
   try {
-    const pulled = await bringInRemoteChanges(dir, branch);
+    const pulled = (await bringInRemoteChanges(dir, branch)) > 0;
     await pushBranch(dir, branch);
     return { committed, pulled, pushed: true, branch };
   } catch (error) {
     throw syncFailure(error, committed);
   }
+}
+
+export async function pullWorkspace(id: unknown): Promise<PullResult> {
+  const entry = await findEntry(id);
+  const dir = requireFolder(entry);
+  if (!(await remoteUrl(dir))) {
+    return { status: "local", commits: 0, branch: null };
+  }
+  const branch = await currentBranch(dir);
+  if (!branch) throw new WorkspaceError("detached_head");
+  const commits = await bringInRemoteChanges(dir, branch);
+  return { status: commits > 0 ? "pulled" : "up-to-date", commits, branch };
 }

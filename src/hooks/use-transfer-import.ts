@@ -11,6 +11,12 @@ export interface ImportProgress {
   total: number;
 }
 
+export interface ImportOutcome {
+  collectionIds: string[];
+  environments: number;
+  secretNames: string[];
+}
+
 function withSecretGlobals(
   current: EnvironmentVariable[],
   names: string[],
@@ -29,7 +35,7 @@ export function useTransferImport() {
   const runImport = async (
     bundle: ImportBundle,
     credentials: CredentialChoice,
-  ) => {
+  ): Promise<ImportOutcome> => {
     const replaced = replaceCredentials(bundle);
     const prepared = credentials === "replace" ? replaced.bundle : bundle;
     const secretNames =
@@ -41,9 +47,11 @@ export function useTransferImport() {
     let done = 0;
     const step = () => setProgress({ done: ++done, total });
     setProgress({ done, total });
+    const collectionIds: string[] = [];
     try {
       for (const collection of prepared.collections) {
-        await apply({ op: "import-collection", collection });
+        const id = await apply({ op: "import-collection", collection });
+        if (id) collectionIds.push(id);
         step();
       }
       for (const environment of prepared.environments) {
@@ -60,7 +68,11 @@ export function useTransferImport() {
         });
         step();
       }
-      return { collections: prepared.collections.length, secretNames };
+      return {
+        collectionIds,
+        environments: prepared.environments.length,
+        secretNames,
+      };
     } finally {
       setProgress(null);
     }

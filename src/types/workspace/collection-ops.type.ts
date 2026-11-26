@@ -80,3 +80,18 @@ export interface CollectionOpResult {
   workspace: OpenedWorkspace;
   createdId: string | null;
 }
+
+export type MoveCollectionTarget =
+  { kind: "existing"; workspaceId: string } | { kind: "new"; name: string };
+
+export interface MoveCollectionParams {
+  workspaceId: string;
+  collectionId: string;
+  target: MoveCollectionTarget;
+}
+
+export interface MoveCollectionResult {
+  workspace: OpenedWorkspace;
+  target: { id: string; name: string };
+  collectionId: string | null;
+}

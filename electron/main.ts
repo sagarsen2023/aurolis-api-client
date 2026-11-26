@@ -31,10 +31,11 @@ import { gitInfo } from "./git.ts";
 import {
   applyOperation,
   loadEditorState,
+  moveCollection,
   saveDrafts,
   saveUiState,
 } from "./collection-store.ts";
-import { commitAndSync, listChanges } from "./source-control.ts";
+import { commitAndSync, listChanges, pullWorkspace } from "./source-control.ts";
 import { saveExportFile } from "./export-file.ts";
 import { toEngineResult } from "./engines/engine-error.ts";
 import { introspectGraphql, sendGraphql } from "./engines/graphql-engine.ts";
@@ -60,6 +61,7 @@ import {
   revealWorkspace,
   renameWorkspace,
   setStorageFolder,
+  stopSyncing,
   toWorkspaceResult,
 } from "./workspace-store.ts";
 
@@ -77,6 +79,7 @@ const INK_LIGHT = "#151017";
 
 const TITLEBAR_HEIGHT = 36;
 const IS_MAC = process.platform === "darwin";
+const APP_ICON = path.join(ROOT, "build", "icon.png");
 
 type ThemeSource = "light" | "dark" | "system";
 const THEME_SOURCES: readonly ThemeSource[] = ["light", "dark", "system"];
@@ -181,7 +184,7 @@ function createWindow() {
             height: TITLEBAR_HEIGHT,
           },
         }),
-    icon: path.join(ROOT, "build", "icon.png"),
+    icon: APP_ICON,
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.mjs"),
       contextIsolation: true,
@@ -305,6 +308,7 @@ if (!app.requestSingleInstanceLock()) {
     initialize: (_event, id) => initializeWorkspace(id),
     rename: (_event, params) => renameWorkspace(params),
     publish: (_event, params) => publishWorkspace(params),
+    "stop-sync": (_event, id) => stopSyncing(id),
     "remove-check": (_event, id) => removeCheck(id),
     reveal: (_event, id) => revealWorkspace(id),
     remove: (_event, params) => removeWorkspace(params),
@@ -332,6 +336,7 @@ if (!app.requestSingleInstanceLock()) {
     "collection",
     {
       apply: (_event, params) => applyOperation(params),
+      move: (_event, params) => moveCollection(params),
       "editor-load": (_event, id) => loadEditorState(id),
       "editor-save-drafts": (_event, params) => saveDrafts(params),
       "editor-save-ui": (_event, params) => saveUiState(params),
@@ -343,6 +348,7 @@ if (!app.requestSingleInstanceLock()) {
     {
       changes: (_event, id) => listChanges(id),
       commit: (_event, params) => commitAndSync(params),
+      pull: (_event, id) => pullWorkspace(id),
     },
     toWorkspaceResult,
   );
@@ -373,6 +379,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    if (IS_MAC && !app.isPackaged) app.dock?.setIcon(APP_ICON);
     if (!DEV_SERVER_URL) registerAppProtocol();
     createWindow();
 

@@ -16,7 +16,10 @@ import {
   toFilesWithPaths,
   WORKSPACE_FORMAT_VERSION,
 } from "../src/lib/workspace-format.ts";
-import { applyCollectionOpSchema } from "../src/validators/collection-ops.schema.ts";
+import {
+  applyCollectionOpSchema,
+  moveCollectionSchema,
+} from "../src/validators/collection-ops.schema.ts";
 import {
   editorUiStateSchema,
   requestDraftsSchema,
@@ -27,6 +30,8 @@ import type {
   CollectionOp,
   CollectionOpName,
   CollectionOpResult,
+  MoveCollectionParams,
+  MoveCollectionResult,
 } from "../src/types/workspace/collection-ops.type.ts";
 import type { WorkspaceData } from "../src/types/workspace/workspace.type.ts";
 import type {
@@ -42,6 +47,7 @@ import {
 } from "./secret-store.ts";
 import { stateFile, writeAtomic } from "./user-data.ts";
 import {
+  createLocalWorkspace,
   findEntry,
   isInside,
   openWorkspace,
@@ -249,10 +255,7 @@ async function syncSecrets(
   }
 }
 
-async function runOperation(
-  entry: WorkspaceEntry,
-  op: CollectionOp,
-): Promise<CollectionOpResult> {
+async function writeOperation(entry: WorkspaceEntry, op: CollectionOp) {
   const rootDir = workspaceRoot(entry);
   const { files } = await readWorkspaceFiles(rootDir);
   const parsed = assertEditable(files);
@@ -271,8 +274,65 @@ async function runOperation(
   const changes = planChanges(files, baseline, serialized, op);
   await applyChanges(rootDir, changes, op);
   await syncSecrets(entry.id, op, applied);
+  return applied.createdId;
+}
+
+async function runOperation(
+  entry: WorkspaceEntry,
+  op: CollectionOp,
+): Promise<CollectionOpResult> {
+  const createdId = await writeOperation(entry, op);
   const workspace = await openWorkspace(entry.id);
-  return { workspace, createdId: applied.createdId };
+  return { workspace, createdId };
+}
+
+async function readCollection(entry: WorkspaceEntry, collectionId: string) {
+  const { files } = await readWorkspaceFiles(workspaceRoot(entry));
+  const collection = assertEditable(files).workspace.collections.find(
+    (item) => item.id === collectionId,
+  );
+  if (!collection) throw new WorkspaceError("item_not_found");
+  return collection;
+}
+
+async function moveTarget(target: MoveCollectionParams["target"]) {
+  if (target.kind === "existing") return findEntry(target.workspaceId);
+  const { workspaceId } = await createLocalWorkspace(
+    { name: target.name },
+    { activate: false },
+  );
+  return findEntry(workspaceId);
+}
+
+export async function moveCollection(
+  params: unknown,
+): Promise<MoveCollectionResult> {
+  const { workspaceId, collectionId, target } = parseWorkspaceInput(
+    moveCollectionSchema,
+    params,
+  );
+  const source = await findEntry(workspaceId);
+  if (target.kind === "existing" && target.workspaceId === source.id) {
+    throw new WorkspaceError(
+      "invalid_input",
+      "The collection is already in this workspace.",
+    );
+  }
+  const collection = await enqueue(source.id, () =>
+    readCollection(source, collectionId),
+  );
+  const destination = await moveTarget(target);
+  const movedId = await enqueue(destination.id, () =>
+    writeOperation(destination, { op: "import-collection", collection }),
+  );
+  const { workspace } = await enqueue(source.id, () =>
+    runOperation(source, { op: "delete-collection", id: collectionId }),
+  );
+  return {
+    workspace,
+    target: { id: destination.id, name: destination.name },
+    collectionId: movedId,
+  };
 }
 
 export async function applyOperation(

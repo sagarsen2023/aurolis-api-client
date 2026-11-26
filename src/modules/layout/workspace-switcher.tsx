@@ -1,5 +1,4 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Plus, Settings } from "lucide-react";
 import { FaGithub } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
@@ -20,10 +19,11 @@ import {
   currentWorkspaceAtom,
   publishWorkspaceOpenAtom,
   registryAtom,
+  workspaceSettingsOpenAtom,
 } from "@/context/workspace-context";
 import { useWorkspaceActions } from "@/hooks/use-workspaces";
-import type { WorkspaceListItem } from "@/types/workspace/workspace-store.type";
 import { getInitials } from "@/utils/extract-initials";
+import { workspaceSubtitle } from "@/utils/workspace-subtitle";
 
 export function WorkspaceTile({
   name,
@@ -46,23 +46,15 @@ export function WorkspaceTile({
   );
 }
 
-function workspaceSubtitle(workspace: WorkspaceListItem) {
-  if (workspace.missing) return "Folder not found";
-  const github = workspace.remote?.github;
-  if (github) return `${github.owner}/${github.repo}`;
-  if (workspace.remote) return workspace.remote.url.replace(/^https?:\/\//, "");
-  return "Local";
-}
-
 function WorkspaceSwitcher() {
   const registry = useAtomValue(registryAtom);
   const current = useAtomValue(currentWorkspaceAtom);
   const setAddOpen = useSetAtom(addWorkspaceOpenAtom);
   const setPublishOpen = useSetAtom(publishWorkspaceOpenAtom);
+  const setSettingsOpen = useSetAtom(workspaceSettingsOpenAtom);
   const active = useAtomValue(activeWorkspaceAtom);
   const canPublish = Boolean(active && !active.git.remoteUrl);
   const { openWorkspace } = useWorkspaceActions();
-  const navigate = useNavigate();
   const workspaces = registry?.workspaces ?? [];
   const label = current?.name ?? "No workspace";
 
@@ -129,8 +121,8 @@ function WorkspaceSwitcher() {
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem
-          disabled={!current}
-          onClick={() => void navigate({ to: "/settings" })}
+          disabled={!active}
+          onClick={() => setSettingsOpen(true)}
         >
           <Settings />
           Workspace settings

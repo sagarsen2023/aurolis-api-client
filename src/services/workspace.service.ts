@@ -60,6 +60,7 @@ export const workspaceService = {
     unwrapWorkspace(bridge().rename({ id, name })),
   publish: (params: PublishWorkspaceParams) =>
     unwrapWorkspace(bridge().publish(params)),
+  stopSync: (id: string) => unwrapWorkspace(bridge().stopSync(id)),
   removeCheck: (id: string) => unwrapWorkspace(bridge().removeCheck(id)),
   remove: (id: string, deleteFolder: boolean) =>
     unwrapWorkspace(bridge().remove({ id, deleteFolder })),

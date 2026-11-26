@@ -159,3 +159,15 @@ export const applyCollectionOpSchema = z.object({
   workspaceId: z.string().min(1).max(100),
   op: collectionOpSchema,
 });
+
+export const moveCollectionSchema = z.object({
+  workspaceId: z.string().min(1).max(100),
+  collectionId: z.string().min(1).max(100),
+  target: z.discriminatedUnion("kind", [
+    z.object({
+      kind: z.literal("existing"),
+      workspaceId: z.string().min(1).max(100),
+    }),
+    z.object({ kind: z.literal("new"), name: nameSchema }),
+  ]),
+});

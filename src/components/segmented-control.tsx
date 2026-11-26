@@ -1,3 +1,4 @@
+import type { ComponentType, CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +10,12 @@ export function SegmentedControl<T extends string>({
 }: Readonly<{
   label: string;
   value: T;
-  options: ReadonlyArray<{ value: T; label: string }>;
+  options: ReadonlyArray<{
+    value: T;
+    label: string;
+    icon?: ComponentType<{ className?: string; style?: CSSProperties }>;
+    iconColor?: string;
+  }>;
   onChange: (value: T) => void;
 }>) {
   return (
@@ -27,12 +33,19 @@ export function SegmentedControl<T extends string>({
           aria-checked={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "h-7.5 rounded-full px-3 text-[13px] font-normal",
+            "h-7.5 gap-1.5 rounded-full px-3 text-[13px] font-normal",
             value === option.value
               ? "bg-card text-foreground shadow-xs hover:bg-card"
               : "text-mute hover:bg-transparent hover:text-foreground",
           )}
         >
+          {option.icon ? (
+            <option.icon
+              aria-hidden
+              className="size-3.5 shrink-0"
+              style={{ color: option.iconColor }}
+            />
+          ) : null}
           {option.label}
         </Button>
       ))}

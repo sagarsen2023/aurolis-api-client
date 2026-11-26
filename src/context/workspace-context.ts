@@ -53,4 +53,5 @@ export const currentEnvironmentAtom = atom<Environment | null>((get) => {
 export const addWorkspaceOpenAtom = atom(false);
 
 export const publishWorkspaceOpenAtom = atom(false);
+export const workspaceSettingsOpenAtom = atom(false);
 export const commitDialogOpenAtom = atom(false);
