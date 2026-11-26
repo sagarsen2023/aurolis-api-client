@@ -52,6 +52,7 @@ import {
 
 const ENVIRONMENT_OPS = new Set<CollectionOpName>([
   "create-environment",
+  "import-environment",
   "update-environment",
   "duplicate-environment",
   "delete-environment",
@@ -226,6 +227,14 @@ async function syncSecrets(
       if (applied.workspace.globals) {
         await storeEnvironmentSecrets(workspaceId, [applied.workspace.globals]);
       }
+      return;
+    case "import-environment":
+      await storeEnvironmentSecrets(
+        workspaceId,
+        applied.workspace.environments.filter(
+          (entry) => entry.id === applied.createdId,
+        ),
+      );
       return;
     case "duplicate-environment":
       if (applied.createdId) {

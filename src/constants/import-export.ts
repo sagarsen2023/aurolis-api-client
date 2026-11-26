@@ -1,53 +1,59 @@
-import {
-  FileCode2,
-  FileJson2,
-  SquareTerminal,
-  type LucideIcon,
-} from "lucide-react";
+import type {
+  ImportNote,
+  TransferFormat,
+} from "@/types/transfer/transfer.type";
 
-export interface TransferFormat {
-  name: string;
-  detail: string;
-  format: string;
-}
-
-export interface ImportSample {
-  file: string;
-  icon: LucideIcon;
-}
-
-export const IMPORT_FORMATS: TransferFormat[] = [
-  {
-    name: "Postman",
-    detail: "Collections v2.1 and environments",
-    format: ".json",
-  },
-  {
-    name: "Hoppscotch",
-    detail: "Collections and environments",
-    format: ".json",
-  },
-  { name: "Insomnia", detail: "Export files", format: ".json" },
-  { name: "OpenAPI", detail: "3.x and Swagger 2.0", format: ".yaml" },
-  { name: "cURL", detail: "Paste a command, get a request", format: "$ curl" },
+export const TRANSFER_FORMATS: ReadonlyArray<{
+  value: TransferFormat;
+  label: string;
+}> = [
+  { value: "postman", label: "Postman" },
+  { value: "hoppscotch", label: "Hoppscotch" },
 ];
 
-export const EXPORT_FORMATS: TransferFormat[] = [
-  {
-    name: "Postman",
-    detail: "Any collection, as Collection v2.1",
-    format: ".json",
+export const IMPORT_HINTS: Record<
+  TransferFormat,
+  { accept: string; files: string }
+> = {
+  postman: {
+    accept: ".json,.zip,application/json,application/zip",
+    files:
+      "Collection v2.1 or v2.0 and environment .json files, or a .zip of them",
   },
-  {
-    name: "OpenAPI",
-    detail: "Your HTTP requests as a 3.1 document",
-    format: ".yaml",
+  hoppscotch: {
+    accept: ".json,.zip,application/json,application/zip",
+    files:
+      "The workspace export .zip, or collection and environment .json files",
   },
-  { name: "cURL", detail: "Copy any request as a command", format: "$ curl" },
-];
+};
 
-export const IMPORT_SAMPLES: ImportSample[] = [
-  { file: "payments.postman_collection.json", icon: FileJson2 },
-  { file: "openapi.yaml", icon: FileCode2 },
-  { file: "curl -X POST /refunds", icon: SquareTerminal },
-];
+export const EXPORT_HINTS: Record<TransferFormat, string> = {
+  postman:
+    "A Collection v2.1 file per collection and an environment file per environment, zipped together when there's more than one.",
+  hoppscotch:
+    "A zip laid out like Hoppscotch's workspace export: manifest.json with the workspace's collections.json and environments.json.",
+};
+
+export const IMPORT_NOTE_MESSAGES: Record<
+  ImportNote,
+  (count: number) => string
+> = {
+  scripts: (count) =>
+    `${count} pre-request or test ${count === 1 ? "script isn't" : "scripts aren't"} imported. Aurolis doesn't run scripts.`,
+  "file-fields": (count) =>
+    `${count} file ${count === 1 ? "field" : "fields"} in form bodies ${count === 1 ? "is" : "are"} left out. Aurolis doesn't send files yet.`,
+  "unsupported-auth": (count) =>
+    `${count} ${count === 1 ? "item uses" : "items use"} an auth type Aurolis doesn't support yet, like OAuth 2.0, and ${count === 1 ? "is" : "are"} set to No auth.`,
+  "unsupported-body": (count) =>
+    `${count} binary ${count === 1 ? "body is" : "bodies are"} left empty.`,
+  "unsupported-method": (count) =>
+    `${count} ${count === 1 ? "request uses" : "requests use"} a method Aurolis doesn't support and ${count === 1 ? "is" : "are"} set to GET.`,
+  "request-variables": (count) =>
+    `${count} ${count === 1 ? "request has" : "requests have"} request variables, which aren't imported.`,
+  "folder-variables": (count) =>
+    `${count} ${count === 1 ? "folder has" : "folders have"} its own variables, which aren't imported. Move them to the collection or an environment.`,
+  "inherited-headers": (count) =>
+    `${count} ${count === 1 ? "header" : "headers"} set on collections or folders ${count === 1 ? "is" : "are"} copied to every request under ${count === 1 ? "it" : "them"}.`,
+};
+
+export const UPCOMING_FORMATS = ["Insomnia", "OpenAPI", "cURL"];

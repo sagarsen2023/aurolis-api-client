@@ -46,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "cm6-graphql": "^1.0.0",
     "cn": "^0.5.2",
+    "fflate": "^0.8.3",
     "graphql": "^17.1.0",
     "jotai": "^3.0.2",
     "lucide-react": "^1.79.0",
