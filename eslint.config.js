@@ -13,9 +13,9 @@ export default defineConfig(
   {
     ignores: [
       "dist",
-      "dist-electron",
       "dist-ssr",
       "release",
+      "src-tauri",
       "src/components/ui",
       "src/routeTree.gen.ts",
     ],
