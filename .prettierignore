@@ -1,7 +1,7 @@
 dist
-dist-electron
 dist-ssr
 release
+src-tauri
 node_modules
 src/routeTree.gen.ts
 package-lock.json

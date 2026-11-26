@@ -3,6 +3,7 @@ import AddWorkspaceSheet from "@/modules/workspace/add-workspace-sheet";
 import PublishSheet from "@/modules/workspace/publish-sheet";
 import WorkspaceSettingsDialog from "@/modules/workspace/workspace-settings-dialog";
 import CommitDialog from "@/modules/source-control/commit-dialog";
+import UpdateDialog from "@/modules/updates/update-dialog";
 import BreadCrumb from "./breadcrumb";
 import EnvironmentSelect from "./environment-select";
 import SavePill from "./save-pill";
@@ -24,6 +25,7 @@ function Header() {
       <PublishSheet />
       <WorkspaceSettingsDialog />
       <CommitDialog />
+      <UpdateDialog />
     </header>
   );
 }

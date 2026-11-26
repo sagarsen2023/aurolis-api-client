@@ -1,0 +1,53 @@
+[package]
+name = "aurolis"
+version = "1.0.0"
+description = "Aurolis, an open-source API client"
+authors = ["Sagar Sen <sagarsen.dev@gmail.com>"]
+license = ""
+repository = "https://github.com/sagarsen2023/aurolis-api-client"
+edition = "2024"
+rust-version = "1.90"
+
+[lib]
+name = "aurolis_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+tauri = { version = "2.12", features = [] }
+tauri-plugin-dialog = "2.8"
+tauri-plugin-opener = "2.7"
+tauri-plugin-single-instance = "2.5"
+tauri-plugin-updater = "2.14"
+tauri-plugin-process = "2.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["process", "fs", "sync", "time", "macros", "rt-multi-thread", "io-util"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "charset", "system-proxy", "multipart", "gzip", "brotli", "deflate", "stream"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std", "tls12"] }
+rustls-platform-verifier = "0.6"
+futures-util = "0.3"
+tokio-util = "0.7"
+unicode-normalization = "0.1"
+percent-encoding = "2"
+keyring = "4"
+aes-gcm = "0.11"
+base64 = "0.22"
+notify = "9"
+fs4 = "1.1"
+uuid = { version = "1", features = ["v4"] }
+regex = "1"
+url = "2"
+dunce = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+libc = "0.2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import WindowControls from "./window-controls";
 
 function TitleBar() {
   const bridge = window.aurolis;
@@ -8,12 +9,22 @@ function TitleBar() {
 
   return (
     <div
+      data-tauri-drag-region
       className={cn(
-        "flex h-9 shrink-0 items-center justify-center border-b border-line bg-background select-none [-webkit-app-region:drag]",
-        isMac ? "pr-3 pl-19.5" : "pr-35 pl-3",
+        "flex h-9 shrink-0 items-center border-b border-line bg-background select-none",
+        isMac ? "justify-center pr-3 pl-19.5" : "pl-3",
       )}
     >
-      <span className="text-[12.5px] font-medium text-dim">Aurolis</span>
+      <span
+        data-tauri-drag-region
+        className={cn(
+          "text-[12.5px] font-medium text-dim",
+          !isMac && "flex-1 pl-34.5 text-center",
+        )}
+      >
+        Aurolis
+      </span>
+      {isMac ? null : <WindowControls />}
     </div>
   );
 }

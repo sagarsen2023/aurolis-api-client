@@ -1,4 +1,6 @@
+import { useAtomValue } from "jotai";
 import {
+  CircleArrowUp,
   Database,
   Keyboard,
   SlidersHorizontal,
@@ -9,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SettingsSectionId } from "@/constants/settings";
+import { availableUpdateAtom } from "@/context/update-context";
 
 const ITEMS: ReadonlyArray<{
   id: SettingsSectionId;
@@ -20,6 +23,7 @@ const ITEMS: ReadonlyArray<{
   { id: "general", label: "General", icon: SlidersHorizontal },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "data", label: "Data", icon: Database },
+  { id: "updates", label: "Updates", icon: CircleArrowUp },
 ];
 
 export function SettingsNav({
@@ -29,6 +33,7 @@ export function SettingsNav({
   active: SettingsSectionId;
   onSelect: (id: SettingsSectionId) => void;
 }>) {
+  const update = useAtomValue(availableUpdateAtom);
   return (
     <nav aria-label="Settings sections" className="flex flex-col gap-1">
       {ITEMS.map((item) => {
@@ -50,6 +55,12 @@ export function SettingsNav({
           >
             <Icon className="size-4 shrink-0" strokeWidth={1.8} aria-hidden />
             {item.label}
+            {item.id === "updates" && update ? (
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-vio">
+                <span className="size-2 rounded-full bg-vio" aria-hidden />
+                New
+              </span>
+            ) : null}
           </Button>
         );
       })}
