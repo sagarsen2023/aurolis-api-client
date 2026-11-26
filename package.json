@@ -6,6 +6,15 @@
   "version": "0.1.0",
   "type": "module",
   "main": "dist-electron/main.js",
+  "homepage": "https://aurolis.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagarsen2023/aurolis-api-client.git"
+  },
+  "author": {
+    "name": "Sagar Sen",
+    "email": "sagarsen.dev@gmail.com"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
