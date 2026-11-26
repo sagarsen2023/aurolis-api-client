@@ -6,6 +6,7 @@ import {
 } from "@/context/collections-context";
 import { requestTimeoutAtom } from "@/context/settings-atoms";
 import { activeWorkspaceAtom } from "@/context/workspace-context";
+import { stripJsonComments } from "@/lib/jsonc";
 import { prepareRealtime } from "@/lib/prepare-request";
 import { newRunId } from "@/services/config/engine-bridge";
 import { realtimeEngineService } from "@/services/realtime-engine.service";
@@ -155,7 +156,11 @@ export function useRealtimeSession(requestId: string) {
       await realtimeEngineService.send({
         connectionId: session.connectionId,
         event: prepared.resolve(message.event),
-        body: prepared.resolve(message.body),
+        body: prepared.resolve(
+          message.format === "json"
+            ? stripJsonComments(message.body)
+            : message.body,
+        ),
         format: message.format,
       });
     },
