@@ -20,7 +20,9 @@ import { MOD_KEY } from "@/utils/platform";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
 
 const PILL =
-  "inline-flex h-10 items-center gap-2 rounded-full border border-input bg-card px-4 text-sm text-foreground";
+  "inline-flex h-10 items-center gap-2 rounded-full border border-input bg-card px-4 text-sm font-normal text-foreground";
+
+const PILL_BUTTON = cn(PILL, "hover:bg-surface-hover");
 
 const plural = (count: number, word: string) =>
   `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -55,8 +57,9 @@ function UnsavedPill({ count }: Readonly<{ count: number }>) {
           <Button
             type="button"
             variant="ghost"
+            size="lg"
             disabled={loading}
-            className={cn(PILL, "h-auto hover:bg-surface-hover")}
+            className={PILL_BUTTON}
             onClick={() => void runPromise()}
           />
         }
@@ -88,7 +91,8 @@ function SavePill() {
             <Button
               type="button"
               variant="ghost"
-              className={cn(PILL, "h-auto hover:bg-surface-hover")}
+              size="lg"
+              className={PILL_BUTTON}
               onClick={() => setPublishOpen(true)}
             />
           }
@@ -114,7 +118,8 @@ function SavePill() {
             <Button
               type="button"
               variant="ghost"
-              className={cn(PILL, "h-auto hover:bg-surface-hover")}
+              size="lg"
+              className={PILL_BUTTON}
               onClick={() => setCommitOpen(true)}
             />
           ) : (

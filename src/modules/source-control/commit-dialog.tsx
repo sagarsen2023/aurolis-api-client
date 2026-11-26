@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Kbd } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { unsavedCountAtom } from "@/context/collections-context";
@@ -61,10 +62,6 @@ function successMessage(result: CommitResult) {
   return "Committed on this computer";
 }
 
-function itemCount(changes: SourceControlChanges) {
-  return changes.groups.reduce((sum, group) => sum + group.items.length, 0);
-}
-
 function UnsavedNotice({ count }: Readonly<{ count: number }>) {
   const { saveAll } = useSaveRequests();
   const { loading, runPromise } = usePromise({ promise: saveAll });
@@ -91,14 +88,11 @@ function UnsavedNotice({ count }: Readonly<{ count: number }>) {
 function ChangesSummary({
   changes,
 }: Readonly<{ changes: SourceControlChanges }>) {
-  const count = itemCount(changes);
   const unpushed = changes.unpushedCommits;
+  if (unpushed === 0) return null;
   return (
-    <span className="text-[13px] text-mute">
-      {count} {count === 1 ? "change" : "changes"}
-      {unpushed > 0
-        ? ` · ${unpushed} ${unpushed === 1 ? "commit" : "commits"} not pushed yet`
-        : ""}
+    <span className="truncate text-[12px] text-dim">
+      {unpushed} {unpushed === 1 ? "commit" : "commits"} not pushed
     </span>
   );
 }
@@ -164,109 +158,124 @@ function CommitForm({
 
   return (
     <form
-      className="flex min-h-0 flex-col gap-4"
+      className="flex min-h-0 flex-col"
       onSubmit={(event) => {
         event.preventDefault();
         if (canCommit) run(hasRemote);
       }}
     >
-      <DialogHeader>
-        <DialogTitle>Commit and sync</DialogTitle>
-        <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="flex items-center gap-1.5">
-            <GitBranch className="size-3.5" aria-hidden />
+      <DialogHeader className="gap-3 px-6 pt-6 pr-14 pb-4">
+        <DialogTitle className="text-[17px]">Commit and sync</DialogTitle>
+        <DialogDescription className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-raise px-2.5 py-1 text-[12px] text-foreground">
+            <GitBranch className="size-3.5 text-dim" aria-hidden />
             {changes?.branch ?? workspace.git.branch ?? "No branch"}
           </span>
-          <span className="flex items-center gap-1.5">
-            <CloudUpload className="size-3.5" aria-hidden />
-            {hasRemote
-              ? remoteLabel(workspace)
-              : "No remote: commits stay on this computer"}
+          <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-surface-raise px-2.5 py-1 text-[12px] text-foreground">
+            <CloudUpload className="size-3.5 shrink-0 text-dim" aria-hidden />
+            <span className="truncate">
+              {hasRemote
+                ? remoteLabel(workspace)
+                : "Commits stay on this computer"}
+            </span>
           </span>
         </DialogDescription>
       </DialogHeader>
 
-      <UnsavedNotice count={unsaved} />
+      <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-6 pb-5">
+        <UnsavedNotice count={unsaved} />
 
-      {fileCount > 0 ? (
-        <Textarea
-          id="commit-message"
-          label="Commit message"
-          autoFocus
-          rows={3}
-          maxLength={10_000}
-          value={message}
-          placeholder="Describe what changed, e.g. Add refund requests"
-          onChange={(event) => setMessage(event.target.value)}
-          onKeyDown={(event) => {
-            if (!isModEnter(event)) return;
-            event.preventDefault();
-            if (canCommit) run(hasRemote);
-          }}
-        />
-      ) : null}
-
-      {failure ? (
-        <p
-          role="alert"
-          className="flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-[13px] text-destructive"
-        >
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span className="whitespace-pre-wrap">{failure}</span>
-        </p>
-      ) : null}
-
-      <div className="flex min-h-0 flex-col gap-2">
-        <div className="flex items-center justify-between">
-          {changes ? <ChangesSummary changes={changes} /> : <span />}
-          <Button
-            type="button"
-            size="icon-xs"
-            variant="ghost"
-            aria-label="Refresh changes"
-            disabled={loadingChanges}
-            onClick={() => void loadChanges()}
-          >
-            <RefreshCw
-              className={loadingChanges ? "animate-spin" : undefined}
-            />
-          </Button>
-        </div>
-        {loadingChanges && !changes ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-9" />
-            <Skeleton className="h-9" />
-          </div>
+        {fileCount > 0 ? (
+          <Textarea
+            id="commit-message"
+            label="Commit message"
+            autoFocus
+            rows={3}
+            maxLength={10_000}
+            value={message}
+            placeholder="Describe what changed, e.g. Add refund requests"
+            onChange={(event) => setMessage(event.target.value)}
+            onKeyDown={(event) => {
+              if (!isModEnter(event)) return;
+              event.preventDefault();
+              if (canCommit) run(hasRemote);
+            }}
+            className="min-h-24 bg-surface-2 text-[13px] focus-visible:ring-2"
+          />
         ) : null}
-        {changes && fileCount === 0 ? (
-          <p className="rounded-xl border border-line px-4 py-6 text-center text-[13px] text-mute">
-            {canSyncOnly
-              ? "Nothing new to commit. Your earlier commits are ready to push."
-              : "Everything is committed and pushed."}
+
+        {failure ? (
+          <p
+            role="alert"
+            className="flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-[13px] text-destructive"
+          >
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span className="whitespace-pre-wrap">{failure}</span>
           </p>
         ) : null}
-        {changes && fileCount > 0 ? (
-          <ul className="flex max-h-[46vh] flex-col gap-2 overflow-y-auto pr-1">
-            {changes.groups.map((group) => (
-              <ChangeGroup key={group.key} group={group} />
-            ))}
-          </ul>
-        ) : null}
+
+        <section className="overflow-hidden rounded-2xl border border-line">
+          <div className="flex items-center justify-between gap-3 border-b border-line px-3.5 py-2">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <h3 className="text-[13px] font-medium text-foreground">
+                Changes
+              </h3>
+              {changes ? <ChangesSummary changes={changes} /> : null}
+            </div>
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Refresh changes"
+              disabled={loadingChanges}
+              onClick={() => void loadChanges()}
+            >
+              <RefreshCw
+                className={loadingChanges ? "animate-spin" : undefined}
+              />
+            </Button>
+          </div>
+          {loadingChanges && !changes ? (
+            <div className="flex flex-col gap-2 p-3">
+              <Skeleton className="h-10" />
+              <Skeleton className="h-10" />
+            </div>
+          ) : null}
+          {changes && fileCount === 0 ? (
+            <p className="px-4 py-8 text-center text-[13px] text-mute">
+              {canSyncOnly
+                ? "Nothing new to commit. Your earlier commits are ready to push."
+                : "Everything is committed and pushed."}
+            </p>
+          ) : null}
+          {changes && fileCount > 0 ? (
+            <ul className="max-h-[40vh] divide-y divide-line overflow-y-auto">
+              {changes.groups.map((group) => (
+                <ChangeGroup key={group.key} group={group} />
+              ))}
+            </ul>
+          ) : null}
+        </section>
       </div>
 
-      <DialogFooter className="items-center">
-        <span className="mr-auto hidden text-[12px] text-dim sm:inline">
-          {fileCount > 0
-            ? `${MOD_KEY} Enter to ${hasRemote ? "commit and sync" : "commit"}`
-            : null}
+      <DialogFooter className="items-center border-t border-line bg-surface-raise/40 px-6 py-4">
+        <span className="mr-auto hidden items-center gap-1.5 text-[12px] text-dim sm:inline-flex">
+          {fileCount > 0 ? (
+            <>
+              <Kbd>{MOD_KEY}</Kbd>
+              <Kbd>Enter</Kbd>
+              <span>{hasRemote ? "commit and sync" : "commit"}</span>
+            </>
+          ) : null}
         </span>
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" size="sm" onClick={onClose}>
           Cancel
         </Button>
         {fileCount > 0 && hasRemote ? (
           <Button
             type="button"
             variant="outline"
+            size="sm"
             disabled={!canCommit}
             onClick={() => run(false)}
           >
@@ -275,18 +284,23 @@ function CommitForm({
           </Button>
         ) : null}
         {canSyncOnly && hasRemote ? (
-          <Button type="button" disabled={committing} onClick={() => run(true)}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={committing}
+            onClick={() => run(true)}
+          >
             <RefreshCw className={committing ? "animate-spin" : undefined} />
             Sync
           </Button>
         ) : (
-          <Button type="submit" disabled={!canCommit}>
+          <Button type="submit" size="sm" disabled={!canCommit}>
             {hasRemote ? (
               <RefreshCw className={committing ? "animate-spin" : undefined} />
             ) : (
               <GitCommitHorizontal />
             )}
-            {hasRemote ? "Commit & sync" : "Commit"}
+            {hasRemote ? "Commit and sync" : "Commit"}
           </Button>
         )}
       </DialogFooter>
@@ -304,7 +318,7 @@ function CommitDialog() {
       open={open && Boolean(workspace)}
       onOpenChange={(next) => (next ? null : close())}
     >
-      <DialogContent className="max-h-[88vh] sm:max-w-3xl">
+      <DialogContent className="flex max-h-[88vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         {workspace ? (
           <CommitForm
             key={workspace.entry.id}
