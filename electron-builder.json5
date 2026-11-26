@@ -11,7 +11,7 @@
   files: ["dist", "dist-electron"],
   mac: {
     category: "public.app-category.developer-tools",
-    target: ["dmg"],
+    target: [{ target: "dmg", arch: ["arm64", "x64"] }],
     artifactName: "${productName}-${version}-mac-${arch}.${ext}",
   },
   win: {
@@ -25,8 +25,13 @@
     deleteAppDataOnUninstall: false,
   },
   linux: {
-    target: ["AppImage"],
+    target: [
+      { target: "deb", arch: ["x64"] },
+      { target: "AppImage", arch: ["x64"] },
+    ],
     category: "Development",
-    artifactName: "${productName}-${version}-linux.${ext}",
+    maintainer: "Sagar Sen",
+    synopsis: "An open-source API client.",
+    artifactName: "${productName}-${version}-linux-${arch}.${ext}",
   },
 }
