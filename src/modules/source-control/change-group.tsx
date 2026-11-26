@@ -57,36 +57,34 @@ function ItemIcon({ item }: Readonly<{ item: ChangedItem }>) {
 
 function ChangedItemRow({ item }: Readonly<{ item: ChangedItem }>) {
   const status = CHANGE_STATUS[item.status];
-  const StatusIcon = status.icon;
   const kindLabel = KIND_LABEL[item.kind];
   return (
-    <li className="flex items-center gap-2.5 px-3 py-2">
-      <StatusIcon
-        className={cn("size-4 shrink-0", status.className)}
-        aria-label={status.label}
-      />
+    <li className="flex items-center gap-3 px-3.5 py-2.5">
       <ItemIcon item={item} />
-      <span className="flex min-w-0 flex-1 flex-col">
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-baseline gap-2 text-[13px] text-foreground">
           <span className="truncate">{item.name}</span>
           {item.previousName ? (
             <span className="truncate text-[12px] text-dim">
-              renamed from {item.previousName}
+              was {item.previousName}
             </span>
           ) : null}
         </span>
         {item.location.length > 0 || kindLabel ? (
           <span className="truncate text-[12px] text-dim">
-            {[kindLabel, item.location.join(" › ")].filter(Boolean).join(" · ")}
+            {[kindLabel, item.location.join(" / ")].filter(Boolean).join(" · ")}
           </span>
         ) : null}
       </span>
       <span
-        className={cn("font-mono text-[11px] font-semibold", status.className)}
+        className={cn(
+          "shrink-0 rounded-md bg-surface-raise px-1.5 py-0.5 font-mono text-[11px] font-semibold",
+          status.className,
+        )}
         title={status.label}
-        aria-hidden
       >
         {status.letter}
+        <span className="sr-only">{status.label}</span>
       </span>
     </li>
   );
@@ -95,15 +93,15 @@ function ChangedItemRow({ item }: Readonly<{ item: ChangedItem }>) {
 function ChangeGroup({ group }: Readonly<{ group: ChangeGroupData }>) {
   const Icon = GROUP_ICON[group.kind];
   return (
-    <li className="overflow-hidden rounded-xl border border-line">
-      <div className="flex items-center gap-2 bg-surface-raise/60 px-3 py-2 text-[13px] font-medium text-foreground">
-        <Icon className="size-3.5 text-vio" aria-hidden />
+    <li>
+      <div className="flex items-center gap-2 border-b border-line bg-surface-raise/50 px-3.5 py-2 text-[13px] font-medium text-foreground">
+        <Icon className="size-3.5 shrink-0 text-vio" aria-hidden />
         <span className="truncate">{group.name}</span>
-        <span className="ml-auto text-[12px] font-normal text-dim">
-          {group.items.length} {group.items.length === 1 ? "change" : "changes"}
+        <span className="ml-auto font-normal text-dim tabular-nums">
+          {group.items.length}
         </span>
       </div>
-      <ul className="divide-y divide-line/60">
+      <ul className="divide-y divide-line/70">
         {group.items.map((item) => (
           <ChangedItemRow key={item.key} item={item} />
         ))}

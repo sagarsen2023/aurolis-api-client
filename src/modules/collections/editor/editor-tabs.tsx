@@ -10,6 +10,13 @@ import {
   findRequestById,
 } from "@/lib/collection-ops";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type {
   EditorTab,
@@ -66,8 +73,12 @@ function labelFor(
 function EditorTabs() {
   const workspace = useAtomValue(activeWorkspaceAtom);
   const drafts = useAtomValue(draftsAtom);
-  const { tabs, activeTabId, setActiveTabId, closeTab } = useEditorTabs();
+  const { tabs, activeTabId, setActiveTabId, closeTab, closeTabs } =
+    useEditorTabs();
   const data = workspace?.data ?? null;
+  const savedIds = tabs
+    .filter((tab) => !(tab.id in drafts))
+    .map((tab) => tab.id);
 
   if (tabs.length === 0) return null;
 
@@ -83,58 +94,76 @@ function EditorTabs() {
         const active = tab.id === activeTabId;
         const dirty = tab.id in drafts;
         return (
-          <div
-            key={tab.id}
-            className={cn(
-              "group/tab relative flex max-w-56 shrink-0 items-center border-r border-line",
-              active
-                ? "bg-background text-foreground"
-                : "text-mute hover:bg-surface-hover",
-            )}
-          >
-            {active ? (
-              <span
-                aria-hidden
-                className="absolute inset-x-0 top-0 h-0.5 bg-vio"
-              />
-            ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setActiveTabId(tab.id)}
-              onAuxClick={(event) => {
-                if (event.button === 1) closeTab(tab.id);
-              }}
-              className="h-full min-w-0 flex-1 justify-start gap-1.5 rounded-none pr-1 pl-3 text-[12.5px] hover:bg-transparent focus-visible:ring-inset"
+          <ContextMenu key={tab.id}>
+            <ContextMenuTrigger
+              className={cn(
+                "group/tab relative flex max-w-56 shrink-0 items-center border-r border-line",
+                active
+                  ? "bg-background text-foreground"
+                  : "text-mute hover:bg-surface-hover",
+              )}
             >
-              {label.icon}
-              <span className="truncate">{label.title}</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              aria-label={`Close ${label.title}${dirty ? " (unsaved changes are kept)" : ""}`}
-              onClick={() => closeTab(tab.id)}
-              className="relative mr-1.5 size-5 text-dim hover:bg-surface-hover hover:text-ink"
-            >
-              {dirty ? (
+              {active ? (
                 <span
                   aria-hidden
-                  className="size-2 rounded-full bg-vio group-hover/tab:hidden"
+                  className="absolute inset-x-0 top-0 h-0.5 bg-vio"
                 />
               ) : null}
-              <X
-                aria-hidden
-                className={cn(
-                  "size-3.5",
-                  dirty && "hidden group-hover/tab:block",
-                )}
-              />
-            </Button>
-          </div>
+              <Button
+                type="button"
+                variant="ghost"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTabId(tab.id)}
+                onAuxClick={(event) => {
+                  if (event.button === 1) closeTab(tab.id);
+                }}
+                className="h-full min-w-0 flex-1 justify-start gap-1.5 rounded-none pr-1 pl-3 text-[12.5px] hover:bg-transparent focus-visible:ring-inset"
+              >
+                {label.icon}
+                <span className="truncate">{label.title}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`Close ${label.title}${dirty ? " (unsaved changes are kept)" : ""}`}
+                onClick={() => closeTab(tab.id)}
+                className="relative mr-1.5 size-5 text-dim hover:bg-surface-hover hover:text-ink"
+              >
+                {dirty ? (
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full bg-vio group-hover/tab:hidden"
+                  />
+                ) : null}
+                <X
+                  aria-hidden
+                  className={cn(
+                    "size-3.5",
+                    dirty && "hidden group-hover/tab:block",
+                  )}
+                />
+              </Button>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => closeTab(tab.id)}>
+                Close
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                disabled={savedIds.length === 0}
+                onClick={() => closeTabs(savedIds)}
+              >
+                Close saved
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => closeTabs(tabs.map((entry) => entry.id))}
+              >
+                Close all
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
         );
       })}
     </div>
