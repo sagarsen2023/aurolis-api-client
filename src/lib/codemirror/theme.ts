@@ -92,6 +92,10 @@ const editorTheme = EditorView.theme({
     color: "var(--ink)",
   },
   ".cm-diagnostic": { fontFamily: MONO_FONT, fontSize: "12px" },
+  ".cm-aurolis-comment, .cm-aurolis-comment *": {
+    color: "var(--dim)",
+    fontStyle: "italic",
+  },
   ".cm-aurolis-variable": {
     color: "var(--vio)",
     backgroundColor: "color-mix(in oklab, var(--vio) 14%, transparent)",

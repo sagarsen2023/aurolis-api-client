@@ -1,11 +1,13 @@
 import { javascript } from "@codemirror/lang-javascript";
-import { json, jsonParseLinter } from "@codemirror/lang-json";
+import { json, jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import { EditorState, type Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { graphql } from "cm6-graphql";
 import type { GraphQLSchema } from "graphql";
+import { blankJsonComments } from "@/lib/jsonc";
+import { jsonCommentHighlight } from "./json-comments";
 
 export type CodeLanguage = "json" | "xml" | "graphql" | "typescript" | "text";
 
@@ -19,7 +21,7 @@ function maskVariables(text: string) {
 }
 
 function lintJsonWithVariables(view: EditorView): Diagnostic[] {
-  const text = view.state.doc.toString();
+  const text = blankJsonComments(view.state.doc.toString());
   if (!text.trim()) return [];
   const masked = EditorState.create({ doc: maskVariables(text) });
   return parseJson({ state: masked } as EditorView);
@@ -27,13 +29,22 @@ function lintJsonWithVariables(view: EditorView): Diagnostic[] {
 
 const jsonLinter = linter(lintJsonWithVariables, { delay: 400 });
 
+const jsonComments = [
+  jsonLanguage.data.of({
+    commentTokens: { line: "//", block: { open: "/*", close: "*/" } },
+  }),
+  jsonCommentHighlight,
+];
+
 export function languageExtension(
   language: CodeLanguage,
   options: { readOnly?: boolean; graphqlSchema?: GraphQLSchema | null } = {},
 ): Extension {
   switch (language) {
     case "json":
-      return options.readOnly ? json() : [json(), jsonLinter, lintGutter()];
+      return options.readOnly
+        ? json()
+        : [json(), jsonComments, jsonLinter, lintGutter()];
     case "xml":
       return xml();
     case "typescript":
