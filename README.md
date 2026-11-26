@@ -108,3 +108,7 @@ If the private key is lost, installed copies can't verify new updates, and users
 3. The tag starts `.github/workflows/release.yml`. It creates one draft release, builds macOS (universal), Windows and Linux in parallel into it, checks that every installer and `latest.json` are attached, then publishes it. Installed apps see the update once it's published.
 
 macOS builds are signed ad hoc, not with an Apple Developer ID. On first launch, users right-click the app and choose **Open**.
+
+## License
+
+[MIT](LICENSE)
