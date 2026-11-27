@@ -82,7 +82,7 @@ fn format_seconds(ms: u64) -> String {
     format!("{text} second{}", if seconds == 1.0 { "" } else { "s" })
 }
 
-fn validate(params: &HttpSendParams) -> AppResult<url::Url> {
+pub fn validate(params: &HttpSendParams) -> AppResult<url::Url> {
     check_run_id(&params.run_id)?;
     if !METHODS.contains(&params.method.as_str()) {
         return Err(invalid("Invalid method"));
@@ -157,6 +157,50 @@ fn milliseconds(duration: Duration) -> f64 {
     (duration.as_secs_f64() * 1_000_000.0).round() / 1000.0
 }
 
+pub fn build_request(
+    client: &reqwest::Client,
+    params: &HttpSendParams,
+    url: url::Url,
+) -> AppResult<reqwest::RequestBuilder> {
+    let method = reqwest::Method::from_bytes(params.method.as_bytes())
+        .map_err(|_| invalid("Invalid method"))?;
+    let sends_body = !matches!(params.method.as_str(), "GET" | "HEAD");
+    let mut request = client.request(method, url);
+    for (name, value) in &params.headers {
+        let name =
+            HeaderName::from_bytes(name.as_bytes()).map_err(|_| invalid("Invalid header name"))?;
+        let value = HeaderValue::from_str(value).map_err(|_| invalid("Invalid header value"))?;
+        request = request.header(name, value);
+    }
+    if !sends_body {
+        return Ok(request);
+    }
+    Ok(match &params.body {
+        PreparedBody::None => request,
+        PreparedBody::Text { text } => request.body(text.clone()),
+        PreparedBody::Urlencoded { fields } => {
+            let encoded = url::form_urlencoded::Serializer::new(String::new())
+                .extend_pairs(fields.iter())
+                .finish();
+            if !has_header(&params.headers, "content-type") {
+                request = request.header(
+                    CONTENT_TYPE,
+                    "application/x-www-form-urlencoded;charset=UTF-8",
+                );
+            }
+            request.body(encoded)
+        }
+        PreparedBody::FormData { fields } => {
+            let form = fields
+                .iter()
+                .fold(reqwest::multipart::Form::new(), |form, (name, value)| {
+                    form.text(name.clone(), value.clone())
+                });
+            request.multipart(form)
+        }
+    })
+}
+
 impl HttpEngine {
     pub fn new(user_agent: &str) -> Self {
         let client = reqwest::Client::builder()
@@ -170,45 +214,8 @@ impl HttpEngine {
         }
     }
 
-    fn build(&self, params: &HttpSendParams, url: url::Url) -> AppResult<reqwest::RequestBuilder> {
-        let method = reqwest::Method::from_bytes(params.method.as_bytes())
-            .map_err(|_| invalid("Invalid method"))?;
-        let sends_body = !matches!(params.method.as_str(), "GET" | "HEAD");
-        let mut request = self.client.request(method, url);
-        for (name, value) in &params.headers {
-            let name = HeaderName::from_bytes(name.as_bytes())
-                .map_err(|_| invalid("Invalid header name"))?;
-            let value =
-                HeaderValue::from_str(value).map_err(|_| invalid("Invalid header value"))?;
-            request = request.header(name, value);
-        }
-        if !sends_body {
-            return Ok(request);
-        }
-        Ok(match &params.body {
-            PreparedBody::None => request,
-            PreparedBody::Text { text } => request.body(text.clone()),
-            PreparedBody::Urlencoded { fields } => {
-                let encoded = url::form_urlencoded::Serializer::new(String::new())
-                    .extend_pairs(fields.iter())
-                    .finish();
-                if !has_header(&params.headers, "content-type") {
-                    request = request.header(
-                        CONTENT_TYPE,
-                        "application/x-www-form-urlencoded;charset=UTF-8",
-                    );
-                }
-                request.body(encoded)
-            }
-            PreparedBody::FormData { fields } => {
-                let form = fields
-                    .iter()
-                    .fold(reqwest::multipart::Form::new(), |form, (name, value)| {
-                        form.text(name.clone(), value.clone())
-                    });
-                request.multipart(form)
-            }
-        })
+    pub fn client(&self) -> reqwest::Client {
+        self.client.clone()
     }
 
     async fn exchange(
@@ -217,7 +224,7 @@ impl HttpEngine {
         url: url::Url,
     ) -> AppResult<HttpResponseData> {
         let request_url = url.clone();
-        let request = self.build(params, url)?;
+        let request = build_request(&self.client, params, url)?;
         let started = Instant::now();
         let response = request
             .send()

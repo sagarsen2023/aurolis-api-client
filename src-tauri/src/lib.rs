@@ -162,6 +162,8 @@ pub fn run() {
             commands::engine_realtime_connect,
             commands::engine_realtime_send,
             commands::engine_realtime_disconnect,
+            commands::engine_load_start,
+            commands::engine_load_stop,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aurolis");

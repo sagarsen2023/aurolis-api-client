@@ -340,6 +340,13 @@
 @layer base {
     * {
         @apply border-border outline-ring/50;
+        scrollbar-width: none;
+    }
+    *::-webkit-scrollbar {
+        display: none;
+    }
+    [data-slot="scroll-area-scrollbar"] {
+        display: none;
     }
     html {
         @apply font-sans;

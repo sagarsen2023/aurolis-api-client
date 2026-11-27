@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { GitBranch, Zap } from "lucide-react";
 import {
   Card,
@@ -123,7 +124,14 @@ function ResponseHealth({ git }: Readonly<{ git: WorkspaceGitState }>) {
             icon={Zap}
             title="Load testing"
             description="Run a request many times and watch how it holds up"
-            action={<Pill variant="outline">Coming soon</Pill>}
+            action={
+              <Link
+                to="/load-testing"
+                className="text-[13px] font-medium text-vio underline-offset-4 hover:underline"
+              >
+                Open
+              </Link>
+            }
           />
         </ul>
       </CardContent>

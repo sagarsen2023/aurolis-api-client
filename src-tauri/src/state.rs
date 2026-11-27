@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
 use crate::engines::http::HttpEngine;
+use crate::engines::load::LoadEngine;
 use crate::engines::realtime::RealtimeEngine;
 use crate::git::Git;
 use crate::github::api::GithubApi;
@@ -26,6 +27,7 @@ pub struct AppState {
     pub clones: std::sync::Mutex<Vec<(uuid::Uuid, CancellationToken)>>,
     pub http: HttpEngine,
     pub realtime: RealtimeEngine,
+    pub load: LoadEngine,
 }
 
 pub fn tls_config() -> Arc<rustls::ClientConfig> {
@@ -57,6 +59,7 @@ impl AppState {
             clones: std::sync::Mutex::new(Vec::new()),
             http: HttpEngine::new(&user_agent),
             realtime: RealtimeEngine::new(tls_config()),
+            load: LoadEngine::default(),
             auth,
             paths,
         }
