@@ -1,4 +1,5 @@
 pub mod http;
+pub mod load;
 pub mod realtime;
 pub mod socketio;
 

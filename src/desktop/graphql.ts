@@ -8,7 +8,10 @@ import type {
   GraphqlSchemaResult,
   GraphqlSendParams,
 } from "@/types/engine/graphql-engine.type";
-import type { HttpResponseData } from "@/types/engine/http-engine.type";
+import type {
+  HttpResponseData,
+  HttpSendParams,
+} from "@/types/engine/http-engine.type";
 import { call } from "./invoke";
 import { asEngineResult, BridgeError, type Outcome, unwrap } from "./results";
 
@@ -88,6 +91,48 @@ function countErrors(response: HttpResponseData): number | null {
   return Array.isArray(payload.errors) ? payload.errors.length : 0;
 }
 
+function graphqlHttpParams(
+  params: { url: string; headers: HeaderPair[]; timeoutMs: number },
+  payload: Record<string, unknown>,
+  runId: string,
+): HttpSendParams {
+  return {
+    runId,
+    method: "POST",
+    url: params.url,
+    headers: withGraphqlHeaders(params.headers),
+    body: { kind: "text", text: JSON.stringify(payload) },
+    timeoutMs: params.timeoutMs,
+  };
+}
+
+function operationPayload(input: {
+  query: string;
+  variables: string;
+  operationName: string;
+}) {
+  if (
+    input.query.length > 50 * 1024 * 1024 ||
+    input.operationName.length > 1_000
+  ) {
+    throw new BridgeError("invalid_input", "The query is too large.");
+  }
+  if (!input.query.trim())
+    throw new BridgeError("invalid_input", "Write a query first.");
+  return {
+    query: input.query,
+    variables: parseVariables(input.variables),
+    operationName: input.operationName.trim() || undefined,
+  };
+}
+
+export function graphqlLoadRequest(
+  input: Omit<GraphqlSendParams, "runId">,
+  runId: string,
+): HttpSendParams {
+  return graphqlHttpParams(input, operationPayload(input), runId);
+}
+
 async function postGraphql(
   params: { url: string; headers: HeaderPair[]; timeoutMs: number },
   payload: Record<string, unknown>,
@@ -96,14 +141,11 @@ async function postGraphql(
   const outcome = await call<Outcome<HttpResponseData>>(
     runId ? "engine_http_send" : "engine_http_send_untracked",
     {
-      params: {
-        runId: runId ?? `introspect-${crypto.randomUUID()}`,
-        method: "POST",
-        url: params.url,
-        headers: withGraphqlHeaders(params.headers),
-        body: { kind: "text", text: JSON.stringify(payload) },
-        timeoutMs: params.timeoutMs,
-      },
+      params: graphqlHttpParams(
+        params,
+        payload,
+        runId ?? `introspect-${crypto.randomUUID()}`,
+      ),
     },
   );
   return unwrap(outcome);
@@ -113,20 +155,7 @@ export function sendGraphql(
   input: GraphqlSendParams,
 ): Promise<EngineResult<GraphqlResponseData>> {
   return asEngineResult(async () => {
-    if (
-      input.query.length > 50 * 1024 * 1024 ||
-      input.operationName.length > 1_000
-    ) {
-      throw new BridgeError("invalid_input", "The query is too large.");
-    }
-    if (!input.query.trim())
-      throw new BridgeError("invalid_input", "Write a query first.");
-    const variables = parseVariables(input.variables);
-    const payload = {
-      query: input.query,
-      variables,
-      operationName: input.operationName.trim() || undefined,
-    };
+    const payload = operationPayload(input);
     const response = await postGraphql(input, payload, input.runId);
     return { response, errorCount: countErrors(response) };
   });

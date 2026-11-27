@@ -60,6 +60,10 @@ import type {
   RealtimeEvent,
   RealtimeSendParams,
 } from "@/types/engine/realtime-engine.type";
+import type {
+  LoadSnapshot,
+  LoadStartParams,
+} from "@/types/engine/load-engine.type";
 import type { SavedExportFile } from "@/types/transfer/transfer.type";
 
 interface AurolisBridge {
@@ -146,6 +150,9 @@ interface AurolisBridge {
     sendRealtime(params: RealtimeSendParams): Promise<EngineResult<void>>;
     disconnectRealtime(id: string): Promise<EngineResult<void>>;
     onRealtimeEvent(callback: (event: RealtimeEvent) => void): () => void;
+    startLoad(params: LoadStartParams): Promise<EngineResult<void>>;
+    stopLoad(runId: string): Promise<EngineResult<void>>;
+    onLoadEvent(callback: (snapshot: LoadSnapshot) => void): () => void;
   };
 }
 
