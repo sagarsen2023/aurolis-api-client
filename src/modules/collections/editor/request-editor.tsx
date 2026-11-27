@@ -1,4 +1,6 @@
+import { VariableScopeContext } from "@/context/variable-scope-context";
 import { useRequestDraft } from "@/hooks/use-request-drafts";
+import { useRequestVariableScope } from "@/hooks/use-variable-scope";
 import type { SavedRequest } from "@/types/workspace/collection-ops.type";
 import GraphqlEditor from "./graphql/graphql-editor";
 import HttpEditor from "./http/http-editor";
@@ -25,12 +27,15 @@ function ProtocolEditor({
 
 function RequestEditor({ requestId }: Readonly<{ requestId: string }>) {
   const { draft, isDirty, change } = useRequestDraft(requestId);
+  const scope = useRequestVariableScope(requestId);
   if (!draft) return null;
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <RequestHeader draft={draft} isDirty={isDirty} onChange={change} />
-      <ProtocolEditor key={draft.id} draft={draft} onChange={change} />
-    </div>
+    <VariableScopeContext.Provider value={scope}>
+      <div className="flex h-full min-h-0 flex-col">
+        <RequestHeader draft={draft} isDirty={isDirty} onChange={change} />
+        <ProtocolEditor key={draft.id} draft={draft} onChange={change} />
+      </div>
+    </VariableScopeContext.Provider>
   );
 }
 

@@ -1,3 +1,4 @@
+import type { CurlImport } from "../transfer/curl.type.ts";
 import type {
   ApiRequest,
   KeyValue,
@@ -59,6 +60,7 @@ export type CollectionOp =
       parentId: string;
       name: string;
       protocol: RequestProtocol;
+      curl?: CurlImport;
     }
   | { op: "save-request"; request: SavedRequest }
   | { op: "duplicate-request"; id: string }

@@ -41,6 +41,12 @@ export const WORKSPACE_ERROR_MESSAGES: Record<WorkspaceErrorCode, string> = {
     "Your commit and the commits on GitHub change the same lines. Your commit is saved on this computer; the merge was stopped and nothing else changed. Resolve it in a terminal or editor, then sync again.",
   local_changes:
     "Some files you changed but haven't committed were also changed on the remote. Commit your changes, then sync again.",
+  uncommitted_changes:
+    "Commit or discard your changes before switching branches, so they stay on the branch you made them on.",
+  branch_exists:
+    "A branch with that name already exists. Switch to it instead.",
+  branch_not_found:
+    "That branch no longer exists. Refresh the list and try again.",
   nothing_to_commit: "There's nothing to commit.",
   secret_leak: "Nothing was committed.",
   sync_failed:

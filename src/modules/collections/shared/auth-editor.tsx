@@ -1,4 +1,7 @@
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { VariableInput } from "@/components/variable-input";
+import { useVariableScopeContext } from "@/context/variable-scope-context";
 import { AUTH_OPTIONS } from "@/constants/request";
 import type {
   RequestAuth,
@@ -7,6 +10,49 @@ import type {
 import OptionSelect from "./option-select";
 
 const FIELD = "h-9 bg-input/30 font-mono text-[13px]";
+
+function AuthField({
+  id,
+  label,
+  value,
+  placeholder,
+  onChange,
+}: Readonly<{
+  id: string;
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}>) {
+  const scope = useVariableScopeContext();
+  if (!scope) {
+    return (
+      <Input
+        id={id}
+        label={label}
+        className={FIELD}
+        placeholder={placeholder}
+        spellCheck={false}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  }
+  return (
+    <div className="w-full">
+      <Label className="mb-2" id={`${id}-label`}>
+        {label}
+      </Label>
+      <VariableInput
+        ariaLabel={label}
+        value={value}
+        placeholder={placeholder}
+        onChange={onChange}
+        className="h-9 rounded-4xl border border-input bg-input/30 px-3 text-[13px] leading-9 transition-colors focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
+      />
+    </div>
+  );
+}
 
 function emptyAuth(type: RequestAuthType): RequestAuth {
   switch (type) {
@@ -28,28 +74,22 @@ function AuthFields({
   switch (auth.type) {
     case "bearer":
       return (
-        <Input
+        <AuthField
           id="auth-token"
           label="Token"
-          className={FIELD}
           placeholder="{{token}}"
-          spellCheck={false}
           value={auth.token}
-          onChange={(event) => onChange({ ...auth, token: event.target.value })}
+          onChange={(token) => onChange({ ...auth, token })}
         />
       );
     case "basic":
       return (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input
+          <AuthField
             id="auth-username"
             label="Username"
-            className={FIELD}
-            spellCheck={false}
             value={auth.username}
-            onChange={(event) =>
-              onChange({ ...auth, username: event.target.value })
-            }
+            onChange={(username) => onChange({ ...auth, username })}
           />
           <Input
             id="auth-password"
@@ -66,25 +106,19 @@ function AuthFields({
     case "apikey":
       return (
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_160px]">
-          <Input
+          <AuthField
             id="auth-key"
             label="Key"
-            className={FIELD}
             placeholder="X-API-Key"
-            spellCheck={false}
             value={auth.key}
-            onChange={(event) => onChange({ ...auth, key: event.target.value })}
+            onChange={(key) => onChange({ ...auth, key })}
           />
-          <Input
+          <AuthField
             id="auth-value"
             label="Value"
-            className={FIELD}
             placeholder="{{apiKey}}"
-            spellCheck={false}
             value={auth.value}
-            onChange={(event) =>
-              onChange({ ...auth, value: event.target.value })
-            }
+            onChange={(value) => onChange({ ...auth, value })}
           />
           <OptionSelect
             label="Add to"

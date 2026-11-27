@@ -15,6 +15,7 @@ import {
 } from "@/context/collections-context";
 import { useCollectionActions } from "@/hooks/use-collection-actions";
 import { useEditorTabs } from "@/hooks/use-editor-tabs";
+import ImportCurlDialog from "./import-curl-dialog";
 import MoveCollectionDialog from "./move-collection-dialog";
 import { usePromise } from "@/hooks/usePromise";
 import { cn } from "@/lib/utils";
@@ -319,6 +320,14 @@ function TreeDialogs() {
       return <NewFolderDialog dialog={dialog} onClose={close} />;
     case "new-request":
       return <NewRequestDialog dialog={dialog} onClose={close} />;
+    case "import-curl":
+      return (
+        <ImportCurlDialog
+          parentId={dialog.parentId}
+          parentName={dialog.parentName}
+          onClose={close}
+        />
+      );
     case "new-example":
       return <NewExampleDialog dialog={dialog} onClose={close} />;
     case "delete":

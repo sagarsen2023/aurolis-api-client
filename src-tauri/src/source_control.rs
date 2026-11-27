@@ -47,6 +47,30 @@ pub struct CommitResult {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BranchList {
+    current: Option<String>,
+    local: Vec<String>,
+    remote: Vec<String>,
+    has_remote: bool,
+    fetched: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SwitchBranchParams {
+    workspace_id: String,
+    branch: String,
+    create: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SwitchBranchResult {
+    branch: String,
+    created: bool,
+}
+
+#[derive(Debug, Serialize)]
 pub struct PullResult {
     status: &'static str,
     commits: u64,
@@ -300,6 +324,81 @@ pub async fn pull(state: &AppState, id: &str) -> AppResult<PullResult> {
         status: if commits > 0 { "pulled" } else { "up-to-date" },
         commits,
         branch: Some(branch),
+    })
+}
+
+fn check_workspace_id(id: &str) -> AppResult<()> {
+    if id.is_empty() || id.len() > 100 {
+        return Err(invalid("Invalid workspace."));
+    }
+    Ok(())
+}
+
+pub async fn branches(state: &AppState, id: &str, fetch: bool) -> AppResult<BranchList> {
+    check_workspace_id(id)?;
+    let entry = find_entry(state, id).await?;
+    let dir = require_folder(&entry)?.to_path_buf();
+    let has_remote = state.git.remote_url(&dir).await?.is_some();
+    let fetched = has_remote && fetch && state.git.fetch_origin(&dir).await.is_ok();
+    let refs = state.git.branch_refs(&dir).await?;
+    let current = state.git.current_branch(&dir).await?;
+    Ok(BranchList {
+        current,
+        local: refs.local,
+        remote: if has_remote { refs.remote } else { Vec::new() },
+        has_remote,
+        fetched,
+    })
+}
+
+pub async fn switch_branch(
+    state: &AppState,
+    params: SwitchBranchParams,
+) -> AppResult<SwitchBranchResult> {
+    check_workspace_id(&params.workspace_id)?;
+    let branch = params.branch.trim().to_string();
+    if branch.is_empty() {
+        return Err(invalid("Enter a branch name."));
+    }
+    if branch.len() > 200 || branch.starts_with('-') {
+        return Err(invalid("That isn't a valid branch name."));
+    }
+    let entry = find_entry(state, &params.workspace_id).await?;
+    let dir = require_folder(&entry)?.to_path_buf();
+    if !state.git.is_valid_branch_name(&dir, &branch).await? {
+        return Err(invalid(format!("“{branch}” isn't a valid branch name.")));
+    }
+    if state.git.current_branch(&dir).await?.as_deref() == Some(branch.as_str()) {
+        return Ok(SwitchBranchResult {
+            branch,
+            created: false,
+        });
+    }
+    let pending = state
+        .git
+        .changed_file_count(&dir, &workspace_pathspecs(&entry.root))
+        .await?;
+    if pending > 0 {
+        return Err(Failure::code("uncommitted_changes"));
+    }
+    let refs = state.git.branch_refs(&dir).await?;
+    let local = refs.local.contains(&branch);
+    let remote = refs.remote.contains(&branch);
+    if params.create {
+        if local || remote {
+            return Err(Failure::code("branch_exists"));
+        }
+        state.git.create_branch(&dir, &branch).await?;
+    } else if local {
+        state.git.switch_branch(&dir, &branch).await?;
+    } else if remote {
+        state.git.switch_tracking_branch(&dir, &branch).await?;
+    } else {
+        return Err(Failure::code("branch_not_found"));
+    }
+    Ok(SwitchBranchResult {
+        branch,
+        created: params.create,
     })
 }
 

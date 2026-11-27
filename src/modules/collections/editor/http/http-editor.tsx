@@ -1,10 +1,12 @@
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { HTTP_METHODS, METHOD_TEXT_CLASS } from "@/constants/request";
 import { useRequestRunner } from "@/hooks/use-request-runner";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
 import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
-import { useVariableNames } from "@/hooks/use-variable-names";
 import type { TypescriptSourceId } from "@/context/collections-context";
+import { CurlParseError, looksLikeCurl, parseCurl } from "@/lib/curl";
+import { withCurl } from "@/lib/request-factory";
 import { payloadSource, responseSource } from "@/lib/typescript-sources";
 import { cn } from "@/lib/utils";
 import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
@@ -36,7 +38,6 @@ function HttpEditor({
 }>) {
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
-  const variableNames = useVariableNames(request.id);
   const showTypescript = useTypescriptSheet(request.name);
   const openTypescript = (initial: TypescriptSourceId) =>
     showTypescript(
@@ -50,12 +51,30 @@ function HttpEditor({
     );
   const running = state.status === "running";
 
+  const pasteCurl = (text: string) => {
+    if (!looksLikeCurl(text)) return false;
+    try {
+      onChange(withCurl(request, parseCurl(text)));
+      toast.success("Filled the request from the cURL command", {
+        description: "Discard changes to undo.",
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof CurlParseError
+          ? error.message
+          : "Couldn't read this cURL command.",
+      );
+    }
+    return true;
+  };
+
   const top = (
     <>
       <UrlBar
         url={request.url}
         placeholder="https://api.example.com/v1/payments"
         onUrlChange={(url) => onChange({ ...request, url })}
+        onPasteText={pasteCurl}
         onSubmit={() => (running ? cancel() : void send(request))}
         leading={
           <OptionSelect<HttpMethod>
@@ -121,7 +140,6 @@ function HttpEditor({
               <BodyEditor
                 body={request.body}
                 method={request.method}
-                variables={variableNames}
                 onShowTypescript={() => openTypescript("payload")}
                 onChange={(body) => onChange({ ...request, body })}
               />

@@ -1,5 +1,6 @@
 import type { KeyValue } from "../types/workspace/request.type.ts";
 import type { EnvironmentVariable } from "../types/workspace/environment.type.ts";
+import type { VariableInfo } from "../types/workspace/variable.type.ts";
 
 const VARIABLE_PATTERN = /\{\{\s*([^{}\s]+)\s*\}\}/g;
 
@@ -42,4 +43,28 @@ export function unresolvedNames(values: unknown, scope: VariableScope) {
   const text = JSON.stringify(values);
   const names = new Set(variableNames(text));
   return [...names].filter((name) => !scope.has(name));
+}
+
+export interface LabeledSource {
+  label: string;
+  variables: VariableSource | null | undefined;
+}
+
+export function describeScope(
+  sourcesByPrecedence: readonly LabeledSource[],
+): VariableInfo[] {
+  const seen = new Map<string, VariableInfo>();
+  for (const { label, variables } of sourcesByPrecedence) {
+    for (const variable of variables ?? []) {
+      const name = variable.key.trim();
+      if (!variable.enabled || !name || seen.has(name)) continue;
+      seen.set(name, {
+        name,
+        value: variable.value,
+        source: label,
+        secret: "secret" in variable && variable.secret,
+      });
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

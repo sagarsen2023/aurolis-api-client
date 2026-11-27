@@ -14,7 +14,7 @@ import type {
 } from "../types/workspace/request.type.ts";
 import type { Environment } from "../types/workspace/environment.type.ts";
 import type { WorkspaceData } from "../types/workspace/workspace.type.ts";
-import { createRequest } from "./request-factory.ts";
+import { createRequest, withCurl } from "./request-factory.ts";
 
 export class CollectionOpError extends Error {
   readonly code: "item_not_found";
@@ -230,11 +230,15 @@ const createRequestItem: OpHandler<"create-request"> = (
   newId,
 ) => {
   const items = requireContainer(workspace, op.parentId);
-  const request = createRequest(op.protocol, {
+  const created = createRequest(op.protocol, {
     id: newId(),
     name: op.name,
     seq: nextSeq(items),
   });
+  const request =
+    op.curl && created.protocol === "http"
+      ? withCurl(created, op.curl)
+      : created;
   items.push(request);
   return request.id;
 };

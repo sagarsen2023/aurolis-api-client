@@ -14,7 +14,10 @@ use crate::github::auth::{AuthStatus, FlowStart, SignIn};
 use crate::github::sync::{self, Installation, Repository, RepositoryName};
 use crate::outcome::{AppResult, Failure, Outcome, invalid};
 use crate::secrets::WorkspaceSecrets;
-use crate::source_control::{self, ChangesRaw, CommitParams, CommitResult, PullResult};
+use crate::source_control::{
+    self, BranchList, ChangesRaw, CommitParams, CommitResult, PullResult, SwitchBranchParams,
+    SwitchBranchResult,
+};
 use crate::state::AppState;
 use crate::transfer::{SavedExportFile, save_export_file};
 use crate::workspace::{
@@ -323,6 +326,23 @@ pub async fn source_control_commit(
 #[tauri::command]
 pub async fn source_control_pull(state: State<'_, AppState>, id: String) -> Reply<PullResult> {
     reply(source_control::pull(&state, &id).await)
+}
+
+#[tauri::command]
+pub async fn source_control_branches(
+    state: State<'_, AppState>,
+    id: String,
+    fetch: bool,
+) -> Reply<BranchList> {
+    reply(source_control::branches(&state, &id, fetch).await)
+}
+
+#[tauri::command]
+pub async fn source_control_switch_branch(
+    state: State<'_, AppState>,
+    params: SwitchBranchParams,
+) -> Reply<SwitchBranchResult> {
+    reply(source_control::switch_branch(&state, params).await)
 }
 
 #[tauri::command]

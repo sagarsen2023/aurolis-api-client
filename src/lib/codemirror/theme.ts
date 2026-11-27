@@ -101,6 +101,50 @@ const editorTheme = EditorView.theme({
     backgroundColor: "color-mix(in oklab, var(--vio) 14%, transparent)",
     borderRadius: "4px",
   },
+  ".cm-aurolis-variable-missing": {
+    color: "var(--red)",
+    backgroundColor: "color-mix(in oklab, var(--red) 12%, transparent)",
+  },
+  ".cm-tooltip-hover": { borderRadius: "10px" },
+  ".cm-aurolis-variable-tip": {
+    padding: "8px 11px",
+    maxWidth: "360px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "3px",
+  },
+  ".cm-aurolis-variable-tip-name": {
+    fontFamily: MONO_FONT,
+    fontSize: "11.5px",
+    color: "var(--vio)",
+  },
+  ".cm-aurolis-variable-tip-value": {
+    fontFamily: MONO_FONT,
+    fontSize: "12.5px",
+    color: "var(--ink)",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-all",
+    maxHeight: "160px",
+    overflow: "hidden",
+  },
+  ".cm-aurolis-variable-tip-missing": { color: "var(--red)" },
+  ".cm-aurolis-variable-tip-source": {
+    fontSize: "11.5px",
+    color: "var(--dim)",
+  },
+});
+
+export const singleLineTheme = EditorView.theme({
+  "&": { fontSize: "inherit", width: "100%" },
+  ".cm-scroller": {
+    fontFamily: "inherit",
+    lineHeight: "inherit",
+    overflowX: "auto",
+    overflowY: "hidden",
+    scrollbarWidth: "none",
+  },
+  ".cm-content": { padding: "0", minHeight: "auto" },
+  ".cm-line": { padding: "0" },
 });
 
 const highlightStyle = HighlightStyle.define([

@@ -1,4 +1,5 @@
-import { useCallback, type KeyboardEvent } from "react";
+import type { VariableInfo } from "@/types/workspace/variable.type";
+import { useCallback, type KeyboardEvent, type ReactNode } from "react";
 import { FileCode2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import type { GraphQLSchema } from "graphql";
@@ -26,6 +27,7 @@ function CodeEditor({
   variables,
   graphqlSchema,
   onShowTypescript,
+  toolbarStart,
 }: Readonly<{
   value: string;
   onChange: (value: string) => void;
@@ -35,9 +37,10 @@ function CodeEditor({
   className?: string;
   minRows?: number;
   error?: string;
-  variables?: readonly string[];
+  variables?: readonly VariableInfo[];
   graphqlSchema?: GraphQLSchema | null;
   onShowTypescript?: () => void;
+  toolbarStart?: ReactNode;
 }>) {
   const isJson = language === "json";
   const minHeight = `${minRows * ROW_HEIGHT_PX + 20}px`;
@@ -60,9 +63,10 @@ function CodeEditor({
         beautify();
       }}
     >
-      {isJson ? (
-        <div className="flex items-center justify-end gap-1">
-          {onShowTypescript ? (
+      {isJson || toolbarStart ? (
+        <div className="flex items-center gap-1">
+          <div className="mr-auto">{toolbarStart}</div>
+          {isJson && onShowTypescript ? (
             <Button
               variant="ghost"
               size="xs"
@@ -73,16 +77,18 @@ function CodeEditor({
               TypeScript
             </Button>
           ) : null}
-          <Button
-            variant="ghost"
-            size="xs"
-            title="Beautify (Shift Alt F)"
-            onClick={beautify}
-            disabled={!value.trim()}
-          >
-            <Wand2 />
-            Beautify
-          </Button>
+          {isJson ? (
+            <Button
+              variant="ghost"
+              size="xs"
+              title="Beautify (Shift Alt F)"
+              onClick={beautify}
+              disabled={!value.trim()}
+            >
+              <Wand2 />
+              Beautify
+            </Button>
+          ) : null}
         </div>
       ) : null}
       <CodeField

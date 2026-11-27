@@ -54,6 +54,25 @@ export interface CommitResult {
   branch: string | null;
 }
 
+export interface BranchList {
+  current: string | null;
+  local: string[];
+  remote: string[];
+  hasRemote: boolean;
+  fetched: boolean;
+}
+
+export interface SwitchBranchParams {
+  workspaceId: string;
+  branch: string;
+  create: boolean;
+}
+
+export interface SwitchBranchResult {
+  branch: string;
+  created: boolean;
+}
+
 export interface PullResult {
   status: "local" | "up-to-date" | "pulled";
   commits: number;

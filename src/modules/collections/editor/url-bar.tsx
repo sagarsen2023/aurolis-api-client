@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Input } from "@/components/ui/input";
+import { VariableInput } from "@/components/variable-input";
 import { cn } from "@/lib/utils";
 
 function UrlBar({
@@ -9,6 +9,7 @@ function UrlBar({
   placeholder,
   action,
   onSubmit,
+  onPasteText,
 }: Readonly<{
   leading?: ReactNode;
   url: string;
@@ -16,6 +17,7 @@ function UrlBar({
   placeholder: string;
   action: ReactNode;
   onSubmit: () => void;
+  onPasteText?: (text: string) => boolean;
 }>) {
   return (
     <form
@@ -32,16 +34,15 @@ function UrlBar({
         )}
       >
         {leading}
-        <div className="min-w-0 flex-1">
-          <Input
-            aria-label="URL"
-            value={url}
-            placeholder={placeholder}
-            spellCheck={false}
-            onChange={(event) => onUrlChange(event.target.value)}
-            className="h-8 border-0 bg-transparent px-3 font-mono text-[13px] shadow-none focus-visible:ring-0"
-          />
-        </div>
+        <VariableInput
+          ariaLabel="URL"
+          value={url}
+          placeholder={placeholder}
+          onChange={onUrlChange}
+          onSubmit={onSubmit}
+          onPasteText={onPasteText}
+          className="h-8 flex-1 px-3 text-[13px] leading-8"
+        />
       </div>
       {action}
     </form>

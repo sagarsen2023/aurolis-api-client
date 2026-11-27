@@ -14,6 +14,7 @@ import {
 } from "@/lib/collection-ops";
 import type { FolderSettings } from "@/types/workspace/collection-ops.type";
 import AuthEditor from "../shared/auth-editor";
+import CollectionVariableScope from "../shared/collection-variable-scope";
 import EditorSectionTabs from "../editor/editor-section-tabs";
 import ItemFormHeader from "./item-form-header";
 
@@ -93,10 +94,12 @@ function FolderForm({ location }: Readonly<{ location: FolderLocation }>) {
             value: "auth",
             label: "Auth",
             content: (
-              <AuthEditor
-                auth={form.auth}
-                onChange={(auth) => setForm({ ...form, auth })}
-              />
+              <CollectionVariableScope collectionId={location.collection.id}>
+                <AuthEditor
+                  auth={form.auth}
+                  onChange={(auth) => setForm({ ...form, auth })}
+                />
+              </CollectionVariableScope>
             ),
           },
         ]}

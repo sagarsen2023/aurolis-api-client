@@ -11,6 +11,7 @@ import type { Collection } from "@/types/workspace/collection.type";
 import type { CollectionSettings } from "@/types/workspace/collection-ops.type";
 import { MarkdownField } from "@/components/markdown-field";
 import AuthEditor from "../shared/auth-editor";
+import CollectionVariableScope from "../shared/collection-variable-scope";
 import KeyValueEditor from "../shared/key-value-editor";
 import EditorSectionTabs from "../editor/editor-section-tabs";
 import OpenApiExportButton from "@/modules/import-export/openapi-export-button";
@@ -96,11 +97,13 @@ function CollectionForm({ collection }: Readonly<{ collection: Collection }>) {
             value: "auth",
             label: "Auth",
             content: (
-              <AuthEditor
-                canInherit={false}
-                auth={form.auth}
-                onChange={(auth) => setForm({ ...form, auth })}
-              />
+              <CollectionVariableScope collectionId={collection.id}>
+                <AuthEditor
+                  canInherit={false}
+                  auth={form.auth}
+                  onChange={(auth) => setForm({ ...form, auth })}
+                />
+              </CollectionVariableScope>
             ),
           },
           {

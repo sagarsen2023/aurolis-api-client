@@ -13,10 +13,9 @@ import {
   type CodeLanguage,
 } from "@/lib/codemirror/languages";
 import { aurolisTheme } from "@/lib/codemirror/theme";
-import {
-  variableCompletions,
-  variableHighlight,
-} from "@/lib/codemirror/variables";
+import { variableSupport } from "@/lib/codemirror/variables";
+import { useVariableScopeContext } from "@/context/variable-scope-context";
+import type { VariableInfo } from "@/types/workspace/variable.type";
 
 export interface CodeEditorProps {
   value: string;
@@ -25,7 +24,7 @@ export interface CodeEditorProps {
   language?: CodeLanguage;
   placeholder?: string;
   readOnly?: boolean;
-  variables?: readonly string[];
+  variables?: readonly VariableInfo[];
   graphqlSchema?: GraphQLSchema | null;
   minHeight?: string;
   height?: string;
@@ -33,7 +32,7 @@ export interface CodeEditorProps {
   className?: string;
 }
 
-const EMPTY: readonly string[] = [];
+const EMPTY: readonly VariableInfo[] = [];
 
 const SHARED_SETUP = {
   lineNumbers: true,
@@ -70,13 +69,15 @@ function CodeEditor({
   language = "text",
   placeholder,
   readOnly = false,
-  variables = EMPTY,
+  variables: variablesProp,
   graphqlSchema = null,
   minHeight = "140px",
   height,
   invalid = false,
   className,
 }: Readonly<CodeEditorProps>) {
+  const scope = useVariableScopeContext();
+  const variables = variablesProp ?? scope ?? EMPTY;
   const latestOnChange = useRef(onChange);
   useLayoutEffect(() => {
     latestOnChange.current = onChange;
@@ -88,8 +89,7 @@ function CodeEditor({
   const extensions = useMemo(
     () => [
       languageExtension(language, { readOnly, graphqlSchema }),
-      variableHighlight,
-      variableCompletions(variables),
+      readOnly ? [] : variableSupport(variables),
       keepModEnterForSend,
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({ "aria-label": label }),

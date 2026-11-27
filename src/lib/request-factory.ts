@@ -1,5 +1,7 @@
+import type { CurlImport } from "../types/transfer/curl.type.ts";
 import type {
   ApiRequest,
+  HttpRequest,
   RequestProtocol,
 } from "../types/workspace/request.type.ts";
 
@@ -49,4 +51,21 @@ export function createRequest(
 
 export function supportsExamples(protocol: RequestProtocol) {
   return protocol === "http" || protocol === "graphql";
+}
+
+export function withCurl<
+  T extends Pick<
+    HttpRequest,
+    "method" | "url" | "params" | "headers" | "body" | "auth"
+  >,
+>(request: T, curl: CurlImport): T {
+  return {
+    ...request,
+    method: curl.method,
+    url: curl.url,
+    params: curl.params,
+    headers: curl.headers,
+    body: curl.body,
+    auth: curl.auth ?? request.auth,
+  };
 }

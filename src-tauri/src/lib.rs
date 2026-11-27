@@ -156,6 +156,8 @@ pub fn run() {
             commands::source_control_changes,
             commands::source_control_commit,
             commands::source_control_pull,
+            commands::source_control_branches,
+            commands::source_control_switch_branch,
             commands::transfer_save_file,
             commands::engine_http_send,
             commands::engine_http_send_untracked,

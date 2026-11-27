@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   Settings2,
+  Terminal,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -136,6 +137,16 @@ function containerActions(
       onSelect: () =>
         setDialog({
           kind: "new-request",
+          parentId: node.id,
+          parentName: node.name,
+        }),
+    },
+    {
+      label: "Import cURL",
+      icon: Terminal,
+      onSelect: () =>
+        setDialog({
+          kind: "import-curl",
           parentId: node.id,
           parentName: node.name,
         }),
@@ -375,7 +386,7 @@ function CollectionNode({
   const activeTabId = useAtomValue(activeTabIdAtom);
   const setDialog = useSetAtom(treeDialogAtom);
   const { openTab } = useEditorTabs();
-  const expanded = tree.isExpanded(collection.id, true);
+  const expanded = tree.isExpanded(collection.id, false);
   const openSettings = () => openTab({ kind: "collection", id: collection.id });
 
   return (
@@ -386,7 +397,7 @@ function CollectionNode({
         leading={<Layers className="size-3.5 shrink-0 text-vio" aria-hidden />}
         active={activeTabId === collection.id}
         expanded={expanded}
-        onToggle={() => tree.toggle(collection.id, true)}
+        onToggle={() => tree.toggle(collection.id, false)}
         onOpen={openSettings}
         onToggleBranch={() =>
           tree.setBranch(branchIds(collection.id, collection.items), !expanded)

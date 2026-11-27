@@ -5,10 +5,12 @@ import {
   environmentVariableSchema,
   exampleFileSchema,
   folderFileSchema,
+  httpMethodSchema,
   idSchema,
   keyValueSchema,
   nameSchema,
   requestAuthSchema,
+  requestBodySchema,
   requestFileSchema,
   requestProtocolSchema,
 } from "./workspace.schema.ts";
@@ -18,6 +20,15 @@ const MAX_VARIABLES = 1_000;
 const MAX_IMPORT_DEPTH = 32;
 const MAX_IMPORT_ITEMS = 20_000;
 const MAX_EXAMPLES = 1_000;
+
+const curlImportSchema = z.object({
+  method: httpMethodSchema,
+  url: z.string().max(100_000),
+  params: z.array(keyValueSchema).max(MAX_VARIABLES),
+  headers: z.array(keyValueSchema).max(MAX_VARIABLES),
+  body: requestBodySchema,
+  auth: requestAuthSchema.nullable(),
+});
 
 const exampleInputSchema = exampleFileSchema.omit({ id: true, seq: true });
 
@@ -127,6 +138,7 @@ const collectionOpSchema = z.discriminatedUnion("op", [
     parentId: idSchema,
     name: nameSchema,
     protocol: requestProtocolSchema,
+    curl: curlImportSchema.optional(),
   }),
   z.object({ op: z.literal("save-request"), request: requestFileSchema }),
   z.object({ op: z.literal("duplicate-request"), id: idSchema }),

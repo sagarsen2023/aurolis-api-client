@@ -1,4 +1,7 @@
-import type { CommitParams } from "@/types/workspace/source-control.type";
+import type {
+  CommitParams,
+  SwitchBranchParams,
+} from "@/types/workspace/source-control.type";
 import { desktopBridge } from "./config/desktop-bridge";
 import { unwrapWorkspace } from "./workspace.service";
 
@@ -13,4 +16,8 @@ export const sourceControlService = {
     unwrapWorkspace(bridge().changes(workspaceId)),
   commit: (params: CommitParams) => unwrapWorkspace(bridge().commit(params)),
   pull: (workspaceId: string) => unwrapWorkspace(bridge().pull(workspaceId)),
+  branches: (workspaceId: string, fetch: boolean) =>
+    unwrapWorkspace(bridge().branches(workspaceId, fetch)),
+  switchBranch: (params: SwitchBranchParams) =>
+    unwrapWorkspace(bridge().switchBranch(params)),
 };

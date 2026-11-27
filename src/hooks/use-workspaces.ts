@@ -15,14 +15,25 @@ import {
   workspaceService,
 } from "@/services/workspace.service";
 
-async function pullLatest(id: string, name: string) {
+export async function pullLatest(
+  id: string,
+  name: string,
+  options: { announceUpToDate?: boolean } = {},
+) {
   try {
     const result = await sourceControlService.pull(id);
     if (result.status === "pulled") {
       toast.success(`Pulled the latest changes into ${name}`, {
         description: `${result.commits} new ${result.commits === 1 ? "commit" : "commits"} from ${result.branch}.`,
       });
+    } else if (options.announceUpToDate && result.status === "up-to-date") {
+      toast.success(`${name} is up to date`, {
+        description: result.branch
+          ? `No new commits on ${result.branch}.`
+          : undefined,
+      });
     }
+    return result;
   } catch (error) {
     const code = error instanceof WorkspaceFailure ? error.code : "unknown";
     toast.warning(`Couldn't pull the latest changes into ${name}`, {
@@ -30,6 +41,7 @@ async function pullLatest(id: string, name: string) {
         PULL_FAILURE_MESSAGES[code] ??
         (error instanceof Error ? error.message : undefined),
     });
+    return null;
   }
 }
 

@@ -387,6 +387,29 @@ fn parse_status(stdout: &str) -> Vec<StatusEntry> {
     entries
 }
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct BranchRefs {
+    pub local: Vec<String>,
+    pub remote: Vec<String>,
+}
+
+pub fn parse_branch_refs(output: &str) -> BranchRefs {
+    let mut refs = BranchRefs::default();
+    for line in output.lines().map(str::trim) {
+        if let Some(name) = line.strip_prefix("refs/heads/") {
+            refs.local.push(name.to_string());
+        } else if let Some(name) = line.strip_prefix("refs/remotes/origin/")
+            && name != "HEAD"
+        {
+            refs.remote.push(name.to_string());
+        }
+    }
+    refs.local.sort();
+    refs.remote.sort();
+    refs.remote.retain(|name| !refs.local.contains(name));
+    refs
+}
+
 fn strings(args: &[&str]) -> Vec<String> {
     args.iter().map(|arg| arg.to_string()).collect()
 }
@@ -821,6 +844,59 @@ impl Git {
         Ok(())
     }
 
+    pub async fn branch_refs(&self, dir: &Path) -> AppResult<BranchRefs> {
+        let result = self
+            .run_args(
+                dir,
+                &[
+                    "for-each-ref",
+                    "--format=%(refname)",
+                    "refs/heads",
+                    "refs/remotes/origin",
+                ],
+                RunOptions::lenient(),
+            )
+            .await?;
+        if result.exit_code != 0 {
+            return Ok(BranchRefs::default());
+        }
+        Ok(parse_branch_refs(&result.stdout))
+    }
+
+    pub async fn is_valid_branch_name(&self, dir: &Path, name: &str) -> AppResult<bool> {
+        let result = self
+            .run_args(
+                dir,
+                &["check-ref-format", "--branch", name],
+                RunOptions::lenient(),
+            )
+            .await?;
+        Ok(result.exit_code == 0)
+    }
+
+    pub async fn switch_branch(&self, dir: &Path, branch: &str) -> AppResult<()> {
+        self.run_args(dir, &["switch", "--no-guess", branch], RunOptions::default())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn switch_tracking_branch(&self, dir: &Path, branch: &str) -> AppResult<()> {
+        let upstream = format!("origin/{branch}");
+        self.run_args(
+            dir,
+            &["switch", "--create", branch, "--track", &upstream],
+            RunOptions::default(),
+        )
+        .await?;
+        Ok(())
+    }
+
+    pub async fn create_branch(&self, dir: &Path, branch: &str) -> AppResult<()> {
+        self.run_args(dir, &["switch", "--create", branch], RunOptions::default())
+            .await?;
+        Ok(())
+    }
+
     pub async fn push_new_branch(&self, dir: &Path, branch: &str) -> AppResult<()> {
         let reference = format!("refs/heads/{branch}");
         self.run_args(
@@ -836,6 +912,20 @@ impl Git {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn branch_refs_split_local_and_remote_only() {
+        let refs = parse_branch_refs(
+            "refs/heads/main
+refs/heads/feat/a
+refs/remotes/origin/HEAD
+refs/remotes/origin/main
+refs/remotes/origin/release
+",
+        );
+        assert_eq!(refs.local, vec!["feat/a", "main"]);
+        assert_eq!(refs.remote, vec!["release"]);
+    }
 
     #[test]
     fn clone_urls() {

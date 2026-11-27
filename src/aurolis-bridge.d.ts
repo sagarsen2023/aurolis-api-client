@@ -40,10 +40,13 @@ import type {
 } from "@/types/workspace/editor-state.type";
 import type { EngineResult } from "@/types/engine/engine.type";
 import type {
+  BranchList,
   CommitParams,
   CommitResult,
   PullResult,
   SourceControlChanges,
+  SwitchBranchParams,
+  SwitchBranchResult,
 } from "@/types/workspace/source-control.type";
 import type {
   HttpResponseData,
@@ -130,6 +133,10 @@ interface AurolisBridge {
     changes(id: string): Promise<WorkspaceResult<SourceControlChanges>>;
     commit(params: CommitParams): Promise<WorkspaceResult<CommitResult>>;
     pull(id: string): Promise<WorkspaceResult<PullResult>>;
+    branches(id: string, fetch: boolean): Promise<WorkspaceResult<BranchList>>;
+    switchBranch(
+      params: SwitchBranchParams,
+    ): Promise<WorkspaceResult<SwitchBranchResult>>;
   };
   readonly assistants: {
     installed(id: string): Promise<WorkspaceResult<string[]>>;

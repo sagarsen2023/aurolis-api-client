@@ -1,9 +1,16 @@
 import { useAtomValue } from "jotai";
 import { ChevronRight, RotateCcw, Save } from "lucide-react";
+import { SiCurl } from "react-icons/si";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { activeWorkspaceAtom } from "@/context/workspace-context";
+import { canCopyAsCurl, useCopyAsCurl } from "@/hooks/use-copy-as-curl";
 import { useSaveRequests } from "@/hooks/use-request-drafts";
 import { usePromise } from "@/hooks/usePromise";
 import { locateRequest } from "@/lib/collection-ops";
@@ -23,6 +30,7 @@ function RequestHeader({
 }>) {
   const workspace = useAtomValue(activeWorkspaceAtom);
   const { saveRequest, discard } = useSaveRequests();
+  const copyAsCurl = useCopyAsCurl(draft);
   const location = locateRequest(workspace?.data ?? null, draft.id);
   const path = location
     ? [
@@ -58,7 +66,7 @@ function RequestHeader({
           ))}
         </nav>
         <div className="flex min-w-0 items-center gap-2">
-          <RequestBadge request={draft} className="w-auto" />
+          <RequestBadge request={draft} className="w-auto text-[17px]" />
           <Input
             aria-label="Request name"
             value={draft.name}
@@ -71,6 +79,25 @@ function RequestHeader({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {canCopyAsCurl(draft) ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Copy as cURL"
+                  onClick={() => void copyAsCurl()}
+                />
+              }
+            >
+              <SiCurl />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Copy as cURL, with variables replaced by their values
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
         {isDirty ? (
           <Button variant="ghost" size="sm" onClick={() => discard(draft.id)}>
             <RotateCcw />

@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { useRealtimeSession } from "@/hooks/use-realtime";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
 import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
-import { useVariableNames } from "@/hooks/use-variable-names";
 import { payloadSource } from "@/lib/typescript-sources";
 import { handleError } from "@/hooks/usePromise";
 import { cn } from "@/lib/utils";
@@ -60,11 +59,9 @@ function ComposerPanel({
   connected,
   onSend,
   onSave,
-  variables,
   onShowTypescript,
 }: Readonly<{
   request: RealtimeDraft;
-  variables: readonly string[];
   onShowTypescript: () => void;
   composer: Composer;
   setComposer: (composer: Composer) => void;
@@ -107,7 +104,6 @@ function ComposerPanel({
         label="Message"
         language={composer.format === "json" ? "json" : "text"}
         minRows={5}
-        variables={variables}
         onShowTypescript={
           composer.format === "json" ? onShowTypescript : undefined
         }
@@ -243,7 +239,6 @@ function RealtimeEditor({
     request.id,
   );
   const unresolved = useUnresolvedVariables(request);
-  const variableNames = useVariableNames(request.id);
   const showTypescript = useTypescriptSheet(request.name);
   const [composer, setComposer] = useState<Composer>({
     event: "",
@@ -284,7 +279,6 @@ function RealtimeEditor({
           connected={connected}
           onSend={sendMessage}
           onSave={saveMessage}
-          variables={variableNames}
           onShowTypescript={() =>
             showTypescript(
               [

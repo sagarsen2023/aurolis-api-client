@@ -1,6 +1,5 @@
 import type { IconType } from "react-icons";
 import {
-  SiCurl,
   SiHoppscotch,
   SiInsomnia,
   SiOpenapiinitiative,
@@ -91,5 +90,4 @@ export const UPCOMING_FORMATS: ReadonlyArray<{
 }> = [
   { label: "Insomnia", icon: SiInsomnia },
   { label: "OpenAPI import", icon: SiOpenapiinitiative },
-  { label: "cURL", icon: SiCurl },
 ];

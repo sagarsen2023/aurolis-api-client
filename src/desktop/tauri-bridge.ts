@@ -163,6 +163,9 @@ export function createTauriBridge(): AurolisBridge {
       changes: (id) => asWorkspaceResult(() => listChanges(id)),
       commit: (params) => call("source_control_commit", { params }),
       pull: (id) => call("source_control_pull", { id }),
+      branches: (id, fetch) => call("source_control_branches", { id, fetch }),
+      switchBranch: (params) =>
+        call("source_control_switch_branch", { params }),
     },
     assistants: {
       installed: (id) => call("assistants_installed", { id }),

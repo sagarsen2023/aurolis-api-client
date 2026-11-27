@@ -5,7 +5,6 @@ import { useRequestRunner } from "@/hooks/use-request-runner";
 import { useGraphqlSchema } from "@/hooks/use-graphql-schema";
 import { useUnresolvedVariables } from "@/hooks/use-unresolved-variables";
 import { useTypescriptSheet } from "@/hooks/use-typescript-sheet";
-import { useVariableNames } from "@/hooks/use-variable-names";
 import type { TypescriptSourceId } from "@/context/collections-context";
 import { payloadSource, responseSource } from "@/lib/typescript-sources";
 import type { SavedRequestOf } from "@/types/workspace/collection-ops.type";
@@ -76,7 +75,6 @@ function GraphqlEditor({
 }>) {
   const { state, send, cancel } = useRequestRunner(request.id);
   const unresolved = useUnresolvedVariables(request);
-  const variableNames = useVariableNames(request.id);
   const graphqlSchema = useGraphqlSchema(request);
   const showTypescript = useTypescriptSheet(request.name);
   const openTypescript = (initial: TypescriptSourceId) =>
@@ -169,7 +167,6 @@ function GraphqlEditor({
               <CodeEditor
                 label="GraphQL variables"
                 language="json"
-                variables={variableNames}
                 onShowTypescript={() => openTypescript("payload")}
                 value={operation.variables}
                 placeholder={'{\n  "id": "{{paymentId}}"\n}'}

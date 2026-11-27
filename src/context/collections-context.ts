@@ -37,6 +37,7 @@ export type TreeDialog =
       parentName: string;
       protocol?: RequestProtocol;
     }
+  | { kind: "import-curl"; parentId: string; parentName: string }
   | { kind: "new-example"; requestId: string; requestName: string }
   | { kind: "move-collection"; id: string; name: string }
   | {

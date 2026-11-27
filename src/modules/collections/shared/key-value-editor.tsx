@@ -2,6 +2,8 @@ import { Lock, LockOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { VariableInput } from "@/components/variable-input";
+import { useVariableScopeContext } from "@/context/variable-scope-context";
 import { cn } from "@/lib/utils";
 import type { KeyValue } from "@/types/workspace/request.type";
 
@@ -12,6 +14,54 @@ const CELL =
 
 const BOXED_CELL =
   "h-9 w-full min-w-0 rounded-[10px] border border-line-strong bg-surface-2 px-3 font-mono text-[12.5px] text-foreground outline-none placeholder:text-dim focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30";
+
+const asContainer = (cell: string) =>
+  cn(cell.replaceAll("focus-visible:", "focus-within:"), "leading-8");
+
+function Cell({
+  ariaLabel,
+  className,
+  placeholder,
+  value,
+  secret,
+  variables,
+  onChange,
+}: Readonly<{
+  ariaLabel: string;
+  className: string;
+  placeholder: string;
+  value: string;
+  secret?: boolean;
+  variables: boolean;
+  onChange: (value: string) => void;
+}>) {
+  if (variables && !secret) {
+    return (
+      <div role="cell" className="min-w-0">
+        <VariableInput
+          ariaLabel={ariaLabel}
+          className={asContainer(className)}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+        />
+      </div>
+    );
+  }
+  return (
+    <Input
+      role="cell"
+      aria-label={ariaLabel}
+      className={className}
+      placeholder={placeholder}
+      value={value}
+      type={secret ? "password" : "text"}
+      autoComplete="off"
+      spellCheck={false}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
 
 const EMPTY_ROW: Row = { key: "", value: "", enabled: true };
 
@@ -41,6 +91,7 @@ function KeyValueEditor({
   secrets?: boolean;
   boxed?: boolean;
 }>) {
+  const variables = useVariableScopeContext() !== null;
   const visible = withTrailingRow(rows);
   const columns = secrets
     ? "grid-cols-[28px_1fr_1.4fr_32px_32px]"
@@ -111,29 +162,22 @@ function KeyValueEditor({
                 />
               )}
             </span>
-            <Input
-              role="cell"
-              aria-label={`${keyPlaceholder} ${index + 1}`}
+            <Cell
+              ariaLabel={`${keyPlaceholder} ${index + 1}`}
               className={cell}
               placeholder={keyPlaceholder}
               value={row.key}
-              spellCheck={false}
-              onChange={(event) =>
-                updateRow(index, { key: event.target.value })
-              }
+              variables={variables}
+              onChange={(key) => updateRow(index, { key })}
             />
-            <Input
-              role="cell"
-              aria-label={`${valuePlaceholder} ${index + 1}`}
+            <Cell
+              ariaLabel={`${valuePlaceholder} ${index + 1}`}
               className={cell}
               placeholder={valuePlaceholder}
               value={row.value}
-              type={row.secret ? "password" : "text"}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(event) =>
-                updateRow(index, { value: event.target.value })
-              }
+              secret={row.secret}
+              variables={variables}
+              onChange={(value) => updateRow(index, { value })}
             />
             {secrets ? (
               <span role="cell" className="grid place-items-center">

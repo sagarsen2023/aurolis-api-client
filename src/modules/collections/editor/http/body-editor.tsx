@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BODY_MODE_OPTIONS } from "@/constants/request";
 import type {
   KeyValue,
@@ -39,13 +40,13 @@ const PLACEHOLDERS: Record<string, string> = {
 function BodyContent({
   body,
   onChange,
-  variables,
   onShowTypescript,
+  modeSelect,
 }: Readonly<{
   body: RequestBody;
   onChange: (body: RequestBody) => void;
-  variables: readonly string[];
   onShowTypescript: () => void;
+  modeSelect: ReactNode;
 }>) {
   switch (body.mode) {
     case "json":
@@ -55,8 +56,8 @@ function BodyContent({
         <CodeEditor
           label="Request body"
           language={body.mode === "text" ? "text" : body.mode}
-          variables={variables}
           onShowTypescript={onShowTypescript}
+          toolbarStart={modeSelect}
           value={body.raw}
           placeholder={PLACEHOLDERS[body.mode]}
           onChange={(raw) => onChange({ ...body, raw })}
@@ -65,16 +66,22 @@ function BodyContent({
     case "urlencoded":
     case "form-data":
       return (
-        <KeyValueEditor
-          label="Body fields"
-          rows={body.fields}
-          keyPlaceholder="Field"
-          onChange={(fields) => onChange({ ...body, fields })}
-        />
+        <div className="flex flex-col gap-3">
+          <div className="flex">{modeSelect}</div>
+          <KeyValueEditor
+            label="Body fields"
+            rows={body.fields}
+            keyPlaceholder="Field"
+            onChange={(fields) => onChange({ ...body, fields })}
+          />
+        </div>
       );
     default:
       return (
-        <p className="text-[13px] text-mute">This request sends no body.</p>
+        <div className="flex flex-col gap-3">
+          <div className="flex">{modeSelect}</div>
+          <p className="text-[13px] text-mute">This request sends no body.</p>
+        </div>
       );
   }
 }
@@ -83,26 +90,17 @@ function BodyEditor({
   body,
   method,
   onChange,
-  variables,
   onShowTypescript,
 }: Readonly<{
   body: RequestBody;
   method: string;
   onChange: (body: RequestBody) => void;
-  variables: readonly string[];
   onShowTypescript: () => void;
 }>) {
   const ignored =
     (method === "GET" || method === "HEAD") && body.mode !== "none";
   return (
     <div className="flex flex-col gap-3">
-      <OptionSelect
-        ariaLabel="Body type"
-        className="w-44"
-        value={body.mode}
-        options={BODY_MODE_OPTIONS}
-        onChange={(mode) => onChange(switchMode(body, mode))}
-      />
       {ignored ? (
         <p className="text-[12.5px] text-warning">
           {method} requests can't carry a body, so this body isn't sent.
@@ -111,8 +109,16 @@ function BodyEditor({
       <BodyContent
         body={body}
         onChange={onChange}
-        variables={variables}
         onShowTypescript={onShowTypescript}
+        modeSelect={
+          <OptionSelect
+            ariaLabel="Body type"
+            className="w-44"
+            value={body.mode}
+            options={BODY_MODE_OPTIONS}
+            onChange={(mode) => onChange(switchMode(body, mode))}
+          />
+        }
       />
     </div>
   );
