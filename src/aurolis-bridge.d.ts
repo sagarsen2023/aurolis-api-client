@@ -131,6 +131,13 @@ interface AurolisBridge {
     commit(params: CommitParams): Promise<WorkspaceResult<CommitResult>>;
     pull(id: string): Promise<WorkspaceResult<PullResult>>;
   };
+  readonly assistants: {
+    installed(id: string): Promise<WorkspaceResult<string[]>>;
+    install(params: {
+      id: string;
+      files: Record<string, string>;
+    }): Promise<WorkspaceResult<string[]>>;
+  };
   readonly transfer: {
     saveFile(params: {
       name: string;

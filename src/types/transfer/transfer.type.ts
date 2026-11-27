@@ -4,6 +4,8 @@ import type { Environment } from "../workspace/environment.type.ts";
 
 export type TransferFormat = "postman" | "hoppscotch";
 
+export type ExportFormat = TransferFormat | "openapi";
+
 export type ImportNote =
   | "scripts"
   | "file-fields"

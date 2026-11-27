@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::assistants::ASSISTANT_PATHSPECS;
 use crate::outcome::{AppResult, Failure, invalid};
 use crate::paths::{is_inside, to_posix, write_atomic};
 
@@ -91,6 +92,7 @@ pub fn workspace_pathspecs(root: &str) -> Vec<String> {
                 format!("{root}/{file}")
             }
         })
+        .chain(ASSISTANT_PATHSPECS.iter().map(|spec| spec.to_string()))
         .collect()
 }
 

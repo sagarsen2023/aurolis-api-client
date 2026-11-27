@@ -5,8 +5,10 @@ import {
   SiInsomnia,
   SiOpenapiinitiative,
   SiPostman,
+  SiSwagger,
 } from "react-icons/si";
 import type {
+  ExportFormat,
   ImportNote,
   TransferFormat,
 } from "@/types/transfer/transfer.type";
@@ -26,6 +28,16 @@ export const TRANSFER_FORMATS: ReadonlyArray<{
   },
 ];
 
+export const EXPORT_FORMATS: ReadonlyArray<{
+  value: ExportFormat;
+  label: string;
+  icon: IconType;
+  iconColor: string;
+}> = [
+  ...TRANSFER_FORMATS,
+  { value: "openapi", label: "Swagger", icon: SiSwagger, iconColor: "#85EA2D" },
+];
+
 export const IMPORT_HINTS: Record<
   TransferFormat,
   { accept: string; files: string }
@@ -42,11 +54,13 @@ export const IMPORT_HINTS: Record<
   },
 };
 
-export const EXPORT_HINTS: Record<TransferFormat, string> = {
+export const EXPORT_HINTS: Record<ExportFormat, string> = {
   postman:
     "A Collection v2.1 file per collection and an environment file per environment, zipped together when there's more than one.",
   hoppscotch:
     "A zip laid out like Hoppscotch's workspace export: manifest.json with the workspace's collections.json and environments.json.",
+  openapi:
+    "One OpenAPI 3.0 file (Swagger docs) with every selected collection: paths, parameters, request bodies, auth and your saved examples as responses. Server URLs come from the active environment.",
 };
 
 export const IMPORT_NOTE_MESSAGES: Record<
@@ -76,6 +90,6 @@ export const UPCOMING_FORMATS: ReadonlyArray<{
   icon: IconType;
 }> = [
   { label: "Insomnia", icon: SiInsomnia },
-  { label: "OpenAPI", icon: SiOpenapiinitiative },
+  { label: "OpenAPI import", icon: SiOpenapiinitiative },
   { label: "cURL", icon: SiCurl },
 ];
