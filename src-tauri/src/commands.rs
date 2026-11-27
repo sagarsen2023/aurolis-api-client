@@ -1,5 +1,7 @@
 use tauri::{AppHandle, State};
 
+use crate::assistants;
+
 use crate::engines::http::{HttpResponseData, HttpSendParams};
 use crate::engines::load::LoadStartParams;
 use crate::engines::realtime::{ConnectParams, SendParams};
@@ -401,4 +403,18 @@ pub async fn engine_load_start(
 #[tauri::command]
 pub async fn engine_load_stop(state: State<'_, AppState>, run_id: String) -> Reply<()> {
     reply(state.load.stop(&run_id))
+}
+
+#[tauri::command]
+pub async fn assistants_installed(state: State<'_, AppState>, id: String) -> Reply<Vec<String>> {
+    reply(assistants::installed(&state, &id).await)
+}
+
+#[tauri::command]
+pub async fn assistants_install(
+    state: State<'_, AppState>,
+    id: String,
+    files: std::collections::BTreeMap<String, String>,
+) -> Reply<Vec<String>> {
+    reply(assistants::install(&state, &id, files).await)
 }

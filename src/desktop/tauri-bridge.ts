@@ -164,6 +164,11 @@ export function createTauriBridge(): AurolisBridge {
       commit: (params) => call("source_control_commit", { params }),
       pull: (id) => call("source_control_pull", { id }),
     },
+    assistants: {
+      installed: (id) => call("assistants_installed", { id }),
+      install: (params) =>
+        call("assistants_install", { id: params.id, files: params.files }),
+    },
     transfer: {
       saveFile: (params) => saveFile(params.name, params.bytes),
     },
