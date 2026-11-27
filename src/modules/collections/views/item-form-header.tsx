@@ -14,6 +14,7 @@ function ItemFormHeader({
   onSave,
   onDiscard,
   onDelete,
+  actions,
 }: Readonly<{
   icon: ReactNode;
   eyebrow: string;
@@ -25,6 +26,7 @@ function ItemFormHeader({
   onSave: () => void;
   onDiscard: () => void;
   onDelete: () => void;
+  actions?: ReactNode;
 }>) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-3">
@@ -42,6 +44,7 @@ function ItemFormHeader({
         />
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {actions}
         {isDirty ? (
           <Button variant="ghost" size="sm" onClick={onDiscard}>
             <RotateCcw />

@@ -7,13 +7,23 @@ import type {
   GithubDeviceFlowStart,
   GithubSignInResult,
 } from "@/types/auth/auth-response.type";
+import type { EngineResult } from "@/types/engine/engine.type";
+import type {
+  LoadSnapshot,
+  LoadStartParams,
+} from "@/types/engine/load-engine.type";
 import type { RealtimeEvent } from "@/types/engine/realtime-engine.type";
 import type { SavedExportFile } from "@/types/transfer/transfer.type";
 import type { WorkspaceResult } from "@/types/workspace/workspace-store.type";
 import * as collections from "./collection-store";
-import { introspectGraphql, sendGraphql } from "./graphql";
+import { graphqlLoadRequest, introspectGraphql, sendGraphql } from "./graphql";
 import { call, plain, run } from "./invoke";
-import { asWorkspaceResult } from "./results";
+import {
+  asEngineResult,
+  asWorkspaceResult,
+  type Outcome,
+  unwrap,
+} from "./results";
 import { listChanges } from "./source-control";
 import {
   createWorkspace,
@@ -23,6 +33,7 @@ import {
 
 const WORKSPACE_CHANGED_EVENT = "aurolis:workspace-changed";
 const REALTIME_EVENT = "aurolis:realtime-event";
+const LOAD_EVENT = "aurolis:load-event";
 
 function subscribe<T>(event: string, callback: (payload: T) => void) {
   let unlisten: UnlistenFn | null = null;
@@ -44,6 +55,28 @@ function detectPlatform() {
   if (/Macintosh|Mac OS X/i.test(agent)) return "darwin";
   if (/Windows/i.test(agent)) return "win32";
   return "linux";
+}
+
+function startLoad(params: LoadStartParams): Promise<EngineResult<void>> {
+  return asEngineResult(async () => {
+    const { target, ...rest } = params;
+    const request =
+      target.kind === "graphql"
+        ? graphqlLoadRequest(target, params.runId)
+        : {
+            runId: params.runId,
+            method: target.method,
+            url: target.url,
+            headers: target.headers,
+            body: target.body,
+            timeoutMs: target.timeoutMs,
+          };
+    unwrap(
+      await call<Outcome<null>>("engine_load_start", {
+        params: { ...rest, request },
+      }),
+    );
+  });
 }
 
 async function saveFile(
@@ -131,6 +164,11 @@ export function createTauriBridge(): AurolisBridge {
       commit: (params) => call("source_control_commit", { params }),
       pull: (id) => call("source_control_pull", { id }),
     },
+    assistants: {
+      installed: (id) => call("assistants_installed", { id }),
+      install: (params) =>
+        call("assistants_install", { id: params.id, files: params.files }),
+    },
     transfer: {
       saveFile: (params) => saveFile(params.name, params.bytes),
     },
@@ -144,6 +182,9 @@ export function createTauriBridge(): AurolisBridge {
       disconnectRealtime: (id) => call("engine_realtime_disconnect", { id }),
       onRealtimeEvent: (callback) =>
         subscribe<RealtimeEvent>(REALTIME_EVENT, callback),
+      startLoad: (params) => startLoad(params),
+      stopLoad: (runId) => call("engine_load_stop", { runId }),
+      onLoadEvent: (callback) => subscribe<LoadSnapshot>(LOAD_EVENT, callback),
     },
   };
   return bridge;

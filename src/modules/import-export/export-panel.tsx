@@ -6,22 +6,23 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { EXPORT_HINTS, TRANSFER_FORMATS } from "@/constants/import-export";
+import { useAtomValue } from "jotai";
+import { EXPORT_FORMATS, EXPORT_HINTS } from "@/constants/import-export";
+import { currentEnvironmentAtom } from "@/context/workspace-context";
 import { usePromise } from "@/hooks/usePromise";
 import { countItems } from "@/lib/collection-ops";
 import { transferService } from "@/services/transfer.service";
 import type {
+  ExportFormat,
   ExportSelection,
-  TransferFormat,
 } from "@/types/transfer/transfer.type";
 import type { CollectionItem } from "@/types/workspace/collection.type";
 import type { OpenedWorkspace } from "@/types/workspace/workspace-store.type";
 import { exportHoppscotch } from "@/utils/hoppscotch";
+import { exportOpenApi } from "@/utils/openapi";
 import { exportPostman } from "@/utils/postman";
 
 const WORKSPACE_TARGET = "workspace";
-
-const EXPORTERS = { postman: exportPostman, hoppscotch: exportHoppscotch };
 
 const plural = (count: number, word: string) =>
   `${count.toLocaleString("en")} ${word}${count === 1 ? "" : "s"}`;
@@ -46,8 +47,15 @@ function ExportPanel({ workspace }: Readonly<{ workspace: OpenedWorkspace }>) {
     ...(workspace.data?.environments ?? []),
     ...(globals && globals.variables.length > 0 ? [globals] : []),
   ];
-  const [target, setTarget] = useState(WORKSPACE_TARGET);
-  const [format, setFormat] = useState<TransferFormat>("postman");
+  const [chosen, setTarget] = useState(WORKSPACE_TARGET);
+  const [format, setFormat] = useState<ExportFormat>("postman");
+  const environment = useAtomValue(currentEnvironmentAtom);
+  const openApi = format === "openapi";
+  const target =
+    openApi && environments.some((entry) => entry.id === chosen)
+      ? WORKSPACE_TARGET
+      : chosen;
+  const listedEnvironments = openApi ? [] : environments;
 
   const selection: ExportSelection = {
     workspaceId: workspace.entry.id,
@@ -67,7 +75,15 @@ function ExportPanel({ workspace }: Readonly<{ workspace: OpenedWorkspace }>) {
   );
 
   const { loading, runPromise } = usePromise({
-    promise: () => transferService.saveFile(EXPORTERS[format](selection)),
+    promise: () => {
+      const file =
+        format === "openapi"
+          ? exportOpenApi(selection, environment)
+          : format === "hoppscotch"
+            ? exportHoppscotch(selection)
+            : exportPostman(selection);
+      return transferService.saveFile(file);
+    },
     onSuccess: (saved) => {
       if (saved.saved) toast.success("Exported", { description: saved.path });
     },
@@ -91,7 +107,7 @@ function ExportPanel({ workspace }: Readonly<{ workspace: OpenedWorkspace }>) {
         <SegmentedControl
           label="Export as"
           value={format}
-          options={TRANSFER_FORMATS}
+          options={EXPORT_FORMATS}
           onChange={setFormat}
         />
       </div>
@@ -124,7 +140,7 @@ function ExportPanel({ workspace }: Readonly<{ workspace: OpenedWorkspace }>) {
             />
           );
         })}
-        {environments.map((environment) => (
+        {listedEnvironments.map((environment) => (
           <ChoiceCard
             key={environment.id}
             selected={target === environment.id}
@@ -139,8 +155,10 @@ function ExportPanel({ workspace }: Readonly<{ workspace: OpenedWorkspace }>) {
       {realtime > 0 ? (
         <p className="text-[13px] text-mute">
           {plural(realtime, "WebSocket or Socket.IO request")}{" "}
-          {realtime === 1 ? "is" : "are"} left out: Postman and Hoppscotch
-          collections don't hold them.
+          {realtime === 1 ? "is" : "are"} left out:{" "}
+          {openApi
+            ? "OpenAPI describes HTTP APIs."
+            : "Postman and Hoppscotch collections don't hold them."}
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-3">

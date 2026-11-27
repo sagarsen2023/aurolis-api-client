@@ -4,6 +4,7 @@ import SideBar from "@/modules/layout/sidebar";
 import { authService } from "@/services/auth.service";
 import { useWorkspaceBootstrap } from "@/hooks/use-workspaces";
 import { useEditorStateSync } from "@/hooks/use-editor-state-sync";
+import { useLoadEventsListener } from "@/hooks/use-load-test";
 import { useRealtimeEventsListener } from "@/hooks/use-realtime";
 import { useUpdateCheck } from "@/hooks/use-update-check";
 
@@ -21,6 +22,7 @@ function DashboardLayout() {
   useWorkspaceBootstrap();
   useEditorStateSync();
   useRealtimeEventsListener();
+  useLoadEventsListener();
   useUpdateCheck();
   return (
     <div className="relative flex h-full w-full">

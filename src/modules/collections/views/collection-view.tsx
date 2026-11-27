@@ -13,6 +13,7 @@ import { MarkdownField } from "@/components/markdown-field";
 import AuthEditor from "../shared/auth-editor";
 import KeyValueEditor from "../shared/key-value-editor";
 import EditorSectionTabs from "../editor/editor-section-tabs";
+import OpenApiExportButton from "@/modules/import-export/openapi-export-button";
 import ItemFormHeader from "./item-form-header";
 import { countEnabled } from "@/utils/count-enabled";
 
@@ -59,6 +60,7 @@ function CollectionForm({ collection }: Readonly<{ collection: Collection }>) {
         canSave={Boolean(form.name.trim())}
         onSave={() => void save()}
         onDiscard={reset}
+        actions={<OpenApiExportButton collection={collection} />}
         onDelete={() =>
           setDialog({
             kind: "delete",

@@ -1,6 +1,9 @@
 use tauri::{AppHandle, State};
 
+use crate::assistants;
+
 use crate::engines::http::{HttpResponseData, HttpSendParams};
+use crate::engines::load::LoadStartParams;
 use crate::engines::realtime::{ConnectParams, SendParams};
 use crate::files::{
     FileChanges, WorkspaceFiles, apply_changes, read_state, read_workspace_files, state_file_name,
@@ -386,4 +389,32 @@ pub async fn engine_realtime_send(
 #[tauri::command]
 pub async fn engine_realtime_disconnect(state: State<'_, AppState>, id: String) -> Reply<()> {
     reply(state.realtime.disconnect(&id))
+}
+
+#[tauri::command]
+pub async fn engine_load_start(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    params: LoadStartParams,
+) -> Reply<()> {
+    reply(state.load.start(app, state.http.client(), params))
+}
+
+#[tauri::command]
+pub async fn engine_load_stop(state: State<'_, AppState>, run_id: String) -> Reply<()> {
+    reply(state.load.stop(&run_id))
+}
+
+#[tauri::command]
+pub async fn assistants_installed(state: State<'_, AppState>, id: String) -> Reply<Vec<String>> {
+    reply(assistants::installed(&state, &id).await)
+}
+
+#[tauri::command]
+pub async fn assistants_install(
+    state: State<'_, AppState>,
+    id: String,
+    files: std::collections::BTreeMap<String, String>,
+) -> Reply<Vec<String>> {
+    reply(assistants::install(&state, &id, files).await)
 }

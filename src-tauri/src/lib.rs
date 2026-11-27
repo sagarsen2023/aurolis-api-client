@@ -1,3 +1,4 @@
+mod assistants;
 mod commands;
 mod dialogs;
 mod engines;
@@ -162,6 +163,10 @@ pub fn run() {
             commands::engine_realtime_connect,
             commands::engine_realtime_send,
             commands::engine_realtime_disconnect,
+            commands::engine_load_start,
+            commands::engine_load_stop,
+            commands::assistants_installed,
+            commands::assistants_install,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Aurolis");
