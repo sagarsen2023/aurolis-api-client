@@ -4,6 +4,9 @@ const SHORTCUTS = [
   { title: "Save the open request or environment", keys: ["mod", "S"] },
   { title: "Save everything", keys: ["mod", "Shift", "S"] },
   { title: "Send the request", keys: ["mod", "Enter"] },
+  { title: "Zoom in", keys: ["mod", "+"] },
+  { title: "Zoom out", keys: ["mod", "-"] },
+  { title: "Reset zoom to 100%", keys: ["mod", "0"] },
   { title: "Close menus and dialogs", keys: ["Esc"] },
 ] as const;
 

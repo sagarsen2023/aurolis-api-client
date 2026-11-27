@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { AurolisBridge } from "@/aurolis-bridge";
 import type {
@@ -104,6 +105,7 @@ export function createTauriBridge(): AurolisBridge {
         .setTheme(theme === "system" ? null : theme)
         .catch(() => undefined);
     },
+    setZoom: (scale) => getCurrentWebview().setZoom(scale),
     github: {
       startSignIn: () => plain<GithubDeviceFlowStart>("github_start"),
       waitForSignIn: () => plain<GithubSignInResult>("github_wait"),

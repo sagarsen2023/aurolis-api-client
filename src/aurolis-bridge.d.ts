@@ -72,6 +72,7 @@ import type { SavedExportFile } from "@/types/transfer/transfer.type";
 interface AurolisBridge {
   readonly platform: string;
   setTheme(theme: "light" | "dark" | "system"): void;
+  setZoom(scale: number): Promise<void>;
   readonly github: {
     startSignIn(): Promise<GithubDeviceFlowStart>;
     waitForSignIn(): Promise<GithubSignInResult>;

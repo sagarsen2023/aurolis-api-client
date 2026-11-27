@@ -84,6 +84,10 @@ A local-first, open-source desktop API client (Tauri 2 + React). Each workspace 
 
 **Jotai** atoms in `src/context/` (e.g. `workspace-context.ts`, `breadcrumb-context.ts`). `theme-context.tsx` is a React context and also syncs the native window theme through `window.aurolis.setTheme`.
 
+### Zoom
+
+Whole-window zoom like Postman's: Ctrl/⌘ + `+` (or `=`), Ctrl/⌘ + `-` and Ctrl/⌘ + `0`, 50%–200% in 10% steps (`src/constants/zoom.ts`). `zoomAtom` in `settings-atoms.ts` keeps the level in localStorage. `useWindowZoom` (`src/hooks/use-zoom.ts`, mounted in `__root.tsx`) applies it with the native webview zoom through `window.aurolis.setZoom` (needs `core:webview:allow-set-webview-zoom`) and listens for the shortcuts in the capture phase, so they work inside CodeMirror too; the webview's own zoom hotkeys stay off (Tauri's default). `useZoom` gives the level and steps to Settings → Appearance, and every change shows a short toast.
+
 ### Services and `usePromise`
 
 - Services live in `src/services/*.service.ts` as plain objects (`authService`, `githubService`). Desktop-only features go through `window.aurolis`.

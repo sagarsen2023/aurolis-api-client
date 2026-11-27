@@ -1,8 +1,10 @@
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Minus, Monitor, Moon, Plus, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/theme-context";
-import { SettingsSection } from "./section";
+import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from "@/constants/zoom";
+import { useZoom } from "@/hooks/use-zoom";
+import { SettingRow, SettingsGroup, SettingsSection } from "./section";
 
 const THEMES = [
   {
@@ -65,6 +67,55 @@ function Preview({ theme }: Readonly<{ theme: "dark" | "light" | "system" }>) {
   );
 }
 
+function ZoomControl() {
+  const { zoom, zoomIn, zoomOut, resetZoom } = useZoom();
+
+  return (
+    <SettingsGroup className="mt-4">
+      <SettingRow
+        title="Zoom"
+        description="Scales the whole window. Also with Ctrl or ⌘ and +, - or 0."
+      >
+        <span className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Zoom out"
+            disabled={zoom <= MIN_ZOOM}
+            onClick={zoomOut}
+          >
+            <Minus />
+          </Button>
+          <span className="w-14 text-center font-mono text-sm text-foreground tabular-nums">
+            {zoom}%
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Zoom in"
+            disabled={zoom >= MAX_ZOOM}
+            onClick={zoomIn}
+          >
+            <Plus />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-1"
+            disabled={zoom === DEFAULT_ZOOM}
+            onClick={resetZoom}
+          >
+            Reset
+          </Button>
+        </span>
+      </SettingRow>
+    </SettingsGroup>
+  );
+}
+
 export function AppearanceSection() {
   const { theme, setTheme } = useTheme();
 
@@ -106,6 +157,7 @@ export function AppearanceSection() {
           );
         })}
       </div>
+      <ZoomControl />
     </SettingsSection>
   );
 }
