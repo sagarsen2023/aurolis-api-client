@@ -4,7 +4,7 @@
   "description": "Aurolis - an open-source API client.",
   "private": true,
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "homepage": "https://aurolis.dev",
   "repository": {

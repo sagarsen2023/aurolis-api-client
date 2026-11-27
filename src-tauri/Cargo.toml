@@ -1,6 +1,6 @@
 [package]
 name = "aurolis"
-version = "1.0.0"
+version = "1.1.0"
 description = "Aurolis, an open-source API client"
 authors = ["Sagar Sen <sagarsen.dev@gmail.com>"]
 license = "MIT"
