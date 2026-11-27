@@ -52,7 +52,8 @@
     ],
     "publisher": "Sagar Sen",
     "homepage": "https://aurolis.dev",
-    "copyright": "Copyright 2026 Aurolis contributors",
+    "copyright": "© 2026 Sagar Sen",
+    "licenseFile": "../LICENSE",
     "category": "DeveloperTool",
     "shortDescription": "Open-source API client built on git",
     "longDescription": "Aurolis is a local-first desktop API client. Every workspace is a git repository on your computer: send REST, GraphQL, WebSocket and Socket.IO requests, keep secrets in the system keychain, and commit and sync with GitHub or any git host.",
@@ -70,7 +71,13 @@
     },
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "sidebarImage": "installer/sidebar.bmp",
+        "headerImage": "installer/header.bmp",
+        "uninstallerHeaderImage": "installer/header.bmp",
+        "installerHooks": "installer/hooks.nsh"
       }
     },
     "linux": {

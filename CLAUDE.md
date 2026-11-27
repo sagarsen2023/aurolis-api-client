@@ -57,6 +57,7 @@ A local-first, open-source desktop API client (Tauri 2 + React). Each workspace 
 ### Updates
 
 - The updater plugin reads `latest.json` from the latest GitHub release (`plugins.updater` in `tauri.conf.json`). `src/services/update.service.ts` checks and installs, `use-update-check.ts` checks in the background, `src/modules/updates/` is the popup and `src/modules/settings/updates-section.tsx` the settings section.
+- The Windows installer is Tauri's NSIS template, branded through `bundle.windows.nsis` in `tauri.conf.json`: `src-tauri/installer/sidebar.bmp` (Welcome and Finish pages, 164×314 drawn at 2x: 328×628), `header.bmp` (150×57 at 2x: 300×114, the top right of the other pages) and `hooks.nsh`, which is included before the pages and sets their titles, texts and the finish page's launch checkbox and link. Keep the images 24-bit BMP at 2x so they stay sharp on high-DPI screens.
 - `.github/workflows/release.yml` runs on a `v*` tag: one draft release, tauri-action builds into it, then it checks the assets and publishes. The signing key is only in the `TAURI_SIGNING_PRIVATE_KEY` secret; never commit it.
 
 ### Collections and requests
